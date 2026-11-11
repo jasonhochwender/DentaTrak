@@ -2348,13 +2348,6 @@ endif;
                   <p class="ap-subtitle"><?= t('insights.lab_header_subtitle') ?></p>
                 </div>
                 <div class="ap-header-actions">
-                  <select class="ap-select" id="liRangeSelect">
-                    <option value="3"><?= t('insights.filters.last_n_months', ['count' => 3]) ?></option>
-                    <option value="6"><?= t('insights.filters.last_n_months', ['count' => 6]) ?></option>
-                    <option value="12" selected><?= t('insights.filters.last_n_months', ['count' => 12]) ?></option>
-                    <option value="24"><?= t('insights.filters.last_n_months', ['count' => 24]) ?></option>
-                    <option value="all"><?= t('insights.filters.all_time') ?></option>
-                  </select>
                   <button type="button" class="ap-btn ap-btn-secondary" id="liRefreshData">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
@@ -2362,6 +2355,74 @@ endif;
                     <?= t('insights.navigation.refresh') ?>
                   </button>
                 </div>
+              </div>
+            </div>
+
+            <!-- Global filter toolbar: reporting period applies to historical
+                 metrics; laboratory/case type apply to both current and
+                 historical sections; additional filters apply to current-state
+                 operational components only. -->
+            <div class="li-global-filters" id="liGlobalFilters">
+              <div class="li-global-filters-row">
+                <label class="li-gf-control">
+                  <span class="li-gf-label"><?= t('insights.filters.period') ?></span>
+                  <select class="ap-select" id="liRangeSelect" aria-label="<?= htmlspecialchars(t('insights.filters.period')) ?>">
+                    <option value="30d"><?= t('insights.filters.last_30_days') ?></option>
+                    <option value="90d" selected><?= t('insights.filters.last_90_days') ?></option>
+                    <option value="12m"><?= t('insights.filters.last_12_months') ?></option>
+                    <option value="all"><?= t('insights.filters.all_time') ?></option>
+                    <option value="custom"><?= t('insights.filters.custom_range') ?></option>
+                  </select>
+                </label>
+                <label class="li-gf-control">
+                  <span class="li-gf-label"><?= t('insights.filters.laboratory') ?></span>
+                  <select class="ap-select" id="liGlobalLab" aria-label="<?= htmlspecialchars(t('insights.filters.laboratory')) ?>"></select>
+                </label>
+                <label class="li-gf-control">
+                  <span class="li-gf-label"><?= t('insights.perf.case_type_filter.label') ?></span>
+                  <select class="ap-select" id="liCaseTypeFilter" aria-label="<?= htmlspecialchars(t('insights.perf.case_type_filter.label')) ?>"></select>
+                </label>
+                <div class="li-gf-control li-gf-filters-wrap">
+                  <button type="button" class="ap-btn ap-btn-secondary" id="liFiltersToggle" aria-expanded="false" aria-controls="liFiltersPanel">
+                    <?= t('insights.filters.additional') ?><span class="li-gf-count" id="liFiltersCount" hidden></span>
+                  </button>
+                  <div class="li-gf-panel" id="liFiltersPanel" hidden>
+                    <label class="li-gf-panel-field">
+                      <span class="li-gf-label"><?= t('insights.filters.workflow_status') ?></span>
+                      <select class="ap-select" id="liFilterStatus"></select>
+                    </label>
+                    <label class="li-gf-panel-field">
+                      <span class="li-gf-label"><?= t('insights.filters.risk') ?></span>
+                      <select class="ap-select" id="liFilterRisk">
+                        <option value=""><?= t('insights.filters.all_risks') ?></option>
+                        <option value="overdue"><?= t('insights.attention.filter_overdue') ?></option>
+                        <option value="appt_risk"><?= t('insights.attention.filter_appt_risk') ?></option>
+                        <option value="due_soon"><?= t('insights.attention.filter_due_soon') ?></option>
+                        <option value="awaiting_ack"><?= t('insights.attention.filter_awaiting_ack') ?></option>
+                      </select>
+                    </label>
+                    <label class="li-gf-panel-field">
+                      <span class="li-gf-label"><?= t('insights.filters.acknowledgment') ?></span>
+                      <select class="ap-select" id="liFilterAck">
+                        <option value=""><?= t('insights.filters.all_states') ?></option>
+                        <option value="awaiting"><?= t('insights.filters.awaiting_ack') ?></option>
+                      </select>
+                    </label>
+                  </div>
+                </div>
+                <button type="button" class="ap-btn ap-btn-secondary" id="liFiltersReset"><?= t('insights.filters.reset') ?></button>
+                <span class="li-gf-context" id="liFilterContext" aria-live="polite"></span>
+              </div>
+              <div class="li-gf-custom" id="liCustomRangeWrap" hidden>
+                <label class="li-gf-panel-field">
+                  <span class="li-gf-label"><?= t('insights.filters.start_date') ?></span>
+                  <input type="date" class="ap-input" id="liRangeStart">
+                </label>
+                <label class="li-gf-panel-field">
+                  <span class="li-gf-label"><?= t('insights.filters.end_date') ?></span>
+                  <input type="date" class="ap-input" id="liRangeEnd">
+                </label>
+                <span class="li-gf-error" id="liCustomRangeError" hidden></span>
               </div>
             </div>
 
@@ -2667,12 +2728,6 @@ endif;
                     <div>
                       <h2 class="ap-section-title"><?= t('insights.perf.sections.lab_performance') ?></h2>
                       <p class="ap-section-subtitle"><?= t('insights.perf.sections.lab_performance_subtitle') ?></p>
-                    </div>
-                    <div class="ap-section-actions">
-                      <label class="li-case-type-filter">
-                        <span class="ap-attention-sort-text"><?= t('insights.perf.case_type_filter.label') ?></span>
-                        <select class="ap-select" id="liCaseTypeFilter" aria-label="<?= htmlspecialchars(t('insights.perf.case_type_filter.label')) ?>"></select>
-                      </label>
                     </div>
                   </div>
                   <div class="li-table-wrap">

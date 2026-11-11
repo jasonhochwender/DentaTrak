@@ -273,3 +273,4 @@ NUL
 !/tests/ai-client-error-test.php
 !/tests/attention-classifier-test.php
 !/tests/ai-recommendation-store-test.php
+!/tests/lab-global-filters-test.php

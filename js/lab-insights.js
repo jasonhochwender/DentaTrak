@@ -38,6 +38,162 @@
   var liTrendGranularity = 'auto';   // auto | week | month | quarter
   var liPerfChart = null;
 
+  // ── Global filter state ────────────────────────────────────────────────
+  // Reporting period (liRangeSelect) drives historical metrics; the lab and
+  // case-type selections drive both current and historical sections; the
+  // additional filters (status/risk/ack) apply to current-state operational
+  // components only. Persisted in sessionStorage so filters survive
+  // in-tab navigation and refresh.
+  var liExtraFilters = { status: '', risk: '', ack: '' };
+  var liFetchSeq = 0;            // stale-response guard
+  var LI_FILTERS_KEY = 'dt_li_global_filters';
+
+  function liRiskCategory(item) {
+    // Map an item's risk signals to the shared risk-filter vocabulary.
+    var reasons = item.reasons || [];
+    var primary = item.primaryReason || (item.risk && item.risk.primary) || '';
+    var cats = {};
+    reasons.forEach(function (r) { cats[r] = true; });
+    if (primary === 'late_appt' || primary === 'late') { cats.late = true; }
+    if (item.risk && item.risk.primary) { cats[item.risk.primary] = true; }
+    if (item.daysLate !== null && item.daysLate !== undefined && item.daysLate > 0) { cats.late = true; }
+    if (cats.late) { return 'overdue'; }
+    if (cats.appt_risk) { return 'appt_risk'; }
+    if (cats.due_soon) { return 'due_soon'; }
+    if (cats.awaiting_ack) { return 'awaiting_ack'; }
+    return '';
+  }
+
+  /** Additional-filter predicate for current-state case-like records. */
+  function liExtraFilterMatch(rec) {
+    if (!rec) { return true; }
+    var f = liExtraFilters;
+    if (f.status && rec.status !== f.status) { return false; }
+    if (f.risk) {
+      var cat = liRiskCategory(rec);
+      if (cat !== f.risk) { return false; }
+    }
+    if (f.ack === 'awaiting') {
+      var awaiting = (rec.reasons || []).indexOf('awaiting_ack') !== -1
+        || (rec.risk && rec.risk.primary === 'awaiting_ack');
+      if (!awaiting) { return false; }
+    }
+    return true;
+  }
+
+  function liExtraFilterCount() {
+    var n = 0;
+    if (liExtraFilters.status) { n++; }
+    if (liExtraFilters.risk) { n++; }
+    if (liExtraFilters.ack) { n++; }
+    return n;
+  }
+
+  function liSaveFilters() {
+    try {
+      var rangeSel = document.getElementById('liRangeSelect');
+      sessionStorage.setItem(LI_FILTERS_KEY, JSON.stringify({
+        range: rangeSel ? rangeSel.value : '90d',
+        start: (document.getElementById('liRangeStart') || {}).value || '',
+        end: (document.getElementById('liRangeEnd') || {}).value || '',
+        lab: liSelectedLab || 'practice',
+        caseType: liCaseType || '',
+        extra: liExtraFilters
+      }));
+    } catch (e) { /* storage unavailable */ }
+  }
+
+  function liRestoreFilters() {
+    var saved = null;
+    try { saved = JSON.parse(sessionStorage.getItem(LI_FILTERS_KEY) || 'null'); } catch (e) { saved = null; }
+    if (!saved) { return; }
+    var rangeSel = document.getElementById('liRangeSelect');
+    if (rangeSel && saved.range) {
+      var ok = Array.prototype.some.call(rangeSel.options, function (o) { return o.value === saved.range; });
+      if (ok) { rangeSel.value = saved.range; }
+    }
+    if (saved.caseType) { liCaseType = saved.caseType; }
+    if (saved.extra && typeof saved.extra === 'object') {
+      liExtraFilters.status = saved.extra.status || '';
+      liExtraFilters.risk = saved.extra.risk || '';
+      liExtraFilters.ack = saved.extra.ack || '';
+    }
+    window.__liRestoreLab = saved.lab || null;
+    window.__liRestoreCustom = { start: saved.start || '', end: saved.end || '' };
+  }
+
+  /** Populate the global laboratory select from the loaded labs payload. */
+  function liPopulateGlobalLab() {
+    var sel = document.getElementById('liGlobalLab');
+    if (!sel) { return; }
+    var current = sel.value || 'practice';
+    var html = '<option value="practice">' + escapeHtml(t('insights.filters.all_labs')) + '</option>';
+    liPerfLabs.forEach(function (lab) {
+      html += '<option value="' + escapeHtml(lab.labKey) + '">' + escapeHtml(lab.name) + '</option>';
+    });
+    sel.innerHTML = html;
+    sel.value = liSelectedLab && liSelectedLab !== 'all' ? liSelectedLab : 'practice';
+    if (sel.value !== liSelectedLab && liSelectedLab !== 'practice') { sel.value = 'practice'; }
+  }
+
+  /** Populate the workflow-status select from statuses seen in current data. */
+  function liPopulateStatusFilter() {
+    var sel = document.getElementById('liFilterStatus');
+    if (!sel) { return; }
+    var statuses = {};
+    function add(s) { if (s) { statuses[s] = true; } }
+    ((liAging && liAging.cases) || []).forEach(function (c) { add(c.status); });
+    (liAttnState.items || []).forEach(function (i) { add(i.status); });
+    var order = (typeof window.workflowStageOrder !== 'undefined' && window.workflowStageOrder) || [];
+    var keys = order.filter(function (k) { return statuses[k]; });
+    Object.keys(statuses).forEach(function (k) { if (keys.indexOf(k) === -1) { keys.push(k); } });
+    var html = '<option value="">' + escapeHtml(t('insights.filters.all_statuses')) + '</option>';
+    keys.forEach(function (k) {
+      var label = (typeof window.getStageLabel === 'function') ? window.getStageLabel(k) : k;
+      html += '<option value="' + escapeHtml(k) + '">' + escapeHtml(label) + '</option>';
+    });
+    sel.innerHTML = html;
+    sel.value = liExtraFilters.status;
+  }
+
+  function liUpdateFiltersUI() {
+    var badge = document.getElementById('liFiltersCount');
+    var n = liExtraFilterCount();
+    if (badge) {
+      badge.hidden = n === 0;
+      badge.textContent = n > 0 ? ' (' + n + ')' : '';
+    }
+    var statusSel = document.getElementById('liFilterStatus');
+    var riskSel = document.getElementById('liFilterRisk');
+    var ackSel = document.getElementById('liFilterAck');
+    if (statusSel) { statusSel.value = liExtraFilters.status; }
+    if (riskSel) { riskSel.value = liExtraFilters.risk; }
+    if (ackSel) { ackSel.value = liExtraFilters.ack; }
+    liUpdateFilterContext();
+  }
+
+  /** Concise scope line: period · laboratory · case type. */
+  function liUpdateFilterContext() {
+    var el = document.getElementById('liFilterContext');
+    if (!el) { return; }
+    var rangeSel = document.getElementById('liRangeSelect');
+    var period = rangeSel ? (rangeSel.options[rangeSel.selectedIndex] || {}).text : '';
+    if (rangeSel && rangeSel.value === 'custom') {
+      var s = document.getElementById('liRangeStart');
+      var e = document.getElementById('liRangeEnd');
+      if (s && s.value && e && e.value) { period = s.value + ' – ' + e.value; }
+    }
+    var labSel = document.getElementById('liGlobalLab');
+    var lab = labSel ? (labSel.options[labSel.selectedIndex] || {}).text : '';
+    var ctSel = document.getElementById('liCaseTypeFilter');
+    var ct = ctSel ? (ctSel.options[ctSel.selectedIndex] || {}).text : '';
+    var parts = [];
+    if (period) { parts.push(period); }
+    if (lab) { parts.push(lab); }
+    if (ct) { parts.push(ct); }
+    el.textContent = parts.length ? t('insights.filters.context_prefix') + ' ' + parts.join(' · ') : '';
+  }
+
   function fmtDays(value) {
     if (value === null || value === undefined) { return '—'; }
     return I18n.pluralize(value, 'insights.metrics.days');
@@ -373,6 +529,8 @@
     var reasonCat = filter === 'overdue' ? 'late' : filter;
     if (filter !== 'all' && (item.reasons || []).indexOf(reasonCat) === -1) { return false; }
     if (liAttnState.lab !== 'all' && String(item.labKey) !== String(liAttnState.lab)) { return false; }
+    if (liCaseType && item.caseType && item.caseType !== liCaseType) { return false; }
+    if (!liExtraFilterMatch(item)) { return false; }
     return true;
   }
 
@@ -2974,6 +3132,7 @@
     return cases.filter(function (c) {
       if (liAgingLab !== 'practice' && (c.labKeys || []).indexOf(liAgingLab) === -1) { return false; }
       if (liCaseType && c.caseType !== liCaseType) { return false; }
+      if (!liExtraFilterMatch(c)) { return false; }
       return true;
     });
   }
@@ -3213,6 +3372,20 @@
     liAgingShowAll = false;
     if (!liSelectedLab) { liSelectedLab = 'practice'; }
     populateCaseTypeFilter();
+    liPopulateGlobalLab();
+    liPopulateStatusFilter();
+    liUpdateFiltersUI();
+    liUpdateFilterContext();
+    // Restore a persisted laboratory selection once per page load.
+    if (window.__liRestoreLab !== undefined && window.__liRestoreLab !== null) {
+      var restoreLab = window.__liRestoreLab;
+      window.__liRestoreLab = null;
+      var labOk = restoreLab === 'practice'
+        || (liPerf.labs || []).some(function (l) { return l.labKey === restoreLab; });
+      if (labOk && restoreLab !== liSelectedLab) {
+        selectLab(restoreLab, { noScroll: true });
+      }
+    }
 
     try {
       renderPerfSummary(liPerf.practice);
@@ -3325,7 +3498,8 @@
       '<th>' + t('insights.labs.status') + '</th>' +
       '<th>' + t('insights.labs.due_date') + '</th>' +
       '<th>' + t('insights.labs.days_late') + '</th></tr></thead><tbody>';
-    rows.forEach(function (r) {
+    var visibleRows = rows.filter(function (r) { return liExtraFilterMatch(r); });
+    visibleRows.forEach(function (r) {
       html += '<tr>' +
         '<td>' + escapeHtml(r.patientName || r.caseId) + '</td>' +
         '<td>' + escapeHtml(r.caseType || '—') + '</td>' +
@@ -3560,7 +3734,15 @@
 
     setLoading(true);
     setError('');
-    var range = document.getElementById('liRangeSelect') ? document.getElementById('liRangeSelect').value : '12';
+    var range = document.getElementById('liRangeSelect') ? document.getElementById('liRangeSelect').value : '90d';
+    var qs = 'range=' + encodeURIComponent(range);
+    if (range === 'custom') {
+      var sd = document.getElementById('liRangeStart');
+      var ed = document.getElementById('liRangeEnd');
+      if (sd && sd.value) { qs += '&start=' + encodeURIComponent(sd.value); }
+      if (ed && ed.value) { qs += '&end=' + encodeURIComponent(ed.value); }
+    }
+    var seq = ++liFetchSeq;
 
     // A pending flag set by activateInsightsSubview() marks this request as a
     // screen visit; it is cleared only when the screen renders successfully.
@@ -3569,7 +3751,7 @@
       headers['X-Insights-Visit'] = '1';
     }
 
-    fetch('api/get-lab-insights.php?range=' + encodeURIComponent(range), { credentials: 'same-origin', headers: headers })
+    fetch('api/get-lab-insights.php?' + qs, { credentials: 'same-origin', headers: headers })
       .then(function (response) {
         return response.json().then(function (data) {
           if (!response.ok) {
@@ -3582,6 +3764,7 @@
         });
       })
       .then(function (data) {
+        if (seq !== liFetchSeq) { return; } // superseded by a newer filter selection
         setLoading(false);
         if (!data || !data.success) {
           setError((data && data.message) ? data.message : (t('insights.error.labs_data') || 'Unable to load lab insights.'));
@@ -3594,6 +3777,7 @@
         render(data);
       })
       .catch(function (error) {
+        if (seq !== liFetchSeq) { return; }
         setLoading(false);
         // A mid-session entitlement loss surfaces the server's message
         // (e.g. upgrade_required) rather than a generic failure.
@@ -3681,8 +3865,11 @@
       caseTypeSelect.addEventListener('change', function () {
         liCaseType = caseTypeSelect.value || '';
         renderPerfTable();
+        renderLiAttnRows();
         renderQualitySection();
         renderAgingSection();
+        liSaveFilters();
+        liUpdateFilterContext();
       });
     }
 
@@ -3803,13 +3990,107 @@
 
     var rangeSelect = document.getElementById('liRangeSelect');
     if (rangeSelect) {
-      rangeSelect.addEventListener('change', fetchAndRender);
+      rangeSelect.addEventListener('change', function () {
+        var wrap = document.getElementById('liCustomRangeWrap');
+        var isCustom = rangeSelect.value === 'custom';
+        if (wrap) { wrap.hidden = !isCustom; }
+        if (isCustom && window.__liRestoreCustom) {
+          var sd = document.getElementById('liRangeStart');
+          var ed = document.getElementById('liRangeEnd');
+          if (sd && !sd.value) { sd.value = window.__liRestoreCustom.start || ''; }
+          if (ed && !ed.value) { ed.value = window.__liRestoreCustom.end || ''; }
+        }
+        liUpdateFilterContext();
+        liSaveFilters();
+        liValidateCustomRange(true);
+      });
     }
+    var rangeStartInput = document.getElementById('liRangeStart');
+    var rangeEndInput = document.getElementById('liRangeEnd');
+    [rangeStartInput, rangeEndInput].forEach(function (inp) {
+      if (inp) { inp.addEventListener('change', function () { liValidateCustomRange(true); }); }
+    });
+
+    var globalLabSel = document.getElementById('liGlobalLab');
+    if (globalLabSel) {
+      globalLabSel.addEventListener('change', function () {
+        selectLab(globalLabSel.value || 'practice', { noScroll: true });
+        liSaveFilters();
+        liUpdateFilterContext();
+      });
+    }
+
+    var filtersToggle = document.getElementById('liFiltersToggle');
+    var filtersPanel = document.getElementById('liFiltersPanel');
+    if (filtersToggle && filtersPanel) {
+      filtersToggle.addEventListener('click', function () {
+        var open = filtersPanel.hidden;
+        filtersPanel.hidden = !open;
+        filtersToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+    }
+    [['liFilterStatus', 'status'], ['liFilterRisk', 'risk'], ['liFilterAck', 'ack']].forEach(function (pair) {
+      var el = document.getElementById(pair[0]);
+      if (el) {
+        el.addEventListener('change', function () {
+          liExtraFilters[pair[1]] = el.value || '';
+          liUpdateFiltersUI();
+          liSaveFilters();
+          renderLiAttnRows();
+          renderAgingSection();
+          renderPerfDetail();
+        });
+      }
+    });
+
+    var filtersReset = document.getElementById('liFiltersReset');
+    if (filtersReset) {
+      filtersReset.addEventListener('click', function () {
+        liExtraFilters = { status: '', risk: '', ack: '' };
+        liCaseType = '';
+        var ctSel = document.getElementById('liCaseTypeFilter');
+        if (ctSel) { ctSel.value = ''; }
+        var rangeSel = document.getElementById('liRangeSelect');
+        if (rangeSel) { rangeSel.value = '90d'; }
+        var wrap = document.getElementById('liCustomRangeWrap');
+        if (wrap) { wrap.hidden = true; }
+        var sd = document.getElementById('liRangeStart');
+        var ed = document.getElementById('liRangeEnd');
+        if (sd) { sd.value = ''; }
+        if (ed) { ed.value = ''; }
+        var err = document.getElementById('liCustomRangeError');
+        if (err) { err.hidden = true; }
+        selectLab('practice', { noScroll: true });
+        var labSel = document.getElementById('liGlobalLab');
+        if (labSel) { labSel.value = 'practice'; }
+        liUpdateFiltersUI();
+        liSaveFilters();
+        liUpdateFilterContext();
+        fetchAndRender();
+      });
+    }
+  }
+
+  /** Validate the custom range and fetch when it is usable. */
+  function liValidateCustomRange(doFetch) {
+    var rangeSel = document.getElementById('liRangeSelect');
+    if (!rangeSel || rangeSel.value !== 'custom') { return; }
+    var sd = document.getElementById('liRangeStart');
+    var ed = document.getElementById('liRangeEnd');
+    var err = document.getElementById('liCustomRangeError');
+    var bad = sd && ed && sd.value && ed.value && sd.value > ed.value;
+    if (err) {
+      err.textContent = bad ? t('insights.filters.invalid_range') : '';
+      err.hidden = !bad;
+    }
+    if (bad) { return; }
+    if (doFetch) { fetchAndRender(); }
   }
 
   var initialized = false;
   window.loadLabInsightsData = function () {
     if (!initialized) {
+      liRestoreFilters();
       initOnce();
       initialized = true;
     }

@@ -119,15 +119,38 @@ ensureLabAssignmentHistoryTable();
 ensureLabDesignationColumns();
 
 // ── Date range ────────────────────────────────────────────────────────────
-$rangeParam = $_GET['range'] ?? '12';
+// Presets: 'all', '<days>d' (e.g. '30d','90d'), '<months>m' (e.g. '12m'),
+// or bare integers for backward compatibility (treated as months).
+// 'custom' uses start/end YYYY-MM-DD params. $rangeEnd bounds historical
+// windows only; current-state metrics always use $now.
+$rangeParam = $_GET['range'] ?? '90d';
 $rangeStart = null; // null = no lower bound ('all')
-if ($rangeParam !== 'all') {
-    $months = (int)$rangeParam;
-    if ($months < 1) { $months = 1; }
-    if ($months > 60) { $months = 60; }
-    $rangeStart = (new DateTimeImmutable('now'))->modify("-{$months} months");
-}
+$rangeEnd = null;   // null = now
+$parseFilterDate = function ($value, bool $endOfDay): ?DateTimeImmutable {
+    if (!is_string($value) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) { return null; }
+    $d = DateTimeImmutable::createFromFormat('Y-m-d', $value);
+    if (!$d || $d->format('Y-m-d') !== $value) { return null; }
+    return $d->setTime($endOfDay ? 23 : 0, $endOfDay ? 59 : 0, $endOfDay ? 59 : 0);
+};
 $now = new DateTimeImmutable('now');
+if ($rangeParam === 'custom') {
+    $startD = $parseFilterDate($_GET['start'] ?? null, false);
+    $endD = $parseFilterDate($_GET['end'] ?? null, true);
+    if ($startD !== null) { $rangeStart = $startD; }
+    if ($endD !== null && $endD > $now) { $endD = $now; }
+    if ($endD !== null && $endD < $now) { $rangeEnd = $endD; }
+} elseif ($rangeParam !== 'all') {
+    if (preg_match('/^(\d+)d$/', $rangeParam, $m)) {
+        $days = max(1, min(3650, (int)$m[1]));
+        $rangeStart = (clone $now)->modify("-{$days} days");
+    } else {
+        $months = (int)preg_replace('/m$/', '', $rangeParam);
+        if ($months < 1) { $months = 1; }
+        if ($months > 60) { $months = 60; }
+        $rangeStart = (clone $now)->modify("-{$months} months");
+    }
+}
+$rangeEndTs = $rangeEnd ?? $now;
 
 // Authoritative terminal-status definition: the highest active workflow
 // column for this practice. With configurable columns, the last position is
@@ -582,7 +605,7 @@ try {
 
             // Direct Transfers is historical like every other metric below -
             // scoped to the selected range via the same overlap check.
-            if ($p['end_reason'] === 'reassigned_to_lab' && periodOverlapsRange($p, $rangeStart, $now)) {
+            if ($p['end_reason'] === 'reassigned_to_lab' && periodOverlapsRange($p, $rangeStart, $rangeEndTs)) {
                 $directTransfersOut++;
             }
 
@@ -591,7 +614,7 @@ try {
             // whether the period overlaps the selected window. This is
             // intentionally NOT a "completed work" count - see Completed
             // below for that.
-            if (periodOverlapsRange($p, $rangeStart, $now)) {
+            if (periodOverlapsRange($p, $rangeStart, $rangeEndTs)) {
                 $assignedCaseIds[$caseId] = true;
             }
 
@@ -605,7 +628,7 @@ try {
                 $started = new DateTimeImmutable($p['started_at']);
                 $ended = new DateTimeImmutable($p['ended_at']);
                 $seconds = $ended->getTimestamp() - $started->getTimestamp();
-                if ($seconds > 0 && periodOverlapsRange($p, $rangeStart, $now)) {
+                if ($seconds > 0 && periodOverlapsRange($p, $rangeStart, $rangeEndTs)) {
                     $turnaroundByCase[$caseId] = ($turnaroundByCase[$caseId] ?? 0) + $seconds;
 
                     // Late Delivery Rate candidate: same completed population
@@ -632,14 +655,14 @@ try {
                     $inWindow = $periodEnd
                         ? ($rev >= $periodStart && $rev < $periodEnd)
                         : ($rev >= $periodStart);
-                    if ($inWindow && ($rangeStart === null || $rev >= $rangeStart)) {
+                    if ($inWindow && ($rangeStart === null || ($rev >= $rangeStart && $rev <= $rangeEndTs))) {
                         $revisionCountTotal++;
                         $revisionAttributedCases[$caseId] = true;
                     }
                 }
             }
 
-            if (periodOverlapsRange($p, $rangeStart, $now)) {
+            if (periodOverlapsRange($p, $rangeStart, $rangeEndTs)) {
                 $multiLabCaseKeys[$caseId][$labKey] = true;
             }
         }
@@ -887,7 +910,7 @@ try {
 
     // ── Trend: cases handled per lab per month, over the selected range
     // (or last 12 months if 'all', to keep the chart readable). ──────────
-    $trendMonths = $rangeStart !== null ? (int)$rangeParam : 12;
+    $trendMonths = $rangeStart !== null ? max(1, min(24, (int)ceil($rangeEndTs->diff($rangeStart)->days / 30.44))) : 12;
     $trendMonths = max(1, min(24, $trendMonths));
     $trendStart = $now->modify("-{$trendMonths} months")->modify('first day of this month midnight');
 
@@ -949,7 +972,7 @@ try {
     $performance = null;
     $recommendations = null;
     try {
-        $performance = computeLabPerformanceMetrics($pdo, $practiceId, $rangeStart, $now);
+        $performance = computeLabPerformanceMetrics($pdo, $practiceId, $rangeStart, $rangeEndTs);
         if (is_array($performance)) {
             // Current-state context for the insight rules: the same
             // per-category attention counts that power Lab Cases Requiring
@@ -1035,7 +1058,7 @@ try {
             $quality = buildLabQualityInsights(
                 $performance, $periodsByLab ?? [], $regressionsByCase ?? [],
                 $remakeRows, $casesById ?? [], $qualityLabNames,
-                $rangeStart ?? null, $now
+                $rangeStart ?? null, $rangeEndTs
             );
         } catch (Throwable $qEx) {
             error_log('[get-lab-insights] quality payload failed: ' . $qEx->getMessage());

@@ -3785,7 +3785,19 @@
             "laboratory": "Labor",
             "all_laboratories": "Alle Labore",
             "filters_button": "Filter",
-            "reset": "Zurücksetzen"
+            "reset": "Zurücksetzen",
+            "all_labs": "Alle Labore",
+            "additional": "Filter",
+            "workflow_status": "Workflow-Status",
+            "risk": "Risiko",
+            "all_risks": "Alle Risiken",
+            "acknowledgment": "Bestätigung",
+            "all_states": "Alle Zustände",
+            "awaiting_ack": "Bestätigung ausstehend",
+            "start_date": "Startdatum",
+            "end_date": "Enddatum",
+            "invalid_range": "Das Startdatum muss vor oder am Enddatum liegen.",
+            "context_prefix": "Anzeige:"
         },
         "tooltips": {
             "average_lab_turnaround": "Durchschnittliche Anzahl von Tagen, die Fälle einem Labor zugewiesen sind, vom Beginn der Laborzuweisung bis zum Abschluss der Zuweisung. Dieser Wert wird über alle Labore gemittelt.",

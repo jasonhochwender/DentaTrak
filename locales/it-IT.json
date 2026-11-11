@@ -2162,7 +2162,19 @@
             "laboratory": "Laboratorio",
             "all_laboratories": "Tutti i laboratori",
             "filters_button": "Filtri",
-            "reset": "Reimposta"
+            "reset": "Reimposta",
+            "all_labs": "Tutti i laboratori",
+            "additional": "Filtri",
+            "workflow_status": "Stato del flusso",
+            "risk": "Rischio",
+            "all_risks": "Tutti i rischi",
+            "acknowledgment": "Conferma di ricezione",
+            "all_states": "Tutti gli stati",
+            "awaiting_ack": "In attesa di conferma",
+            "start_date": "Data di inizio",
+            "end_date": "Data di fine",
+            "invalid_range": "La data di inizio deve essere precedente o uguale alla data di fine.",
+            "context_prefix": "Visualizzazione:"
         },
         "tooltips": {
             "average_lab_turnaround": "Numero medio di giorni che i casi trascorrono assegnati a un laboratorio, dall'inizio dell'assegnazione al suo completamento. Il valore è calcolato come media su tutti i laboratori.",
