@@ -2537,7 +2537,12 @@
       html += '<option value="' + escapeHtml(k) + '">' + escapeHtml(lab.name || k) + '</option>';
     });
     sel.innerHTML = html;
-    liQualitySyncScope();
+    // Preserve the current scope when it is still valid; sync from the Lab
+    // Detail selection happens only via liQualitySyncScope() (selectLab /
+    // data load), so a manual choice is not snapped back on re-render.
+    var valid = liQualityLab === 'practice' || (liQuality.byLab && liQuality.byLab[liQualityLab]);
+    if (!valid) { liQualityLab = 'practice'; }
+    sel.value = liQualityLab;
   }
 
   /**
@@ -2719,12 +2724,7 @@
   }
 
   function liQualityRenderTrend(scope) {
-    var trends = scope.trends || {};
     var metricKey = liQualityTrendMetric;
-    var series = trends[metricKey] || {};
-    var labels = Object.keys(series).sort();
-    var values = labels.map(function (k) { return series[k]; });
-    var metricLabel = t('insights.quality.trend_' + metricKey);
 
     var html = '<div class="ap-chart-card li-quality-trend">' +
       '<div class="ap-chart-header"><div>' +
@@ -2738,56 +2738,69 @@
       }).join('') + '</select></div></div>' +
       '<div class="li-quality-trend-body" id="liQualityTrendBody"></div></div>';
 
-    var body = document.createElement('div');
-    body.innerHTML = html;
-    var container = body.firstChild;
-    var trendBody = container.querySelector('#liQualityTrendBody');
+    var container = document.createElement('div');
+    container.innerHTML = html;
+    var card = container.firstChild;
 
-    var nonZero = values.filter(function (v) { return v > 0; });
-    if (!labels.length || (labels.length === 1 && values[0] === 0)) {
-      trendBody.innerHTML = '<p class="li-muted">' + escapeHtml(t('insights.quality.trend_empty')) + '</p>';
-    } else if (labels.length === 1) {
-      trendBody.innerHTML = '<p class="li-quality-trend-single">' +
-        escapeHtml(I18n.pluralize(values[0], 'insights.quality.trend_single_n')) + '</p>';
-    } else {
-      var canvas = document.createElement('canvas');
-      canvas.id = 'liQualityTrendChart';
-      canvas.setAttribute('role', 'img');
-      trendBody.appendChild(canvas);
-      if (liQualityChart) { liQualityChart.destroy(); liQualityChart = null; }
-      var color = getComputedStyle(document.documentElement).getPropertyValue('--ap-accent').trim() || '#3b82f6';
-      liQualityChart = new Chart(canvas.getContext('2d'), {
-        type: 'bar',
-        data: {
-          labels: labels,
-          datasets: [{
-            label: metricLabel,
-            data: values,
-            backgroundColor: color,
-            borderRadius: 3,
-          }],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            x: { ticks: { font: { size: 10, family: "'Poppins', sans-serif" } } },
-            y: { beginAtZero: true, ticks: { precision: 0, font: { size: 10, family: "'Poppins', sans-serif" } } },
-          },
-          plugins: { legend: { display: false } },
-        },
-      });
-      setChartAriaLabel(canvas, metricLabel, labels, values, function (v) { return String(v); });
-    }
-
-    var metricSel = container.querySelector('#liQualityTrendMetric');
+    var metricSel = card.querySelector('#liQualityTrendMetric');
     if (metricSel) {
       metricSel.addEventListener('change', function () {
         liQualityTrendMetric = metricSel.value;
         renderQualitySection();
       });
     }
-    return container;
+    return card;
+  }
+
+  /** Draw the trend chart; call only after the card is attached to the DOM. */
+  function liQualityDrawTrend(scope) {
+    var trends = scope.trends || {};
+    var metricKey = liQualityTrendMetric;
+    var series = trends[metricKey] || {};
+    var labels = Object.keys(series).sort();
+    var values = labels.map(function (k) { return series[k]; });
+    var metricLabel = t('insights.quality.trend_' + metricKey);
+    var trendBody = document.getElementById('liQualityTrendBody');
+    if (!trendBody) { return; }
+    if (liQualityChart) { liQualityChart.destroy(); liQualityChart = null; }
+
+    if (!labels.length || values.every(function (v) { return !v; })) {
+      trendBody.innerHTML = '<p class="li-muted">' + escapeHtml(t('insights.quality.trend_empty')) + '</p>';
+      return;
+    }
+    if (labels.length === 1) {
+      trendBody.innerHTML = '<p class="li-quality-trend-single">' +
+        escapeHtml(I18n.pluralize(values[0], 'insights.quality.trend_single_n')) + '</p>';
+      return;
+    }
+
+    var canvas = document.createElement('canvas');
+    canvas.id = 'liQualityTrendChart';
+    canvas.setAttribute('role', 'img');
+    trendBody.appendChild(canvas);
+    var color = getComputedStyle(document.documentElement).getPropertyValue('--ap-accent').trim() || '#3b82f6';
+    liQualityChart = new Chart(canvas.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: metricLabel,
+          data: values,
+          backgroundColor: color,
+          borderRadius: 3,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { ticks: { font: { size: 10, family: "'Poppins', sans-serif" } } },
+          y: { beginAtZero: true, ticks: { precision: 0, font: { size: 10, family: "'Poppins', sans-serif" } } },
+        },
+        plugins: { legend: { display: false } },
+      },
+    });
+    setChartAriaLabel(canvas, metricLabel, labels, values, function (v) { return String(v); });
   }
 
   function renderQualitySection() {
@@ -2891,7 +2904,10 @@
 
     body.innerHTML = html;
     var trendBlock = body.querySelector('.li-quality-trend-block');
-    if (trendBlock && trendNode) { trendBlock.appendChild(trendNode); }
+    if (trendBlock && trendNode) {
+      trendBlock.appendChild(trendNode);
+      liQualityDrawTrend(scope);
+    }
 
     section.style.display = 'block';
   }
