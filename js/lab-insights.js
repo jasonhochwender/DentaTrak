@@ -183,6 +183,12 @@
       liExtraFilters.risk = saved.extra.risk || '';
       liExtraFilters.ack = saved.extra.ack || '';
     }
+    var wrap = document.getElementById('liCustomRangeWrap');
+    if (wrap && rangeSel) { wrap.hidden = rangeSel.value !== 'custom'; }
+    var sd = document.getElementById('liRangeStart');
+    var ed = document.getElementById('liRangeEnd');
+    if (sd) { sd.value = saved.start || ''; }
+    if (ed) { ed.value = saved.end || ''; }
     window.__liRestoreLab = saved.lab || null;
     window.__liRestoreCustom = { start: saved.start || '', end: saved.end || '' };
   }

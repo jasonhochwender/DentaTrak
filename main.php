@@ -2374,47 +2374,49 @@ endif;
                   <span class="li-gf-label"><?= t('insights.perf.case_type_filter.label') ?></span>
                   <select class="ap-select" id="liCaseTypeFilter" aria-label="<?= htmlspecialchars(t('insights.perf.case_type_filter.label')) ?>"></select>
                 </label>
-                <div class="li-gf-control li-gf-filters-wrap">
+                <div class="li-gf-control">
                   <button type="button" class="ap-btn ap-btn-secondary" id="liFiltersToggle" aria-expanded="false" aria-controls="liFiltersPanel">
                     <?= t('insights.filters.additional') ?><span class="li-gf-count" id="liFiltersCount" hidden></span>
                   </button>
-                  <div class="li-gf-panel" id="liFiltersPanel" hidden>
-                    <label class="li-gf-panel-field">
-                      <span class="li-gf-label"><?= t('insights.filters.workflow_status') ?></span>
-                      <select class="ap-select" id="liFilterStatus"></select>
-                    </label>
-                    <label class="li-gf-panel-field">
-                      <span class="li-gf-label"><?= t('insights.filters.risk') ?></span>
-                      <select class="ap-select" id="liFilterRisk">
-                        <option value=""><?= t('insights.filters.all_risks') ?></option>
-                        <option value="overdue"><?= t('insights.attention.filter_overdue') ?></option>
-                        <option value="appt_risk"><?= t('insights.attention.filter_appt_risk') ?></option>
-                        <option value="due_soon"><?= t('insights.attention.filter_due_soon') ?></option>
-                        <option value="awaiting_ack"><?= t('insights.attention.filter_awaiting_ack') ?></option>
-                      </select>
-                    </label>
-                    <label class="li-gf-panel-field">
-                      <span class="li-gf-label"><?= t('insights.filters.acknowledgment') ?></span>
-                      <select class="ap-select" id="liFilterAck">
-                        <option value=""><?= t('insights.filters.all_states') ?></option>
-                        <option value="awaiting"><?= t('insights.filters.awaiting_ack') ?></option>
-                      </select>
-                    </label>
-                  </div>
                 </div>
                 <button type="button" class="ap-btn ap-btn-secondary" id="liFiltersReset"><?= t('insights.filters.reset') ?></button>
                 <span class="li-gf-context" id="liFilterContext" aria-live="polite"></span>
               </div>
+              <div class="li-gf-extra" id="liFiltersPanel" hidden>
+                <label class="li-gf-field">
+                  <span class="li-gf-label"><?= t('insights.filters.workflow_status') ?></span>
+                  <select class="ap-select" id="liFilterStatus"></select>
+                </label>
+                <label class="li-gf-field">
+                  <span class="li-gf-label"><?= t('insights.filters.risk') ?></span>
+                  <select class="ap-select" id="liFilterRisk">
+                    <option value=""><?= t('insights.filters.all_risks') ?></option>
+                    <option value="overdue"><?= t('insights.attention.filter_overdue') ?></option>
+                    <option value="appt_risk"><?= t('insights.attention.filter_appt_risk') ?></option>
+                    <option value="due_soon"><?= t('insights.attention.filter_due_soon') ?></option>
+                    <option value="awaiting_ack"><?= t('insights.attention.filter_awaiting_ack') ?></option>
+                  </select>
+                </label>
+                <label class="li-gf-field">
+                  <span class="li-gf-label"><?= t('insights.filters.acknowledgment') ?></span>
+                  <select class="ap-select" id="liFilterAck">
+                    <option value=""><?= t('insights.filters.all_states') ?></option>
+                    <option value="awaiting"><?= t('insights.filters.awaiting_ack') ?></option>
+                  </select>
+                </label>
+              </div>
               <div class="li-gf-custom" id="liCustomRangeWrap" hidden>
-                <label class="li-gf-panel-field">
-                  <span class="li-gf-label"><?= t('insights.filters.start_date') ?></span>
-                  <input type="date" class="ap-input" id="liRangeStart">
-                </label>
-                <label class="li-gf-panel-field">
-                  <span class="li-gf-label"><?= t('insights.filters.end_date') ?></span>
-                  <input type="date" class="ap-input" id="liRangeEnd">
-                </label>
-                <span class="li-gf-error" id="liCustomRangeError" hidden></span>
+                <div class="li-gf-dates">
+                  <label class="li-gf-field li-gf-date">
+                    <span class="li-gf-label"><?= t('insights.filters.start_date') ?></span>
+                    <input type="date" class="ap-input" id="liRangeStart">
+                  </label>
+                  <label class="li-gf-field li-gf-date">
+                    <span class="li-gf-label"><?= t('insights.filters.end_date') ?></span>
+                    <input type="date" class="ap-input" id="liRangeEnd">
+                  </label>
+                  <span class="li-gf-error" id="liCustomRangeError" hidden></span>
+                </div>
               </div>
             </div>
 

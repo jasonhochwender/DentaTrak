@@ -862,33 +862,57 @@
   margin-left: 4px;
   font-weight: 700;
 }
-.li-gf-filters-wrap { position: relative; }
-.li-gf-panel {
-  position: absolute;
-  z-index: 30;
-  top: calc(100% + 6px);
-  left: 0;
-  min-width: 210px;
-  padding: 12px;
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.li-gf-panel .ap-select { width: 100%; }
-.li-gf-custom {
+/* hidden must win over the display rules below */
+.li-global-filters [hidden] { display: none !important; }
+/* Additional filters expand inline inside the toolbar - never a popup. */
+.li-gf-extra {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
   gap: 10px 14px;
   margin-top: 10px;
   padding-top: 10px;
   border-top: 1px solid #f1f5f9;
 }
-.li-gf-custom .ap-input { min-width: 150px; }
+.li-gf-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.li-gf-field .ap-select { min-width: 170px; }
+.li-gf-custom {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #f1f5f9;
+}
+.li-gf-dates {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px 14px;
+}
+.li-gf-date .ap-input,
+.li-gf-date input[type="date"] {
+  width: 172px;
+  max-width: 100%;
+  height: 36px;
+  padding: 8px 34px 8px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  color: #374151;
+  background: #fff;
+  box-sizing: border-box;
+}
+.li-gf-date input[type="date"]:focus {
+  outline: none;
+  border-color: #4f8ef7;
+  box-shadow: 0 0 0 2px rgba(79, 142, 247, 0.15);
+}
+.li-gf-date input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.65;
+}
 .li-gf-error { color: #b91c1c; font-size: 12px; align-self: center; }
 .li-gf-context {
   margin-left: auto;
@@ -899,6 +923,10 @@
 @media (max-width: 720px) {
   .li-global-filters-row { gap: 8px 10px; }
   .li-gf-control .ap-select { min-width: 120px; width: 100%; }
+  .li-gf-extra { gap: 8px 10px; }
+  .li-gf-field .ap-select { min-width: 0; width: 100%; }
+  .li-gf-date .ap-input,
+  .li-gf-date input[type="date"] { width: 100%; }
   .li-gf-context { margin-left: 0; width: 100%; }
 }
 

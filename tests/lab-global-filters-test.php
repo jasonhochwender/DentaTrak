@@ -18,7 +18,11 @@ ok(strpos($main, 'id="liRangeSelect"') !== false, 'period select present');
 ok(strpos($main, 'id="liGlobalLab"') !== false, 'laboratory select present');
 ok(strpos($main, 'id="liCaseTypeFilter"') !== false, 'case-type select present in toolbar');
 ok(strpos($main, 'id="liFiltersToggle"') !== false, 'filters toggle present');
-ok(strpos($main, 'id="liFiltersPanel"') !== false, 'filters panel present');
+// Filters panel is an inline section, not a positioned popup.
+ok(strpos($main, 'class="li-gf-extra" id="liFiltersPanel"') !== false, 'filters panel inline in toolbar');
+ok(strpos($main, 'li-gf-panel') === false, 'old popup markup removed');
+// Date inputs inside labels with consistent field classes.
+ok(substr_count($main, 'class="li-gf-field li-gf-date"') === 2, 'two labeled date fields');
 ok(strpos($main, 'id="liFilterStatus"') !== false, 'status filter present');
 ok(strpos($main, 'id="liFilterRisk"') !== false, 'risk filter present');
 ok(strpos($main, 'id="liFilterAck"') !== false, 'ack filter present');
@@ -68,7 +72,11 @@ ok(strpos($api, '$now->getTimestamp() - $labSinceByCase') !== false, 'aging uses
 
 // ── CSS ───────────────────────────────────────────────────────────────
 ok(strpos($css, '.li-global-filters') !== false, 'toolbar styles');
-ok(strpos($css, '.li-gf-panel') !== false, 'filters popover styles');
+ok(strpos($css, '.li-gf-extra') !== false, 'inline additional-filters section');
+ok(strpos($css, '.li-global-filters [hidden]') !== false, 'hidden attribute honored inside toolbar');
+ok(strpos($css, '.li-gf-custom[hidden]') !== false || strpos($css, '.li-global-filters [hidden]') !== false, 'custom-range wrapper can hide');
+ok(strpos($css, 'position: absolute') === false || strpos($css, '.li-gf-panel') === false, 'no floating filters popup');
+ok(strpos($css, '.li-gf-date') !== false, 'date field styles');
 ok(strpos($css, '@media (max-width: 720px)') !== false, 'responsive toolbar');
 
 // ── Locales ──────────────────────────────────────��────────────────────
