@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/api/appConfig.php';
+require_once __DIR__ . '/api/brand-assets.php';
 require_once __DIR__ . '/api/asset-url.php';
 require_once __DIR__ . '/api/user-manager.php';
 require_once __DIR__ . '/api/security-headers.php';
@@ -132,11 +133,7 @@ $appName = $appConfig['appName'];
     <title><?php echo t('onboarding.practice.choose_title'); ?> - <?php echo htmlspecialchars($appName); ?></title>
 
     <!-- Favicon / App Icons -->
-    <link rel="icon" type="image/x-icon" href="favicon.ico">
-    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
-    <link rel="manifest" href="site.webmanifest">
+    <?php require __DIR__ . '/partials/brand-icons.php'; ?>
 
     <link rel="stylesheet" href="<?= appAssetUrl('css/app.css') ?>">
     <link rel="stylesheet" href="<?= appAssetUrl('css/practice-setup.css') ?>">
@@ -158,7 +155,7 @@ $appName = $appConfig['appName'];
             ?>
             <!-- Header -->
             <div class="setup-header">
-                <img class="setup-logo" src="images/main.png" alt="" aria-hidden="true" width="140" height="48">
+                <img class="setup-logo" src="<?= htmlspecialchars(brandAssetUrl('logo_standard')) ?>" alt="" aria-hidden="true" width="140" height="48">
                 <h1 class="setup-title"><?php echo t('onboarding.practice.choose_title'); ?></h1>
                 <p class="setup-subtitle"><?php echo t('onboarding.practice.choose_subtitle'); ?></p>
             </div>

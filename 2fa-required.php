@@ -152,9 +152,7 @@ $pageStrings = [
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="<?php echo htmlspecialchars($csrfToken); ?>">
     <title><?php echo t('two_fa_required.title'); ?> - <?php echo htmlspecialchars($appName); ?></title>
-    <link rel="icon" type="image/x-icon" href="favicon.ico">
-    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+    <?php require __DIR__ . '/partials/brand-icons.php'; ?>
     <link rel="stylesheet" href="<?= appAssetUrl('css/app.css') ?>">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }

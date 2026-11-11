@@ -76,3 +76,10 @@
 - Merge rules: dismissed recs reopen as `new` when the data signature changes; recs absent from a new generation whose signature changed become `resolved` (snapshot retained); absent with unchanged signature are omitted, not resolved.
 - `rec_key` = category + normalized title slug; `fact_keys`/`action_target` are whitelisted server-side. Action targets map to board filters in `js/analytics-pro.js` (`AP_ACTION_NAV`); `assigned_to=__unassigned` / `case_type=__unclassified` are synthetic `list-cases.php` params.
 - Verification: `php tests/ai-recommendation-store-test.php` (pure helpers, no DB).
+
+# Brand assets
+
+- Approved logos and icons live only in `images/brand/` and are referenced through `api/brand-assets.php` (`brandAssetUrl()` for cache-busted page URLs, `brandAssetPublicUrl()` for email/structured data). Variants: `logo_standard` (navy/teal wordmark, light backgrounds, public pages, marketing email), `logo_inverse` (all-white wordmark, login hero and other dark/colored backgrounds), `icon` (symbol only, source for favicons and app icons).
+- Every page `<head>` gets its favicon/app-icon/manifest links from `partials/brand-icons.php`; do not hand-write `<link rel="icon">` tags. `site.webmanifest` points at `/images/brand/icon-*.png`. The root `favicon.ico` is a copy of `images/brand/favicon.ico` for default browser requests; keep the two identical.
+- Images are served `immutable` for a year, so replace artwork by regenerating files in `images/brand/` (page URLs re-version automatically) rather than reusing an old filename elsewhere. Favicons sit on a white rounded tile so the navy strokes stay visible on dark browser tabs.
+- Verification: `php tests/brand-assets-test.php` (no database).

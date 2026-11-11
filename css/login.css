@@ -206,18 +206,21 @@
   color: white;
 }
 
-/* Brand logo - unmasked, no added background/effects, sized up ~23% from
-   the previous 52px and left-aligned with the heading below it (both are
-   plain block-level children of .hero-content with no extra indent). */
-.hero-brand-icon {
-  width: 120px;
-  height: 120px;
-  object-fit: contain;
+/* Inverse brand logo (white/teal icon + all-white wordmark) - unmasked,
+   no added background/effects. The artwork has ~6% transparent padding on
+   its left edge, so a matching negative margin keeps the icon left-aligned
+   with the headline below it. */
+.hero-title--logo {
+  margin: 0 0 16px;
+  line-height: 0;
+}
+
+.hero-brand-logo {
   display: block;
-  flex: 0 0 auto;
-  margin-top: 5px;
-  margin-bottom: -20px;
-  transform: translate(-18px, -12px);
+  width: 260px;
+  max-width: 100%;
+  height: auto;
+  margin-left: -15px;
 }
 
 .hero-title {
@@ -613,14 +616,9 @@ a.trust-item:focus-visible {
     transform: none;
   }
   
-  .hero-brand-icon {
-    width: 84px;
-    height: 84px;
-    object-fit: contain;
-    max-width: 100%;
-    margin-top: 0;
-    margin-bottom: 18px;
-    transform: none;
+  .hero-brand-logo {
+    width: 220px;
+    margin-left: -13px;
   }
   
   .hero-title {
@@ -687,14 +685,9 @@ a.trust-item:focus-visible {
     margin-top: 8px;
   }
   
-  .hero-brand-icon {
-    width: 72px;
-    height: 72px;
-    object-fit: contain;
-    max-width: 100%;
-    margin-top: 0;
-    margin-bottom: 14px;
-    transform: none;
+  .hero-brand-logo {
+    width: 190px;
+    margin-left: -11px;
   }
   
   .hero-title {

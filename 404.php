@@ -16,11 +16,7 @@ if ($homeUrl === '/') { $homeUrl = '/'; }
     <title><?php echo htmlspecialchars(t('errors.page_not_found.title')); ?> - DentaTrak</title>
 
     <!-- Favicon / App Icons -->
-    <link rel="icon" type="image/x-icon" href="favicon.ico">
-    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
-    <link rel="manifest" href="site.webmanifest">
+    <?php require __DIR__ . '/partials/brand-icons.php'; ?>
     <style>
         * {
             box-sizing: border-box;

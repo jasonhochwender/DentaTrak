@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/api/appConfig.php';
+require_once __DIR__ . '/api/brand-assets.php';
 require_once __DIR__ . '/api/feature-flags.php';
 require_once __DIR__ . '/api/security-headers.php';
 setSecurityHeaders();
@@ -52,11 +53,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
   <link rel="canonical" href="https://dentatrak.com/">
 
   <!-- Favicon / App Icons -->
-  <link rel="icon" type="image/x-icon" href="favicon.ico">
-  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
-  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
-  <link rel="manifest" href="site.webmanifest">
+  <?php require __DIR__ . '/partials/brand-icons.php'; ?>
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
 
@@ -70,7 +67,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
         "@id": "https://dentatrak.com/#organization",
         "name": <?php echo json_encode($appName, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
         "url": "https://dentatrak.com/",
-        "logo": "https://dentatrak.com/images/logo-large.png",
+        "logo": <?= json_encode(brandAssetPublicUrl('logo_standard'), JSON_UNESCAPED_SLASHES) ?>,
         "founder": { "@id": "https://dentatrak.com/about#william-verrillo" },
         "email": <?php echo json_encode(t('marketing.footer.support_email'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>
       },
@@ -91,7 +88,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
         "url": "https://dentatrak.com/",
         "publisher": { "@id": "https://dentatrak.com/#organization" },
         "creator": { "@id": "https://dentatrak.com/about#william-verrillo" },
-        "image": "https://dentatrak.com/images/logo-large.png",
+        "image": <?= json_encode(brandAssetPublicUrl('logo_standard'), JSON_UNESCAPED_SLASHES) ?>,
         "featureList": [
           "Visual dental case workflow tracking",
           "Customizable workflow stages",
@@ -1640,7 +1637,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
   <header class="site-header">
     <div class="container">
       <a href="<?= $baseUrl ?>" class="site-logo" aria-label="<?php echo htmlspecialchars(t('marketing.accessibility.home_aria')); ?>">
-        <img src="<?= $baseUrl ?>images/main.png" alt="<?php echo htmlspecialchars(t('marketing.accessibility.logo_alt')); ?>">
+        <img src="<?= htmlspecialchars(brandAssetUrl('logo_standard', $baseUrl)) ?>" alt="<?php echo htmlspecialchars(t('marketing.accessibility.logo_alt')); ?>">
       </a>
       <nav class="site-nav" aria-label="<?php echo htmlspecialchars(t('marketing.navigation.primary_nav')); ?>">
         <a href="#problem"><?php echo t('marketing.navigation.problem'); ?></a>
@@ -1683,7 +1680,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       <div class="product-preview">
         <div class="app-header">
           <div class="app-brand">
-            <img src="images/main.png" alt="" aria-hidden="true">
+            <img src="<?= htmlspecialchars(brandAssetUrl('logo_standard')) ?>" alt="" aria-hidden="true">
           </div>
           <span class="app-header-right">
             <span class="app-practice">Demo Dental Practice</span>

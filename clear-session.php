@@ -38,11 +38,7 @@ $_SESSION['needs_practice_setup'] = true;
     <title>Session Reset</title>
 
     <!-- Favicon / App Icons -->
-    <link rel="icon" type="image/x-icon" href="favicon.ico">
-    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
-    <link rel="manifest" href="site.webmanifest">
+    <?php require __DIR__ . '/partials/brand-icons.php'; ?>
 
     <style>
         body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }

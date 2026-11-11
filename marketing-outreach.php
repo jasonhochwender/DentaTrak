@@ -49,7 +49,7 @@ function ma($k) { return t('marketing_admin.' . $k); }
     <meta name="robots" content="noindex, nofollow">
     <meta name="csrf-token" content="<?php echo h($csrfToken); ?>">
     <title><?php echo h(ma('title')); ?> - <?php echo h($appConfig['appName']); ?></title>
-    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <?php require __DIR__ . '/partials/brand-icons.php'; ?>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">

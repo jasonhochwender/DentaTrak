@@ -105,7 +105,7 @@ assertContains($footer, '/PO Box 1/', 'footer must carry the postal address');
 assertContains($footer, '/Tryon, NC 28782/', 'footer must carry the city/state/zip');
 assertContains($footer, '/dentatrak\.com/', 'footer must link to the site');
 assertContains($footer, '/unsubscribe/', 'footer must include an unsubscribe link');
-assertContains($footer, '/images\/main\.png/', 'footer logo must reference a real asset');
+assertContains($footer, '/brandAssetPublicUrl\(\'logo_standard\'\)/', 'footer logo must reference the central Standard Logo asset');
 
 // ---- 8. Prospect directory ----
 assertContains($dir, '/missing_contact/', 'directory must flag missing contact details');

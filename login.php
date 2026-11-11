@@ -8,6 +8,7 @@ error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
 // Load appConfig FIRST to establish database connection
 require_once __DIR__ . '/api/appConfig.php';
 require_once __DIR__ . '/api/asset-url.php';
+require_once __DIR__ . '/api/brand-assets.php';
 // Then load session
 require_once __DIR__ . '/api/session.php';
 require_once __DIR__ . '/api/security-headers.php';
@@ -68,11 +69,7 @@ $sessionRevoked = isset($_GET['revoked']) && $_GET['revoked'] == '1';
   <title><?php echo htmlspecialchars($appConfig['appName']); ?></title>
 
   <!-- Favicon / App Icons -->
-  <link rel="icon" type="image/x-icon" href="favicon.ico">
-  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
-  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
-  <link rel="manifest" href="site.webmanifest">
+  <?php require __DIR__ . '/partials/brand-icons.php'; ?>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -142,11 +139,13 @@ $sessionRevoked = isset($_GET['revoked']) && $_GET['revoked'] == '1';
       <div class="hero-content">
         <?php if ($hasLogo): ?>
           <img src="<?php echo htmlspecialchars($appConfig['logo']); ?>" alt="<?php echo htmlspecialchars(t('marketing.accessibility.logo_alt')); ?>" class="hero-logo">
+          <h1 class="hero-title"><?php echo htmlspecialchars($appName); ?></h1>
         <?php else: ?>
-          <img src="images/logo.png" alt="<?php echo htmlspecialchars($appName); ?>" class="hero-brand-icon">
+          <h1 class="hero-title hero-title--logo">
+            <img src="<?php echo htmlspecialchars(brandAssetUrl('logo_inverse')); ?>" alt="<?php echo htmlspecialchars($appName); ?>" class="hero-brand-logo" width="1024" height="341">
+          </h1>
         <?php endif; ?>
         
-        <h1 class="hero-title"><?php echo htmlspecialchars($appName); ?></h1>
         <p class="hero-headline"><?php echo t('auth.login.headline'); ?></p>
         <p class="hero-tagline"><?php echo t('auth.login.tagline'); ?></p>
         

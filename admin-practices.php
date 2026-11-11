@@ -57,11 +57,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
     <title><?php echo htmlspecialchars(t('admin_practices.title')); ?> - <?php echo htmlspecialchars($appConfig['appName']); ?></title>
 
     <!-- Favicon / App Icons -->
-    <link rel="icon" type="image/x-icon" href="favicon.ico">
-    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
-    <link rel="manifest" href="site.webmanifest">
+    <?php require __DIR__ . '/partials/brand-icons.php'; ?>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

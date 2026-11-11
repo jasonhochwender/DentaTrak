@@ -275,3 +275,4 @@ NUL
 !/tests/ai-recommendation-store-test.php
 !/tests/lab-global-filters-test.php
 !/tests/lab-tabs-test.php
+!/tests/brand-assets-test.php
