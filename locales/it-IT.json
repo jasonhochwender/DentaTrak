@@ -6224,7 +6224,6 @@
             "control_features_2": "Utenti illimitati",
             "control_features_3": "Fino a 2 studi",
             "control_features_4": "Practice Insights e Lab Insights",
-            "control_features_5": "Raccomandazioni",
             "control_features_6": "Integrazione con Open Dental",
             "scale_description": "Per le organizzazioni che gestiscono più studi. Un unico abbonamento copre l'intera organizzazione.",
             "scale_features_1": "Tutto ciò che include Control",
@@ -6259,15 +6258,15 @@
         "insights_section": {
             "eyebrow": "Practice Insights e Lab Insights",
             "title": "Approfondimenti su studio e laboratori",
-            "lead": "Trasforma l'attività quotidiana in un quadro più chiaro di come vanno il tuo studio e i tuoi laboratori. Guarda i tempi di consegna, individua i ritardi e tieni traccia dei rifacimenti.",
-            "included": "Practice Insights, Lab Insights e le raccomandazioni sono inclusi nei piani Control e Scale.",
+            "lead": "Scopri con Practice Insights e Lab Insights le prestazioni del tuo studio e dei laboratori partner. Monitora casi attivi, in ritardo e a rischio appuntamento, tempo medio di consegna e consegne puntuali, confronti per laboratorio e volume mensile dei casi e tendenze.",
+            "included": "Practice Insights e Lab Insights sono inclusi nei piani Control e Scale.",
             "features": {
-                "1_title": "Volume e stato dei casi",
-                "1_body": "Tieni d'occhio a colpo d'occhio i casi attivi, in scadenza, in ritardo e consegnati.",
-                "2_title": "Tempi di consegna e rischio appuntamento",
-                "2_body": "Confronta i tempi dei laboratori e individua i casi in cui l\\u2019appuntamento del paziente potrebbe arrivare prima che il lavoro sia pronto.",
-                "3_title": "Confronto tra laboratori e rifacimenti",
-                "3_body": "Confronta carico di lavoro, tassi di ritardo e rifacimenti attribuiti per laboratorio. Le revisioni sono contate separatamente, quindi gli aggiustamenti di routine non sono scambiati per errori. I consigli suggeriscono passi pratici."
+                "1_title": "Salute dei casi a colpo d’occhio",
+                "1_body": "Casi attivi, in ritardo, in scadenza, a rischio appuntamento e consegnati riassunti in un’unica vista.",
+                "2_title": "Tempo di consegna e puntualità",
+                "2_body": "Tempo medio del laboratorio, tasso di consegna puntuale e casi in cui l’appuntamento del paziente potrebbe arrivare prima del completamento.",
+                "3_title": "Confronto laboratori e rilavorazioni",
+                "3_body": "Confronta carico, tempi e rilavorazioni attribuibili al laboratorio. Le revisioni sono conteggiate separatamente, così gli aggiustamenti di routine non vengono scambiati per errori."
             },
             "org_note": "Con il piano Scale, gli utenti autorizzati possono vedere i casi di tutti i loro studi in un unico posto e confrontare il carico di lavoro e le prestazioni dei laboratori tra gli studi con Insights a livello di organizzazione."
         },
@@ -6611,22 +6610,28 @@
         },
         "pms": {
             "eyebrow": "INTEGRAZIONI",
-            "title": "Collega il software dello studio e le scansioni.",
-            "lead": "Importa informazioni sui casi e file di scansioni in DentaTrak con meno inserimenti manuali. Collega Open Dental per l’integrazione dei casi di laboratorio supportati, oppure importa le scansioni Primescan tramite DS Core continuando a lavorare con i tuoi laboratori abituali.",
+            "title": "Collega il software dello studio e gli scanner digitali.",
+            "lead": "Porta le informazioni sui casi e le scansioni digitali in DentaTrak con meno inserimento manuale. Collega sistemi di gestione dello studio e piattaforme di scansione supportate per mantenere organizzati i flussi dei casi.",
             "card_od_cat": "Software di gestione dello studio",
             "card_od_title": "Open Dental",
             "card_od_body": "Importa i casi di laboratorio supportati e mantieni le informazioni collegate sincronizzate. La sincronizzazione bidirezionale opzionale restituisce le tappe di stato al caso di laboratorio Open Dental.",
             "card_scan_cat": "Scansioni intraorali",
             "card_scan_title": "Primescan / DS Core",
-            "card_scan_body": "Porta le scansioni nella tua casella Scansioni in arrivo, visualizza i file in anteprima e crea un caso o allegale a uno esistente.",
+            "card_scan_body": "Le scansioni degli scanner intraorali supportati arrivano nella tua casella Scansioni in arrivo: visualizza l’anteprima dei file, crea un caso o allegali a uno esistente.",
             "more": "Stiamo lavorando ad altre integrazioni.",
-            "plan_note": "Open Dental e Primescan / DS Core sono inclusi nei piani Control e Scale."
+            "plan_note": "Open Dental e Primescan / DS Core sono inclusi nei piani Control e Scale.",
+            "flow_aria": "Schema: il software di gestione dello studio e gli scanner digitali si collegano a DentaTrak.",
+            "col_sources": "I tuoi strumenti",
+            "col_pms_sub": "Gestione dello studio",
+            "col_scan_sub": "Scanner intraorali",
+            "col_scans_title": "Altre integrazioni",
+            "col_scans_sub": "Scanner e software per studi aggiuntivi in sviluppo",
+            "hub_sub": "Casi e scansioni, organizzati"
         },
         "languages": {
             "eyebrow": "Lingue",
             "title": "DentaTrak parla la lingua del tuo team.",
-            "lead": "Il prodotto è localizzato in tutto, compresi flussi di lavoro, notifiche, Insights e Ask DentaTrak, affinché ogni membro del team lavori nella lingua in cui pensa.",
-            "note": "Inglese, tedesco, spagnolo, francese, francese canadese, italiano, portoghese brasiliano, russo e coreano."
+            "lead": "Il prodotto è localizzato in tutto, compresi flussi di lavoro, notifiche, Insights e Ask DentaTrak, affinché ogni membro del team lavori nella lingua in cui pensa."
         },
         "compare": {
             "title": "Tracci già i casi altrove?",
@@ -6680,7 +6685,6 @@
             "consolidated_view_info": "Vedi i casi di tutti gli studi della tua organizzazione in un unico posto. L'accesso per studio resta invariato: i membri vedono solo gli studi a cui appartengono.",
             "practice_insights": "Practice Insights",
             "lab_insights": "Lab Insights",
-            "recommendations": "Raccomandazioni",
             "org_insights": "Analisi a livello di organizzazione",
             "org_insights_info": "Confronta carico di lavoro, tempi di consegna, puntualità e rifacimenti in tutti gli studi della tua organizzazione – separato dagli Insights per studio.",
             "open_dental": "Integrazione Open Dental",

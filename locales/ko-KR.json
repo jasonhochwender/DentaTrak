@@ -6228,7 +6228,6 @@
             "control_features_2": "무제한 사용자",
             "control_features_3": "최대 치과 2곳",
             "control_features_4": "Practice 및 Lab Insights",
-            "control_features_5": "추천",
             "control_features_6": "Open Dental 연동",
             "scale_description": "여러 치과를 관리하는 조직을 위한 플랜. 하나의 구독으로 조직 전체를 커버합니다.",
             "scale_features_1": "Control의 모든 기능",
@@ -6263,15 +6262,15 @@
         "insights_section": {
             "eyebrow": "Practice 및 Lab Insights",
             "title": "치과 및 기공소 인사이트",
-            "lead": "일상적인 활동을 통해 치과와 기공소가 어떻게 운영되는지 더 선명하게 파악하세요. 소요 시간을 확인하고, 지연을 발견하고, 재제작을 추적할 수 있습니다.",
-            "included": "Practice Insights, Lab Insights, 추천은 Control 및 Scale 요금제에 포함됩니다.",
+            "lead": "Practice Insights와 Lab Insights로 병원과 협력 랩의 성과를 확인하세요. 진행 중, 지연, 예약 위험 사례, 평균 소요 기간과 정시 납품률, 랩별 비교, 월별 사례량과 추세를 추적합니다.",
+            "included": "Practice Insights와 Lab Insights는 Control 및 Scale 요금제에 포함됩니다.",
             "features": {
-                "1_title": "케이스 건수 및 상태",
-                "1_body": "활성, 납기 임박, 지연, 전달된 케이스를 한눈에 추적합니다.",
-                "2_title": "처리 시간과 예약 위험",
-                "2_body": "기공소 처리 시간을 비교하고 환자 예약이 작업 준비보다 먼저 올 수 있는 케이스를 찾으세요.",
-                "3_title": "기공소 비교와 재제작",
-                "3_body": "기공소별 작업량, 지연율, 기공소 귀책 재제작을 비교하세요. 수정은 별도로 집계되므로 일상적인 조정이 오류로 오인되지 않습니다. 추천은 실용적인 다음 단계를 제시합니다."
+                "1_title": "사례 상태 한눈에",
+                "1_body": "진행 중, 지연, 마감 임박, 예약 위험, 납품 완료 사례를 한 화면에서 확인합니다.",
+                "2_title": "소요 기간과 정시 납품",
+                "2_body": "랩 평균 소요 기간, 정시 납품률, 환자 예약일이 사례 완료 전에 도래할 수 있는 사례를 확인합니다.",
+                "3_title": "랩 비교와 재작업",
+                "3_body": "랩별 작업량, 소요 기간, 랩에 귀속된 재작업을 비교합니다. 수정은 별도로 집계되어 일상적인 조정이 오류로 오인되지 않습니다."
             },
             "org_note": "Scale 플랜에서 승인된 사용자는 여러 치과의 케이스를 한 곳에서 보고 조직 수준 Insights로 치과별 작업량과 기공소 성과를 비교할 수 있습니다."
         },
@@ -6615,22 +6614,28 @@
         },
         "pms": {
             "eyebrow": "연동",
-            "title": "진료소 소프트웨어와 스캔을 연결하세요.",
-            "lead": "수동 입력을 줄이면서 케이스 정보와 스캔 파일을 DentaTrak으로 가져오세요. 지원되는 랩 케이스 연동을 위해 Open Dental을 연결하거나, 기존 랩과 계속 작업하면서 DS Core를 통해 Primescan 스캔을 가져올 수 있습니다.",
+            "title": "진료 소프트웨어와 디지털 스캐너를 연결하세요.",
+            "lead": "수동 입력을 줄여 사례 정보와 디지털 스캔을 DentaTrak으로 가져오세요. 지원되는 치과 관리 시스템과 스캐너 플랫폼을 연결해 사례 워크플로를 체계적으로 관리하세요.",
             "card_od_cat": "진료 관리 소프트웨어",
             "card_od_title": "Open Dental",
             "card_od_body": "지원되는 랩 케이스를 가져오고 연결된 정보를 동기화 상태로 유지합니다. 선택적 양방향 동기화는 상태 마일스톤을 Open Dental 랩 케이스로 다시 보냅니다.",
             "card_scan_cat": "구강 내 스캔",
             "card_scan_title": "Primescan / DS Core",
-            "card_scan_body": "스캔을 수신 스캔 받은함으로 가져오고, 파일을 미리 본 다음, 케이스를 생성하거나 기존 케이스에 첨부하세요.",
-            "more": "추가 연동을 준비 중입니다.",
-            "plan_note": "Open Dental과 Primescan / DS Core는 Control 및 Scale 요금제에 포함됩니다."
+            "card_scan_body": "지원되는 구강 내 스캐너의 스캔이 수신 스캔함으로 들어옵니다. 파일을 미리 보고 사례를 생성하거나 기존 사례에 첨부하세요.",
+            "more": "추가 통합을 준비하고 있습니다.",
+            "plan_note": "Open Dental 및 Primescan / DS Core는 Control 및 Scale 요금제에 포함됩니다.",
+            "flow_aria": "도표: 치과 관리 소프트웨어와 디지털 스캐너가 DentaTrak에 연결됩니다.",
+            "col_sources": "사용 중인 도구",
+            "col_pms_sub": "치과 관리",
+            "col_scan_sub": "구강 내 스캐너",
+            "col_scans_title": "추가 통합",
+            "col_scans_sub": "추가 스캐너 및 치과 소프트웨어 개발 중",
+            "hub_sub": "사례와 스캔, 한곳에서 정리"
         },
         "languages": {
             "eyebrow": "언어",
             "title": "DentaTrak은 팀의 언어를 구사합니다.",
-            "lead": "워크플로, 알림, Insights, Ask DentaTrak까지 제품 전체가 현지화되어 있습니다. 모든 팀원이 자신이 생각하는 언어로 일할 수 있도록 지원합니다.",
-            "note": "영어, 독일어, 스페인어, 프랑스어, 캐나다 프랑스어, 이탈리아어, 브라질 포르투갈어, 러시아어, 한국어."
+            "lead": "워크플로, 알림, Insights, Ask DentaTrak까지 제품 전체가 현지화되어 있습니다. 모든 팀원이 자신이 생각하는 언어로 일할 수 있도록 지원합니다."
         },
         "compare": {
             "title": "다른 곳에서 케이스를 추적하고 계신가요?",
@@ -6684,7 +6689,6 @@
             "consolidated_view_info": "조직 내 모든 치과의 케이스를 한 곳에서 확인하세요. 개별 치과 접근 권한은 그대로 유지되며, 멤버는 소속된 치과만 볼 수 있습니다.",
             "practice_insights": "Practice Insights",
             "lab_insights": "Lab Insights",
-            "recommendations": "추천",
             "org_insights": "조직 수준 인사이트",
             "org_insights_info": "조직 내 모든 치과의 업무량, 소요 시간, 정시 완료율, 재제작을 비교합니다. 치과별 인사이트와는 별개입니다.",
             "open_dental": "Open Dental 연동",

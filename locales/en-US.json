@@ -6234,7 +6234,6 @@
             "control_features_2": "Unlimited users",
             "control_features_3": "Up to 2 practices",
             "control_features_4": "Practice and Lab Insights",
-            "control_features_5": "Recommendations",
             "control_features_6": "Open Dental integration",
             "scale_description": "For organizations managing multiple practices. One subscription covers the organization.",
             "scale_features_1": "Everything in Control",
@@ -6281,7 +6280,6 @@
             "consolidated_view_info": "See cases from all of your organization’s practices in one list. Individual practice access is unchanged - members still only see the practices they belong to.",
             "practice_insights": "Practice Insights",
             "lab_insights": "Lab Insights",
-            "recommendations": "Recommendations",
             "org_insights": "Organization-level Insights",
             "org_insights_info": "Compares workload, turnaround, on-time rates, and remakes across every practice in your organization - separate from per-practice Insights.",
             "open_dental": "Open Dental integration",
@@ -6308,15 +6306,15 @@
         "insights_section": {
             "eyebrow": "Practice & Lab Insights",
             "title": "Practice and lab insights",
-            "lead": "Turn everyday activity into a clearer picture of how your practice and labs are doing. See turnaround times, spot delays, and track remakes.",
-            "included": "Practice Insights, Lab Insights, and Recommendations are included in the Control and Scale plans.",
+            "lead": "See how your practice and partner labs are performing with Practice Insights and Lab Insights. Track active, overdue, and appointment-risk cases, average turnaround and on-time delivery, lab-by-lab comparisons, and monthly case volume and trends.",
+            "included": "Practice Insights and Lab Insights are included in the Control and Scale plans.",
             "features": {
-                "1_title": "Case volume and status",
-                "1_body": "Track active, due soon, late, and delivered cases at a glance.",
-                "2_title": "Turnaround and appointment risk",
-                "2_body": "Compare lab turnaround times and spot cases where the patient appointment may arrive before the case is ready.",
+                "1_title": "Case health at a glance",
+                "1_body": "Active, overdue, due soon, appointment-risk, and delivered cases summarized in one view.",
+                "2_title": "Turnaround and on-time delivery",
+                "2_body": "Average lab turnaround, on-time rate, and cases where the patient appointment may arrive before the case is ready.",
                 "3_title": "Lab comparison and remakes",
-                "3_body": "Compare workload, late rates, and lab-attributed remakes by lab. Revisions are counted separately, so routine adjustments are not mistaken for errors. Recommendations surface practical next steps."
+                "3_body": "Compare workload, turnaround, and lab-attributed remakes by lab. Revisions are counted separately, so routine adjustments are not mistaken for errors."
             },
             "org_note": "On the Scale plan, authorized users can view cases across their practices in one place and compare practice workload and lab performance with organization-level Insights."
         },
@@ -6660,22 +6658,28 @@
         },
         "pms": {
             "eyebrow": "INTEGRATIONS",
-            "title": "Connect your practice software and scans.",
-            "lead": "Bring case information and scan files into DentaTrak with less manual entry. Connect Open Dental for supported lab case integration, or import Primescan scans through DS Core while continuing to work with your existing laboratories.",
+            "title": "Connect your practice software and digital scanners.",
+            "lead": "Bring case information and digital scans into DentaTrak with less manual entry. Connect supported practice management systems and scanner platforms to keep your case workflows organized.",
             "card_od_cat": "Practice management software",
             "card_od_title": "Open Dental",
             "card_od_body": "Import supported lab cases and keep connected information in sync. Optional two-way sync sends status milestones back to the Open Dental lab case.",
             "card_scan_cat": "Intraoral scans",
             "card_scan_title": "Primescan / DS Core",
-            "card_scan_body": "Bring scans into your Incoming Scans inbox, preview the files, and create a case or attach them to an existing one.",
+            "card_scan_body": "Bring scans into your Incoming Scans inbox from supported intraoral scanners, preview the files, and create a case or attach them to an existing one.",
             "more": "We’re working on additional integrations.",
-            "plan_note": "Open Dental and Primescan / DS Core are included on Control and Scale plans."
+            "plan_note": "Open Dental and Primescan / DS Core are included on Control and Scale plans.",
+            "flow_aria": "Diagram showing practice management software and digital scanners connecting into DentaTrak.",
+            "col_sources": "Your tools",
+            "col_pms_sub": "Practice management",
+            "col_scan_sub": "Intraoral scanners",
+            "col_scans_title": "More integrations",
+            "col_scans_sub": "Additional scanners and practice software in development",
+            "hub_sub": "Cases & scans, organized"
         },
         "languages": {
             "eyebrow": "Languages",
             "title": "DentaTrak speaks your team’s language.",
-            "lead": "The product is localized throughout, including workflows, notifications, Insights, and Ask DentaTrak, so every team member can work in the language they think in.",
-            "note": "English, German, Spanish, French, Canadian French, Italian, Brazilian Portuguese, Russian, and Korean."
+            "lead": "The product is localized throughout, including workflows, notifications, Insights, and Ask DentaTrak, so every team member can work in the language they think in."
         },
         "compare": {
             "title": "Tracking cases somewhere else?",

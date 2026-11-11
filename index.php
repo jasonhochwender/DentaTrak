@@ -98,7 +98,6 @@ foreach (['operate', 'control', 'scale'] as $plan) {
           "Case files and supported 3D dental files",
           "Shipping information",
           "Practice and Lab Insights on Control and Scale plans",
-          "Recommendations on Control and Scale plans",
           "Ask DentaTrak in-product assistant",
           "Open Dental lab case integration on Control and Scale plans",
           "In-app notifications",
@@ -309,6 +308,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .di-smart-icon svg { width: 18px; height: 18px; stroke: currentColor; }
     .di-smart h4 { font-size: 0.8rem; font-weight: 700; margin-bottom: 4px; }
     .di-smart p { font-size: 0.75rem; color: var(--dt-ink-secondary); line-height: 1.5; }
+    .di-kpi-note { font-size: 0.72rem; font-weight: 600; color: #15803d; }
 
     /* Problem visual animation */
     .problem-connections { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
@@ -469,6 +469,8 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .plan-compare h3 { font-size: 1.4rem; font-weight: 700; margin: 0 0 6px; }
     .plan-compare-lead { font-size: 0.98rem; color: var(--dt-ink-secondary); margin: 0 0 22px; }
     .plan-compare-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -36px; padding: 0 36px; }
+    .plan-features { background: var(--dt-cream); }
+    .plan-features .plan-compare { margin-top: 0; }
     .plan-table { width: 100%; min-width: 620px; border-collapse: collapse; font-size: 0.92rem; }
     .plan-table th, .plan-table td { padding: 11px 14px; text-align: center; vertical-align: middle; }
     .plan-table thead th { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--dt-ink-secondary); border-bottom: 2px solid var(--dt-border); }
@@ -914,7 +916,20 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .pms { background: #fff; }
     .pms-inner { max-width: 780px; margin: 0 auto; text-align: center; }
     .pms-inner .lead { margin: 0 auto 40px; }
-    .pms-flow { display: flex; align-items: center; justify-content: center; gap: 20px; }
+    .pms-flow { display: flex; align-items: center; justify-content: center; gap: 28px; margin: 0 auto 36px; max-width: 860px; }
+    .pms-flow-col { display: flex; flex-direction: column; gap: 12px; text-align: left; min-width: 200px; }
+    .pms-flow-label { font-size: 0.64rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--dt-ink-muted); margin-bottom: 2px; }
+    .pms-flow-item { display: flex; align-items: center; gap: 10px; background: #fff; border: 1px solid var(--dt-border); border-radius: 12px; padding: 10px 12px; box-shadow: 0 4px 14px -8px rgba(0,0,0,0.08); }
+    .pms-flow-item strong { display: block; font-size: 0.8rem; color: var(--dt-ink); }
+    .pms-flow-item span { display: block; font-size: 0.68rem; color: var(--dt-ink-muted); line-height: 1.35; }
+    .pms-ico { flex-shrink: 0; width: 30px; height: 30px; border-radius: 8px; background: var(--dt-pale); color: var(--dt-blue); display: inline-flex; align-items: center; justify-content: center; }
+    .pms-ico svg { width: 17px; height: 17px; }
+    .pms-ico-lg { width: 44px; height: 44px; border-radius: 12px; background: #fff; border: 1px solid var(--dt-border); }
+    .pms-ico-lg img { width: 30px; height: auto; }
+    .pms-flow-arrow { color: var(--dt-blue); font-size: 1.4rem; flex-shrink: 0; }
+    .pms-flow-hub { display: flex; flex-direction: column; align-items: center; gap: 4px; background: var(--dt-ink); color: #fff; border-radius: 16px; padding: 18px 22px; min-width: 150px; text-align: center; }
+    .pms-flow-hub strong { font-size: 0.95rem; }
+    .pms-flow-hub span { font-size: 0.68rem; color: #cbd5e1; }
     .pms-card { background: #fff; border: 1px solid var(--dt-border); border-radius: 14px; padding: 16px 18px; text-align: left; min-width: 230px; box-shadow: 0 4px 14px -8px rgba(0,0,0,0.08); }
     .pms-card-label { font-size: 0.64rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--dt-ink-muted); margin-bottom: 8px; }
     .pms-card h4 { font-size: 0.9rem; font-weight: 700; color: var(--dt-ink); margin: 0 0 4px; }
@@ -930,14 +945,18 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .langs { background: var(--dt-cream); text-align: center; }
     .langs .lead { margin: 0 auto 36px; }
     .lang-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; max-width: 760px; margin: 0 auto; }
-    .lang-chip { padding: 8px 18px; background: #fff; border: 1px solid var(--dt-border); border-radius: 999px; font-size: 0.88rem; font-weight: 500; color: var(--dt-ink-secondary); }
+    .lang-chip { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px 8px 10px; background: #fff; border: 1px solid var(--dt-border); border-radius: 999px; font-size: 0.88rem; font-weight: 500; color: var(--dt-ink-secondary); }
+    .lang-flag { width: 22px; height: 22px; border-radius: 4px; overflow: hidden; flex-shrink: 0; box-shadow: 0 0 0 1px rgba(0,0,0,0.08); }
+    .lang-flag svg { display: block; width: 100%; height: 100%; }
     .lang-note { margin-top: 30px; font-size: 0.88rem; color: var(--dt-ink-muted); max-width: 620px; margin-left: auto; margin-right: auto; }
 
     @media (max-width: 900px) {
       .collab-grid, .ask-grid { grid-template-columns: 1fr; }
-      .pms-flow, .pms-cards { flex-direction: column; }
+      .pms-flow { flex-direction: column; gap: 14px; }
+      .pms-flow-col { min-width: 0; width: 100%; max-width: 340px; }
+      .pms-flow-arrow { transform: rotate(90deg); }
+      .pms-cards { flex-direction: column; }
       .pms-cards .pms-card { max-width: 340px; margin: 0 auto; width: 100%; }
-      .pms-arrow { transform: rotate(90deg); }
     }
     @media (max-width: 720px) {
       .collab-grid, .ask-grid { gap: 40px; }
@@ -1618,9 +1637,9 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .cmp-a { display: grid; place-items: center; background: #f4f9fe; border-left: 1px solid var(--dt-border); padding: 14px 10px; }
     .cmp-check svg { width: 30px; height: 30px; }
     .cmp-ck-circle { fill: #e0f7f5; stroke: #0ea5a8; stroke-width: 1.4; }
-    .cmp-ck-path { stroke: #0ea5a8; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 16; stroke-dashoffset: 16; }
-    .is-revealed .cmp-ck-path { animation: cmp-draw 0.45s ease 0.15s forwards; }
-    @keyframes cmp-draw { to { stroke-dashoffset: 0; } }
+    .cmp-ck-path { stroke: #0ea5a8; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 16; stroke-dashoffset: 0; }
+    .is-revealed .cmp-ck-path { animation: cmp-draw 0.45s ease 0.15s; }
+    @keyframes cmp-draw { from { stroke-dashoffset: 16; } to { stroke-dashoffset: 0; } }
     .cmp-note { padding: 12px 26px; font-size: 0.72rem; color: var(--dt-ink-muted); border-top: 1px solid var(--dt-border); }
     .cmp-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
     @media (max-width: 620px) {
@@ -2012,11 +2031,11 @@ foreach (['operate', 'control', 'scale'] as $plan) {
 
               <div class="di-smart">
                 <div class="di-smart-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.5-3 5.74V17a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2v-2.26C6.19 13.5 5 11.38 5 9a7 7 0 0 1 7-7z"></path><line x1="12" y1="22" x2="12" y2="19"></line></svg>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 3 5-6"/></svg>
                 </div>
                 <div>
-                  <h4>Recommendation</h4>
-                  <p>Hannah Lindqvist's crown is flagged Appointment Risk: her patient appointment is Mar 10 but the case is due Mar 12. Check whether Precision Dental Lab has confirmed receipt and what return date it has promised.</p>
+                  <h4>On-Time Delivery</h4>
+                  <p>94% of cases delivered on or before the due date this month. Average lab turnaround is 8.2 days, with Precision Dental Lab the fastest at 6.9.</p>
                 </div>
               </div>
             </div>
@@ -2084,33 +2103,6 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     </div>
   </section>
 
-  <section id="already-tracking" class="section compare">
-    <div class="container">
-      <h2 data-reveal><?php echo t('marketing.compare.title'); ?></h2>
-      <p class="lead" data-reveal><?php echo t('marketing.compare.lead'); ?></p>
-      <div class="cmp-panel" role="table" aria-label="<?php echo htmlspecialchars(t('marketing.compare.panel_aria')); ?>">
-        <div class="cmp-head" role="row">
-          <div class="cmp-h-q" role="columnheader"><?php echo t('marketing.compare.col_q'); ?></div>
-          <div class="cmp-h-a" role="columnheader"><?php echo t('marketing.compare.col_a'); ?></div>
-        </div>
-        <?php for ($i = 1; $i <= 6; $i++) : ?>
-        <div class="cmp-row" role="row" data-reveal data-reveal-stagger="<?php echo $i; ?>" data-reveal-delay="140">
-          <div class="cmp-q" role="cell">
-            <span class="cmp-q-text"><?php echo t('marketing.compare.r' . $i . 'q'); ?></span>
-            <span class="cmp-q-sub"><?php echo t('marketing.compare.r' . $i . 's'); ?></span>
-          </div>
-          <div class="cmp-a" role="cell">
-            <span class="cmp-check" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none"><circle class="cmp-ck-circle" cx="12" cy="12" r="11"/><path class="cmp-ck-path" d="M7 12.5l3.2 3.2L17 8.5"/></svg>
-            </span>
-            <span class="cmp-sr"><?php echo t('marketing.compare.sr_yes'); ?></span>
-          </div>
-        </div>
-        <?php endfor; ?>
-        <div class="cmp-note"><?php echo t('marketing.compare.note'); ?></div>
-      </div>
-    </div>
-  </section>
 
   <section id="how-it-works" class="section">
     <div class="container">
@@ -2443,7 +2435,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
           <p class="section-note"><?php echo t('marketing.insights_section.included'); ?></p>
           <p class="section-note"><?php echo t('marketing.insights_section.org_note'); ?></p>
         </div>
-        <div class="insights-snapshot" role="img" aria-label="Practice and Lab Insights snapshot showing active cases, case flow status, monthly case volume, average lab turnaround, and a Recommendation.">
+        <div class="insights-snapshot" role="img" aria-label="Practice and Lab Insights snapshot showing active, overdue, and appointment-risk cases, case health status, monthly case volume, average lab turnaround with on-time delivery, and lab performance comparison.">
           <div class="is-header">
             <h3>Insights</h3>
             <p>Practice and lab performance in one place</p>
@@ -2453,17 +2445,17 @@ foreach (['operate', 'control', 'scale'] as $plan) {
               <div class="di-metric-value" data-value="11">11</div>
               <div class="di-metric-label">Active Cases</div>
             </div>
-            <div class="di-metric due">
-              <div class="di-metric-value" data-value="1">1</div>
-              <div class="di-metric-label">Due Soon</div>
-            </div>
             <div class="di-metric late">
               <div class="di-metric-value" data-value="1">1</div>
-              <div class="di-metric-label">Late</div>
+              <div class="di-metric-label">Overdue</div>
+            </div>
+            <div class="di-metric due">
+              <div class="di-metric-value" data-value="2">2</div>
+              <div class="di-metric-label">Appt Risk</div>
             </div>
             <div class="di-metric delivered">
-              <div class="di-metric-value" data-value="1">1</div>
-              <div class="di-metric-label">Delivered</div>
+              <div class="di-metric-value" data-value="94" data-suffix="%">94%</div>
+              <div class="di-metric-label">On-Time</div>
             </div>
           </div>
           <div class="di-charts is-charts">
@@ -2514,15 +2506,15 @@ foreach (['operate', 'control', 'scale'] as $plan) {
           </div>
           <div class="di-card is-lab">
             <h4>Average Lab Turnaround</h4>
-            <div class="di-kpi-value"><span class="di-kpi-number" data-value="8.2">8.2</span> <small style="font-size:0.65rem;font-weight:500;color:var(--dt-ink-muted)">days</small></div>
+            <div class="di-kpi-value"><span class="di-kpi-number" data-value="8.2">8.2</span> <small style="font-size:0.65rem;font-weight:500;color:var(--dt-ink-muted)">days</small> <span class="di-kpi-note">&middot; 94% on-time</span></div>
           </div>
           <div class="di-smart is-smart">
             <div class="di-smart-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.5-3 5.74V17a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2v-2.26C6.19 13.5 5 11.38 5 9a7 7 0 0 1 7-7z"></path><line x1="12" y1="22" x2="12" y2="19"></line></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 3 5-6"/></svg>
             </div>
             <div>
-              <h4>Recommendation</h4>
-              <p>Hannah Lindqvist's crown is flagged Appointment Risk: her patient appointment is Mar 10 but the case is due Mar 12. Check whether Precision Dental Lab has confirmed receipt and what return date it has promised.</p>
+              <h4>Lab Performance</h4>
+              <p>Precision Dental Lab leads this period: 6.9-day average turnaround and 97% on-time delivery across 5 cases. Atlas Dental Lab is trending slower at 9.4 days.</p>
             </div>
           </div>
         </div>
@@ -2579,6 +2571,29 @@ foreach (['operate', 'control', 'scale'] as $plan) {
         <span class="eyebrow"><?php echo t('marketing.pms.eyebrow'); ?></span>
         <h2><?php echo t('marketing.pms.title'); ?></h2>
         <p class="lead"><?php echo t('marketing.pms.lead'); ?></p>
+        <div class="pms-flow" role="img" aria-label="<?php echo htmlspecialchars(t('marketing.pms.flow_aria')); ?>">
+          <div class="pms-flow-col">
+            <div class="pms-flow-label"><?php echo t('marketing.pms.col_sources'); ?></div>
+            <div class="pms-flow-item">
+              <span class="pms-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></span>
+              <div><strong><?php echo t('marketing.pms.card_od_title'); ?></strong><span><?php echo t('marketing.pms.col_pms_sub'); ?></span></div>
+            </div>
+            <div class="pms-flow-item">
+              <span class="pms-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c3 4 6 7 6 11a6 6 0 0 1-12 0c0-4 3-7 6-11z"/><path d="M9 14a3 3 0 0 0 3 3"/></svg></span>
+              <div><strong><?php echo t('marketing.pms.card_scan_title'); ?></strong><span><?php echo t('marketing.pms.col_scan_sub'); ?></span></div>
+            </div>
+            <div class="pms-flow-item">
+              <span class="pms-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></span>
+              <div><strong><?php echo t('marketing.pms.col_scans_title'); ?></strong><span><?php echo t('marketing.pms.col_scans_sub'); ?></span></div>
+            </div>
+          </div>
+          <div class="pms-flow-arrow" aria-hidden="true">&rarr;</div>
+          <div class="pms-flow-hub">
+            <span class="pms-ico pms-ico-lg" aria-hidden="true"><img src="<?= htmlspecialchars(brandAssetUrl('logo_standard')) ?>" alt=""></span>
+            <strong>DentaTrak</strong>
+            <span><?php echo t('marketing.pms.hub_sub'); ?></span>
+          </div>
+        </div>
         <div class="pms-cards">
           <div class="pms-card">
             <div class="pms-card-label"><?php echo t('marketing.pms.card_od_cat'); ?></div>
@@ -2603,17 +2618,44 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       <h2><?php echo t('marketing.languages.title'); ?></h2>
       <p class="lead"><?php echo t('marketing.languages.lead'); ?></p>
       <div class="lang-grid">
-        <span class="lang-chip">English</span>
-        <span class="lang-chip">Deutsch</span>
-        <span class="lang-chip">Espa&ntilde;ol</span>
-        <span class="lang-chip">Fran&ccedil;ais</span>
-        <span class="lang-chip">Fran&ccedil;ais (Canada)</span>
-        <span class="lang-chip">Italiano</span>
-        <span class="lang-chip">Portugu&ecirc;s (Brasil)</span>
-        <span class="lang-chip">&#1056;&#1091;&#1089;&#1089;&#1082;&#1080;&#1081;</span>
-        <span class="lang-chip">&#54620;&#44397;&#50612;</span>
+        <span class="lang-chip"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 640 480"><rect width="640" height="480" fill="#012169"/><path d="M0 0l640 480M640 0L0 480" stroke="#fff" stroke-width="60"/><path d="M0 0l640 480M640 0L0 480" stroke="#C8102E" stroke-width="36"/><path d="M280 0h80v480h-80zM0 200h640v80H0z" fill="#fff"/><path d="M300 0h40v480h-40zM0 220h640v40H0z" fill="#C8102E"/></svg></span>English</span>
+        <span class="lang-chip"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 640 480"><rect width="640" height="160" fill="#000"/><rect y="160" width="640" height="160" fill="#DD0000"/><rect y="320" width="640" height="160" fill="#FFCE00"/></svg></span>Deutsch</span>
+        <span class="lang-chip"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 640 480"><rect width="640" height="160" fill="#AA151B"/><rect y="160" width="640" height="160" fill="#F1BF00"/><rect y="320" width="640" height="160" fill="#AA151B"/></svg></span>Espa&ntilde;ol</span>
+        <span class="lang-chip"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 640 480"><rect width="640" height="480" fill="#0055A4"/><rect x="200" y="120" width="240" height="240" fill="#fff"/><rect x="240" y="160" width="160" height="160" fill="#EF4135"/></svg></span>Fran&ccedil;ais</span>
+        <span class="lang-chip"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 640 480"><rect width="640" height="160" fill="#D80621"/><rect y="160" width="640" height="160" fill="#fff"/><rect y="320" width="640" height="160" fill="#003DA5"/><path d="M320 60l17 52h55l-44 32 17 52-45-33-45 33 17-52-44-32h55z" fill="#FFD700"/></svg></span>Fran&ccedil;ais (Canada)</span>
+        <span class="lang-chip"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 640 480"><rect width="640" height="160" fill="#009246"/><rect y="160" width="640" height="160" fill="#fff"/><rect y="320" width="640" height="160" fill="#CE2B37"/></svg></span>Italiano</span>
+        <span class="lang-chip"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 640 480"><rect width="640" height="480" fill="#009C3B"/><path d="M320 120l40 90 98 8-75 60 26 96-89-55-89 55 26-96-75-60 98-8z" fill="#FFDF00"/><circle cx="320" cy="240" r="80" fill="#002776"/></svg></span>Portugu&ecirc;s (Brasil)</span>
+        <span class="lang-chip"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 640 480"><rect width="640" height="320" fill="#fff"/><rect y="320" width="640" height="160" fill="#0039A6"/></svg></span>&#1056;&#1091;&#1089;&#1089;&#1082;&#1080;&#1081;</span>
+        <span class="lang-chip"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 640 480"><rect width="640" height="320" fill="#fff"/><rect y="320" width="640" height="80" fill="#CD2E3A"/><rect y="400" width="640" height="80" fill="#0047A0"/><g fill="#111"><circle cx="120" cy="120" r="28"/><circle cx="200" cy="80" r="28"/><circle cx="280" cy="60" r="28"/><circle cx="360" cy="60" r="28"/><circle cx="440" cy="80" r="28"/><circle cx="520" cy="120" r="28"/></g></svg></span>&#54620;&#44397;&#50612;</span>
       </div>
-      <p class="lang-note"><?php echo t('marketing.languages.note'); ?></p>
+    </div>
+  </section>
+
+  <section id="already-tracking" class="section compare">
+    <div class="container">
+      <h2 data-reveal><?php echo t('marketing.compare.title'); ?></h2>
+      <p class="lead" data-reveal><?php echo t('marketing.compare.lead'); ?></p>
+      <div class="cmp-panel" role="table" aria-label="<?php echo htmlspecialchars(t('marketing.compare.panel_aria')); ?>">
+        <div class="cmp-head" role="row">
+          <div class="cmp-h-q" role="columnheader"><?php echo t('marketing.compare.col_q'); ?></div>
+          <div class="cmp-h-a" role="columnheader"><?php echo t('marketing.compare.col_a'); ?></div>
+        </div>
+        <?php for ($i = 1; $i <= 6; $i++) : ?>
+        <div class="cmp-row" role="row" data-reveal data-reveal-stagger="<?php echo $i; ?>" data-reveal-delay="140">
+          <div class="cmp-q" role="cell">
+            <span class="cmp-q-text"><?php echo t('marketing.compare.r' . $i . 'q'); ?></span>
+            <span class="cmp-q-sub"><?php echo t('marketing.compare.r' . $i . 's'); ?></span>
+          </div>
+          <div class="cmp-a" role="cell">
+            <span class="cmp-check" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none"><circle class="cmp-ck-circle" cx="12" cy="12" r="11"/><path class="cmp-ck-path" d="M7 12.5l3.2 3.2L17 8.5"/></svg>
+            </span>
+            <span class="cmp-sr"><?php echo t('marketing.compare.sr_yes'); ?></span>
+          </div>
+        </div>
+        <?php endfor; ?>
+        <div class="cmp-note"><?php echo t('marketing.compare.note'); ?></div>
+      </div>
     </div>
   </section>
 
@@ -2886,64 +2928,8 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     </div>
   </section>
 
-  <section id="pricing" class="section pricing">
+  <section class="section plan-features">
     <div class="container">
-      <div class="pricing-intro" data-reveal>
-        <span class="eyebrow"><?php echo t('marketing.pricing.eyebrow'); ?></span>
-        <h2><?php echo t('marketing.pricing.title'); ?></h2>
-        <p class="lead"><?php echo t('marketing.pricing.lead'); ?></p>
-        <p class="pricing-transparency"><strong><?php echo t('marketing.pricing.transparency_title'); ?></strong> <?php echo t('marketing.pricing.transparency_body'); ?></p>
-      </div>
-      <div class="plans">
-        <div class="plan" data-reveal data-reveal-stagger="1" data-reveal-delay="150">
-          <div class="plan-name"><?php echo t('marketing.pricing.operate'); ?></div>
-          <div class="plan-price"><?php echo t('marketing.pricing.operate_price_month'); ?><span><?php echo t('marketing.pricing.per_month'); ?></span></div>
-          <div class="plan-annual"><?php echo t('marketing.pricing.operate_annual'); ?></div>
-          <a href="<?= $baseUrl ?>login.php" class="btn btn-primary" style="width:100%;"><?php echo t('marketing.pricing.start_free'); ?></a>
-          <p><?php echo t('marketing.pricing.operate_description'); ?></p>
-          <ul>
-            <li><?php echo t('marketing.pricing.operate_features_1'); ?></li>
-            <li><?php echo t('marketing.pricing.operate_features_attachments'); ?></li>
-            <li><?php echo t('marketing.pricing.operate_features_4'); ?></li>
-            <li><?php echo t('marketing.pricing.operate_features_5'); ?></li>
-            <li><?php echo t('marketing.pricing.operate_features_6'); ?></li>
-            <li><?php echo t('marketing.pricing.operate_features_2'); ?></li>
-            <li><?php echo t('marketing.pricing.operate_features_3'); ?></li>
-          </ul>
-        </div>
-        <div class="plan featured" data-reveal data-reveal-stagger="2" data-reveal-delay="150">
-          <span class="plan-popular"><?php echo t('marketing.pricing.most_popular'); ?></span>
-          <div class="plan-name"><?php echo t('marketing.pricing.control'); ?></div>
-          <div class="plan-price"><?php echo t('marketing.pricing.control_price_month'); ?><span><?php echo t('marketing.pricing.per_month'); ?></span></div>
-          <div class="plan-annual"><?php echo t('marketing.pricing.control_annual'); ?></div>
-          <a href="<?= $baseUrl ?>login.php" class="btn btn-primary" style="width:100%;"><?php echo t('marketing.pricing.start_free'); ?></a>
-          <p><?php echo t('marketing.pricing.control_description'); ?></p>
-          <ul>
-            <li><?php echo t('marketing.pricing.control_features_1'); ?></li>
-            <li><?php echo t('marketing.pricing.control_features_2'); ?></li>
-            <li><?php echo t('marketing.pricing.control_features_3'); ?></li>
-            <li><?php echo t('marketing.pricing.control_features_4'); ?></li>
-            <li><?php echo t('marketing.pricing.control_features_5'); ?></li>
-            <li><?php echo t('marketing.pricing.control_features_6'); ?></li>
-            <li><?php echo t('marketing.pricing.scanner_available'); ?></li>
-          </ul>
-        </div>
-        <div class="plan" data-reveal data-reveal-stagger="3" data-reveal-delay="150">
-          <div class="plan-name"><?php echo t('marketing.pricing.scale'); ?></div>
-          <div class="plan-price"><?php echo t('marketing.pricing.scale_price_month'); ?><span><?php echo t('marketing.pricing.per_month'); ?></span></div>
-          <div class="plan-annual"><?php echo t('marketing.pricing.scale_annual'); ?></div>
-          <a href="<?= $baseUrl ?>login.php" class="btn btn-primary" style="width:100%;"><?php echo t('marketing.pricing.start_free'); ?></a>
-          <p><?php echo t('marketing.pricing.scale_description'); ?></p>
-          <ul>
-            <li><?php echo t('marketing.pricing.scale_features_1'); ?></li>
-            <li><?php echo t('marketing.pricing.scale_features_2'); ?></li>
-            <li><?php echo t('marketing.pricing.scale_features_4'); ?></li>
-            <li><?php echo t('marketing.pricing.scale_features_5'); ?></li>
-            <li><?php echo t('marketing.pricing.scale_features_3'); ?></li>
-          </ul>
-          <div class="plan-extra"><strong><?php echo t('marketing.pricing.scale_addon_title'); ?></strong><br><?php echo t('marketing.pricing.scale_addon_month'); ?><br><?php echo t('marketing.pricing.scale_addon_year'); ?></div>
-        </div>
-      </div>
       <?php
       // Plan feature comparison - every row reflects an enforced gate:
       //   all plans       max_cases=0 / no tier check (cases, attachments,
@@ -2975,7 +2961,6 @@ foreach (['operate', 'control', 'scale'] as $plan) {
           ['label' => t('marketing.plan_features.cat_insights'), 'rows' => [
               ['label' => t('marketing.plan_features.practice_insights'), 'cells' => ['dash', 'check', 'check']],
               ['label' => t('marketing.plan_features.lab_insights'), 'cells' => ['dash', 'check', 'check']],
-              ['label' => t('marketing.plan_features.recommendations'), 'cells' => ['dash', 'check', 'check']],
               ['label' => t('marketing.plan_features.org_insights'), 'info' => t('marketing.plan_features.org_insights_info'), 'cells' => ['dash', 'dash', 'check']],
           ]],
           ['label' => t('marketing.plan_features.cat_integrations'), 'rows' => [
@@ -3024,6 +3009,67 @@ foreach (['operate', 'control', 'scale'] as $plan) {
             </tbody>
           </table>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="pricing" class="section pricing">
+    <div class="container">
+      <div class="pricing-intro" data-reveal>
+        <span class="eyebrow"><?php echo t('marketing.pricing.eyebrow'); ?></span>
+        <h2><?php echo t('marketing.pricing.title'); ?></h2>
+        <p class="lead"><?php echo t('marketing.pricing.lead'); ?></p>
+        <p class="pricing-transparency"><strong><?php echo t('marketing.pricing.transparency_title'); ?></strong> <?php echo t('marketing.pricing.transparency_body'); ?></p>
+      </div>
+      <div class="plans">
+        <div class="plan" data-reveal data-reveal-stagger="1" data-reveal-delay="150">
+          <div class="plan-name"><?php echo t('marketing.pricing.operate'); ?></div>
+          <div class="plan-price"><?php echo t('marketing.pricing.operate_price_month'); ?><span><?php echo t('marketing.pricing.per_month'); ?></span></div>
+          <div class="plan-annual"><?php echo t('marketing.pricing.operate_annual'); ?></div>
+          <a href="<?= $baseUrl ?>login.php" class="btn btn-primary" style="width:100%;"><?php echo t('marketing.pricing.start_free'); ?></a>
+          <p><?php echo t('marketing.pricing.operate_description'); ?></p>
+          <ul>
+            <li><?php echo t('marketing.pricing.operate_features_1'); ?></li>
+            <li><?php echo t('marketing.pricing.operate_features_attachments'); ?></li>
+            <li><?php echo t('marketing.pricing.operate_features_4'); ?></li>
+            <li><?php echo t('marketing.pricing.operate_features_5'); ?></li>
+            <li><?php echo t('marketing.pricing.operate_features_6'); ?></li>
+            <li><?php echo t('marketing.pricing.operate_features_2'); ?></li>
+            <li><?php echo t('marketing.pricing.operate_features_3'); ?></li>
+          </ul>
+        </div>
+        <div class="plan featured" data-reveal data-reveal-stagger="2" data-reveal-delay="150">
+          <span class="plan-popular"><?php echo t('marketing.pricing.most_popular'); ?></span>
+          <div class="plan-name"><?php echo t('marketing.pricing.control'); ?></div>
+          <div class="plan-price"><?php echo t('marketing.pricing.control_price_month'); ?><span><?php echo t('marketing.pricing.per_month'); ?></span></div>
+          <div class="plan-annual"><?php echo t('marketing.pricing.control_annual'); ?></div>
+          <a href="<?= $baseUrl ?>login.php" class="btn btn-primary" style="width:100%;"><?php echo t('marketing.pricing.start_free'); ?></a>
+          <p><?php echo t('marketing.pricing.control_description'); ?></p>
+          <ul>
+            <li><?php echo t('marketing.pricing.control_features_1'); ?></li>
+            <li><?php echo t('marketing.pricing.control_features_2'); ?></li>
+            <li><?php echo t('marketing.pricing.control_features_3'); ?></li>
+            <li><?php echo t('marketing.pricing.control_features_4'); ?></li>
+            <li><?php echo t('marketing.pricing.control_features_6'); ?></li>
+            <li><?php echo t('marketing.pricing.scanner_available'); ?></li>
+          </ul>
+        </div>
+        <div class="plan" data-reveal data-reveal-stagger="3" data-reveal-delay="150">
+          <div class="plan-name"><?php echo t('marketing.pricing.scale'); ?></div>
+          <div class="plan-price"><?php echo t('marketing.pricing.scale_price_month'); ?><span><?php echo t('marketing.pricing.per_month'); ?></span></div>
+          <div class="plan-annual"><?php echo t('marketing.pricing.scale_annual'); ?></div>
+          <a href="<?= $baseUrl ?>login.php" class="btn btn-primary" style="width:100%;"><?php echo t('marketing.pricing.start_free'); ?></a>
+          <p><?php echo t('marketing.pricing.scale_description'); ?></p>
+          <ul>
+            <li><?php echo t('marketing.pricing.scale_features_1'); ?></li>
+            <li><?php echo t('marketing.pricing.scale_features_2'); ?></li>
+            <li><?php echo t('marketing.pricing.scale_features_4'); ?></li>
+            <li><?php echo t('marketing.pricing.scale_features_5'); ?></li>
+            <li><?php echo t('marketing.pricing.scale_features_3'); ?></li>
+          </ul>
+          <div class="plan-extra"><strong><?php echo t('marketing.pricing.scale_addon_title'); ?></strong><br><?php echo t('marketing.pricing.scale_addon_month'); ?><br><?php echo t('marketing.pricing.scale_addon_year'); ?></div>
+        </div>
+      </div>
       </div>
     </div>
   </section>
@@ -3102,7 +3148,6 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       var demoFilter = document.getElementById('demo-filter');
       var appTabs = document.querySelectorAll('.app-tab');
       var appViews = document.querySelectorAll('.app-view');
-      var demoSwitching = false;
       var insightsAnimated = false;
       var demoInView = false;
 
@@ -3194,12 +3239,10 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       }
 
       function switchDemoView(viewName) {
-        if (demoSwitching) return;
-        demoSwitching = true;
-
         var nextView = viewName === 'insights' ? demoInsights : demoCases;
         var nextTab = viewName === 'insights' ? tabInsights : tabCases;
         if (!nextView || !nextTab) return;
+        if (nextTab.classList.contains('active')) return;
 
         if (demoFilter) {
           demoFilter.textContent = viewName === 'insights' ? 'Last 30 days' : 'Filters: All Cases';
@@ -3224,10 +3267,6 @@ foreach (['operate', 'control', 'scale'] as $plan) {
             animateDemoInsights();
           }, 100);
         }
-
-        setTimeout(function() {
-          demoSwitching = false;
-        }, 450);
       }
 
       if (tabCases && tabInsights) {
@@ -3700,6 +3739,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
         }, { threshold: 0.2 });
         io.observe(snapshot);
       })();
+      }
     })();
   </script>
 

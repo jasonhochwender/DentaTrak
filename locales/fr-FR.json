@@ -6224,7 +6224,6 @@
             "control_features_2": "Utilisateurs illimités",
             "control_features_3": "Jusqu'à 2 cabinets",
             "control_features_4": "Practice et Lab Insights",
-            "control_features_5": "Recommandations",
             "control_features_6": "Intégration Open Dental",
             "scale_description": "Pour les organisations gérant plusieurs cabinets. Un seul abonnement couvre toute l'organisation.",
             "scale_features_1": "Tout ce qui est dans Control",
@@ -6259,15 +6258,15 @@
         "insights_section": {
             "eyebrow": "Practice et Lab Insights",
             "title": "Aperçu du cabinet et des laboratoires",
-            "lead": "Transformez l'activité quotidienne en une vision plus claire de la performance de votre cabinet et de vos laboratoires. Suivez les délais, repérez les retards et suivez les reprises.",
-            "included": "Practice Insights, Lab Insights et les recommandations sont inclus dans les formules Control et Scale.",
+            "lead": "Voyez les performances de votre cabinet et de vos laboratoires partenaires avec Practice Insights et Lab Insights. Suivez les cas actifs, en retard et à risque de rendez-vous, le délai moyen et le taux de livraison à temps, les comparaisons par laboratoire ainsi que le volume mensuel de cas et les tendances.",
+            "included": "Practice Insights et Lab Insights sont inclus dans les offres Control et Scale.",
             "features": {
-                "1_title": "Volume et statut des cas",
-                "1_body": "Suivez en un coup d'œil les cas actifs, bientôt dus, en retard et livrés.",
-                "2_title": "Délais et risque de rendez-vous",
-                "2_body": "Comparez les délais des laboratoires et repérez les cas où le rendez-vous du patient pourrait arriver avant que le travail soit prêt.",
-                "3_title": "Comparaison de laboratoires et refontes",
-                "3_body": "Comparez la charge de travail, les taux de retard et les refontes attribuées par laboratoire. Les révisions sont comptées séparément, donc les ajustements de routine ne sont pas pris pour des erreurs. Les recommandations proposent des prochaines étapes pratiques."
+                "1_title": "Santé des cas en un coup d’œil",
+                "1_body": "Cas actifs, en retard, bientôt dus, à risque de rendez-vous et livrés résumés dans une seule vue.",
+                "2_title": "Délai de fabrication et ponctualité",
+                "2_body": "Délai moyen du laboratoire, taux de livraison à temps et cas dont le rendez-vous patient pourrait survenir avant la fin du cas.",
+                "3_title": "Comparaison des laboratoires et retouches",
+                "3_body": "Comparez la charge, les délais et les retouches imputables au laboratoire. Les révisions sont comptées séparément pour ne pas confondre ajustements courants et erreurs."
             },
             "org_note": "Avec la formule Scale, les utilisateurs autorisés peuvent voir les cas de tous leurs cabinets en un seul endroit et comparer la charge de travail et la performance des laboratoires entre cabinets grâce à Insights à l’échelle de l’organisation."
         },
@@ -6611,22 +6610,28 @@
         },
         "pms": {
             "eyebrow": "INTÉGRATIONS",
-            "title": "Connectez votre logiciel de cabinet et vos scans.",
-            "lead": "Importez les informations de cas et les fichiers de scans dans DentaTrak avec moins de saisie manuelle. Connectez Open Dental pour l’intégration des cas de laboratoire pris en charge, ou importez des scans Primescan via DS Core tout en continuant à travailler avec vos laboratoires habituels.",
+            "title": "Connectez votre logiciel de cabinet et vos scanners numériques.",
+            "lead": "Importez les informations de cas et les scans numériques dans DentaTrak avec moins de saisie manuelle. Connectez des systèmes de gestion de cabinet et des plateformes de scanner prises en charge pour garder vos flux de cas organisés.",
             "card_od_cat": "Logiciel de gestion de cabinet",
             "card_od_title": "Open Dental",
             "card_od_body": "Importez les cas de laboratoire pris en charge et gardez les informations connectées synchronisées. La synchronisation bidirectionnelle optionnelle renvoie les jalons de statut au cas de laboratoire Open Dental.",
             "card_scan_cat": "Scans intra-oraux",
             "card_scan_title": "Primescan / DS Core",
-            "card_scan_body": "Amenez les scans dans votre boîte Scans entrants, prévisualisez les fichiers et créez un cas ou attachez-les à un cas existant.",
+            "card_scan_body": "Les scans des scanners intra-oraux pris en charge arrivent dans votre boîte Scans entrants : prévisualisez les fichiers, créez un cas ou rattachez-les à un cas existant.",
             "more": "Nous travaillons sur d’autres intégrations.",
-            "plan_note": "Open Dental et Primescan / DS Core sont inclus dans les forfaits Control et Scale."
+            "plan_note": "Open Dental et Primescan / DS Core sont inclus dans les offres Control et Scale.",
+            "flow_aria": "Schéma : le logiciel de gestion de cabinet et les scanners numériques se connectent à DentaTrak.",
+            "col_sources": "Vos outils",
+            "col_pms_sub": "Gestion de cabinet",
+            "col_scan_sub": "Scanners intra-oraux",
+            "col_scans_title": "Autres intégrations",
+            "col_scans_sub": "Scanners et logiciels de cabinet supplémentaires en cours de développement",
+            "hub_sub": "Cas et scans, organisés"
         },
         "languages": {
             "eyebrow": "Langues",
             "title": "DentaTrak parle la langue de votre équipe.",
-            "lead": "Le produit est localisé de bout en bout, y compris les flux de travail, les notifications, Insights et Ask DentaTrak, pour que chaque membre de l’équipe travaille dans la langue dans laquelle il pense.",
-            "note": "Anglais, allemand, espagnol, français, français canadien, italien, portugais brésilien, russe et coréen."
+            "lead": "Le produit est localisé de bout en bout, y compris les flux de travail, les notifications, Insights et Ask DentaTrak, pour que chaque membre de l’équipe travaille dans la langue dans laquelle il pense."
         },
         "compare": {
             "title": "Vous suivez déjà vos cas ailleurs ?",
@@ -6680,7 +6685,6 @@
             "consolidated_view_info": "Consultez les cas de tous les cabinets de votre organisation au même endroit. L'accès par cabinet reste inchangé : les membres ne voient que les cabinets dont ils font partie.",
             "practice_insights": "Practice Insights",
             "lab_insights": "Lab Insights",
-            "recommendations": "Recommandations",
             "org_insights": "Analyses au niveau de l'organisation",
             "org_insights_info": "Compare la charge de travail, les délais, la ponctualité et les reprises dans tous les cabinets de votre organisation – indépendamment des Insights par cabinet.",
             "open_dental": "Intégration Open Dental",

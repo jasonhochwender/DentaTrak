@@ -1860,15 +1860,15 @@
         "insights_section": {
             "eyebrow": "Practice e Lab Insights",
             "title": "Visão da clínica e dos laboratórios",
-            "lead": "Transforme a rotina em uma visão mais clara de como sua clínica e seus laboratórios estão indo. Veja prazos de entrega, identifique atrasos e acompanhe retrabalhos.",
-            "included": "Practice Insights, Lab Insights e recomendações estão incluídos nos planos Control e Scale.",
+            "lead": "Veja com o Practice Insights e o Lab Insights o desempenho da sua clínica e dos laboratórios parceiros. Acompanhe casos ativos, atrasados e com risco de consulta, prazo médio e entregas no prazo, comparativos por laboratório e volume mensal de casos e tendências.",
+            "included": "Practice Insights e Lab Insights estão incluídos nos planos Control e Scale.",
             "features": {
-                "1_title": "Volume e status de casos",
-                "1_body": "Acompanhe casos ativos, com prazo próximo, atrasados e entregues rapidamente.",
-                "2_title": "Prazo de entrega e risco para a consulta",
-                "2_body": "Compare os prazos dos laboratórios e identifique casos em que a consulta do paciente pode chegar antes do trabalho ficar pronto.",
-                "3_title": "Comparação de laboratórios e refações",
-                "3_body": "Compare carga de trabalho, taxas de atraso e refações atribuídas por laboratório. As revisões são contadas separadamente, então ajustes de rotina não são confundidos com erros. As recomendações sugerem próximos passos práticos."
+                "1_title": "Saúde dos casos num relance",
+                "1_body": "Casos ativos, atrasados, vencendo, com risco de consulta e entregues resumidos em uma única visão.",
+                "2_title": "Prazo de entrega e pontualidade",
+                "2_body": "Prazo médio do laboratório, taxa de entrega no prazo e casos em que a consulta do paciente pode chegar antes do caso ficar pronto.",
+                "3_title": "Comparativo de laboratórios e retrabalhos",
+                "3_body": "Compare volume, prazos e retrabalhos atribuídos ao laboratório. Revisões são contadas separadamente, para que ajustes de rotina não sejam confundidos com erros."
             },
             "org_note": "No plano Scale, usuários autorizados podem ver os casos de todos os seus consultórios em um só lugar e comparar a carga de trabalho e o desempenho dos laboratórios entre os consultórios com Insights em nível de organização."
         },
@@ -1970,7 +1970,6 @@
             "control_features_2": "Usuários ilimitados",
             "control_features_3": "Até 2 clínicas",
             "control_features_4": "Practice e Lab Insights",
-            "control_features_5": "Recomendações",
             "control_features_6": "Integração com Open Dental",
             "scale_description": "Para organizações que gerenciam várias clínicas. Uma única assinatura cobre toda a organização.",
             "scale_features_1": "Tudo do Control",
@@ -2272,22 +2271,28 @@
         },
         "pms": {
             "eyebrow": "INTEGRAÇÕES",
-            "title": "Conecte o software da sua clínica e seus escaneios.",
-            "lead": "Traga informações de casos e arquivos de escaneios para o DentaTrak com menos digitação manual. Conecte o Open Dental para a integração de casos de laboratório compatíveis, ou importe escaneios Primescan pelo DS Core enquanto continua trabalhando com seus laboratórios atuais.",
+            "title": "Conecte seu software de clínica e seus scanners digitais.",
+            "lead": "Leve informações de casos e digitalizações para o DentaTrak com menos digitação manual. Conecte sistemas de gestão de clínica e plataformas de digitalização compatíveis para manter seus fluxos de casos organizados.",
             "card_od_cat": "Software de gestão da clínica",
             "card_od_title": "Open Dental",
             "card_od_body": "Importe casos de laboratório compatíveis e mantenha as informações conectadas sincronizadas. A sincronização bidirecional opcional envia marcos de status de volta ao caso de laboratório do Open Dental.",
             "card_scan_cat": "Escaneios intraorais",
             "card_scan_title": "Primescan / DS Core",
-            "card_scan_body": "Traga escaneios para sua caixa de Escaneios recebidos, visualize os arquivos e crie um caso ou anexe-os a um existente.",
-            "more": "Estamos trabalhando em mais integrações.",
-            "plan_note": "Open Dental e Primescan / DS Core estão incluídos nos planos Control e Scale."
+            "card_scan_body": "As digitalizações de scanners intraorais compatíveis chegam à sua caixa de Digitalizações recebidas: visualize os arquivos, crie um caso ou anexe-os a um existente.",
+            "more": "Estamos trabalhando em integrações adicionais.",
+            "plan_note": "Open Dental e Primescan / DS Core estão incluídos nos planos Control e Scale.",
+            "flow_aria": "Diagrama: o software de gestão de clínica e os scanners digitais se conectam ao DentaTrak.",
+            "col_sources": "Suas ferramentas",
+            "col_pms_sub": "Gestão de clínica",
+            "col_scan_sub": "Scanners intraorais",
+            "col_scans_title": "Mais integrações",
+            "col_scans_sub": "Scanners e softwares de clínica adicionais em desenvolvimento",
+            "hub_sub": "Casos e digitalizações, organizados"
         },
         "languages": {
             "eyebrow": "Idiomas",
             "title": "O DentaTrak fala a língua da sua equipe.",
-            "lead": "O produto é localizado por inteiro, incluindo fluxos de trabalho, notificações, Insights e Ask DentaTrak, para que cada membro da equipe trabalhe no idioma em que pensa.",
-            "note": "Inglês, alemão, espanhol, francês, francês canadense, italiano, português brasileiro, russo e coreano."
+            "lead": "O produto é localizado por inteiro, incluindo fluxos de trabalho, notificações, Insights e Ask DentaTrak, para que cada membro da equipe trabalhe no idioma em que pensa."
         },
         "compare": {
             "title": "Já acompanha casos em outro lugar?",
@@ -2341,7 +2346,6 @@
             "consolidated_view_info": "Veja os casos de todas as clínicas da sua organização em um só lugar. O acesso por clínica não muda: os membros continuam vendo apenas as clínicas às quais pertencem.",
             "practice_insights": "Practice Insights",
             "lab_insights": "Lab Insights",
-            "recommendations": "Recomendações",
             "org_insights": "Análises no nível da organização",
             "org_insights_info": "Compara carga de trabalho, prazos de entrega, pontualidade e retrabalhos em todas as clínicas da sua organização – separado dos Insights por clínica.",
             "open_dental": "Integração com Open Dental",

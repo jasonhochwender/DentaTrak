@@ -4521,15 +4521,15 @@
         "insights_section": {
             "eyebrow": "Practice & Lab Insights",
             "title": "Praxis- und Labor-Einblicke",
-            "lead": "Machen Sie aus dem Alltag ein klareres Bild davon, wie es Ihrer Praxis und Ihren Laboren geht. Sehen Sie Durchlaufzeiten, erkennen Sie Verzögerungen und verfolgen Sie Nacharbeiten.",
-            "included": "Practice Insights, Lab Insights und Empfehlungen sind in den Tarifen Control und Scale enthalten.",
+            "lead": "Sehen Sie mit Practice Insights und Lab Insights, wie Ihre Praxis und Partnerlabore abschneiden. Verfolgen Sie aktive, überfällige und termingefährdete Fälle, durchschnittliche Durchlaufzeiten und Termintreue, Laborvergleiche sowie monatliches Fallaufkommen und Trends.",
+            "included": "Practice Insights und Lab Insights sind in den Tarifen Control und Scale enthalten.",
             "features": {
-                "1_title": "Fallvolumen und Status",
-                "1_body": "Verfolgen Sie aktive, bald fällige, verspätete und gelieferte Fälle auf einen Blick.",
-                "2_title": "Durchlaufzeit und Terminrisiko",
-                "2_body": "Vergleichen Sie Labordurchlaufzeiten und erkennen Sie Fälle, bei denen der Patiententermin vor der fertigen Arbeit liegen könnte.",
-                "3_title": "Laborvergleich und Neuanfertigungen",
-                "3_body": "Vergleichen Sie Arbeitslast, Verspätungsraten und laborzugeordnete Neuanfertigungen je Labor. Revisionen werden getrennt gezählt, damit routinemäßige Anpassungen nicht als Fehler erscheinen. Empfehlungen zeigen praktische nächste Schritte."
+                "1_title": "Fallstatus auf einen Blick",
+                "1_body": "Aktive, überfällige, bald fällige, termingefährdete und gelieferte Fälle in einer Übersicht.",
+                "2_title": "Durchlaufzeit und Termintreue",
+                "2_body": "Durchschnittliche Labor-Durchlaufzeit, Termintreue und Fälle, bei denen der Patiententermin vor der Fertigstellung liegen könnte.",
+                "3_title": "Laborvergleich und Nacharbeit",
+                "3_body": "Vergleichen Sie Arbeitsaufkommen, Durchlaufzeiten und laborbedingte Nacharbeit pro Labor. Revisionen werden separat gezählt, damit routinemäßige Anpassungen nicht als Fehler gelten."
             },
             "org_note": "Im Scale-Plan können autorisierte Nutzer Fälle aller ihrer Praxen an einem Ort sehen und Arbeitslast und Laborleistung der Praxen mit organisationsweiten Insights vergleichen."
         },
@@ -4639,7 +4639,6 @@
             "control_features_2": "Unbegrenzte Benutzer",
             "control_features_3": "Bis zu 2 Praxen",
             "control_features_4": "Practice und Lab Insights",
-            "control_features_5": "Empfehlungen",
             "control_features_6": "Open-Dental-Integration",
             "scale_description": "Für Organisationen mit mehreren Praxen. Ein Abonnement deckt die gesamte Organisation ab.",
             "scale_features_1": "Alles aus Control",
@@ -6653,22 +6652,28 @@
         },
         "pms": {
             "eyebrow": "INTEGRATIONEN",
-            "title": "Verbinden Sie Ihre Praxissoftware und Scans.",
-            "lead": "Fallinformationen und Scandateien mit weniger manueller Eingabe in DentaTrak übernehmen. Verbinden Sie Open Dental für die unterstützte Laborfall-Integration oder importieren Sie Primescan-Scans über DS Core – und arbeiten Sie weiterhin mit Ihren bestehenden Laboren.",
+            "title": "Verbinden Sie Ihre Praxissoftware und digitalen Scanner.",
+            "lead": "Übernehmen Sie Falldaten und digitale Scans mit weniger manueller Eingabe in DentaTrak. Verbinden Sie unterstützte Praxisverwaltungssysteme und Scanner-Plattformen, damit Ihre Fallworkflows organisiert bleiben.",
             "card_od_cat": "Praxisverwaltungssoftware",
             "card_od_title": "Open Dental",
             "card_od_body": "Unterstützte Laborfälle importieren und verknüpfte Informationen synchron halten. Die optionale Zwei-Wege-Synchronisation sendet Statusmeilensteine an den Open-Dental-Laborfall zurück.",
             "card_scan_cat": "Intraoralscans",
             "card_scan_title": "Primescan / DS Core",
-            "card_scan_body": "Scans in Ihren Eingehende-Scans-Eingang bringen, Dateien ansehen und einen Fall erstellen oder an einen bestehenden anhängen.",
+            "card_scan_body": "Scans unterstützter intraoraler Scanner landen in Ihrem Posteingang „Eingehende Scans“, können in der Vorschau angesehen und einem Fall zugeordnet oder als neuer Fall angelegt werden.",
             "more": "Wir arbeiten an weiteren Integrationen.",
-            "plan_note": "Open Dental und Primescan / DS Core sind in den Control- und Scale-Tarifen enthalten."
+            "plan_note": "Open Dental und Primescan / DS Core sind in den Tarifen Control und Scale enthalten.",
+            "flow_aria": "Diagramm: Praxissoftware und digitale Scanner verbinden sich mit DentaTrak.",
+            "col_sources": "Ihre Werkzeuge",
+            "col_pms_sub": "Praxisverwaltung",
+            "col_scan_sub": "Intraorale Scanner",
+            "col_scans_title": "Weitere Integrationen",
+            "col_scans_sub": "Weitere Scanner und Praxissoftware in Entwicklung",
+            "hub_sub": "Fälle & Scans, organisiert"
         },
         "languages": {
             "eyebrow": "Sprachen",
             "title": "DentaTrak spricht die Sprache Ihres Teams.",
-            "lead": "Das Produkt ist durchgängig lokalisiert, einschließlich Workflows, Benachrichtigungen, Insights und Ask DentaTrak, damit jedes Teammitglied in der Sprache arbeiten kann, in der es denkt.",
-            "note": "Englisch, Deutsch, Spanisch, Französisch, Kanadisches Französisch, Italienisch, Brasilianisches Portugiesisch, Russisch und Koreanisch."
+            "lead": "Das Produkt ist durchgängig lokalisiert, einschließlich Workflows, Benachrichtigungen, Insights und Ask DentaTrak, damit jedes Teammitglied in der Sprache arbeiten kann, in der es denkt."
         },
         "compare": {
             "title": "Verfolgen Sie Fälle schon anderswo?",
@@ -6722,7 +6727,6 @@
             "consolidated_view_info": "Sehen Sie Fälle aus allen Praxen Ihrer Organisation an einem Ort. Der Zugriff pro Praxis bleibt unverändert – Mitglieder sehen nur die Praxen, denen sie angehören.",
             "practice_insights": "Practice Insights",
             "lab_insights": "Lab Insights",
-            "recommendations": "Empfehlungen",
             "org_insights": "Einblicke auf Organisationsebene",
             "org_insights_info": "Vergleicht Arbeitsaufkommen, Durchlaufzeiten, Termintreue und Nacharbeiten über alle Praxen Ihrer Organisation hinweg – getrennt von den Einblicken pro Praxis.",
             "open_dental": "Open Dental-Integration",
