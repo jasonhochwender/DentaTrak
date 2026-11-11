@@ -3,12 +3,26 @@
  * Sheet pre-check + confirmed-send write-back for the MCP marketing
  * connector. Reuses ProspectSheetSync's sheet/token internals.
  */
+require_once __DIR__ . '/OutreachEligibility.php';
+
 class McpSheetSync {
     private const SHEET_ID = '1r7G5QaKe69LAU93d0WoWDSXIsWVr0cbDnpjF7z1tARc';
     private const TAB = 'Prospects';
     private string $token;
     private ?array $rows = null; private ?array $header = null;
-    public function __construct() { $this->token = ProspectSheetSync::accessTokenPublic(); }
+    /**
+     * @param ?array $snapshot optional ['header'=>[], 'rows'=>[]] to operate
+     *        on a preloaded sheet snapshot (no network; read-only use).
+     */
+    public function __construct(?array $snapshot = null) {
+        if ($snapshot !== null) {
+            $this->token = '';
+            $this->header = array_values($snapshot['header'] ?? []);
+            $this->rows = array_values($snapshot['rows'] ?? []);
+            return;
+        }
+        $this->token = ProspectSheetSync::accessTokenPublic();
+    }
     private function load(): void {
         if ($this->rows !== null) return;
         $r = ProspectSheetSync::httpPublic('GET','https://sheets.googleapis.com/v4/spreadsheets/'.self::SHEET_ID.'/values/'.rawurlencode(self::TAB),null,false,$this->token);
@@ -23,25 +37,72 @@ class McpSheetSync {
         foreach ($this->rows as $i=>$r) if (strtolower(trim($r[$ec]??''))===strtolower($email)) return ['row'=>$i+2,'data'=>$r];
         return null;
     }
-    public function preCheck(string $email): array {
-        $p = $this->prospectRow($email); if (!$p) return ['ok'=>true,'flags'=>[]];
-        $d=$p['data']; $flags=[];
-        $get=function($n)use($d){$i=array_search($n,$this->header);return $i===false?'':trim($d[$i]??'');};
-        if ($get('Do Not Contact')!==''||$get('DNC')!=='') $flags[]='do_not_contact';
-        if (in_array($get('Outreach Status'),['Sent','Contacted','Replied'])) $flags[]='already_contacted';
-        $dom = strtolower(substr(strrchr($email,'@')?:'',1));
-        if ($dom) { $pc=$this->col('Parent Organization')??$this->col('Parent Org'); $parent=$get('Parent Organization')?:$get('Parent Org');
-            foreach ($this->rows as $r) {
-                $re=strtolower(trim($r[$this->col('Public Email')??$this->col('Email')]??''));
-                if ($re===$email) continue;
-                $sameDom=$re!==''&&substr(strrchr($re,'@'),1)===$dom;
-                $samePar=$parent!==''&&$pc!==null&&strtolower(trim($r[$pc]??''))===strtolower($parent);
-                $os=trim($r[$this->col('Outreach Status')??PHP_INT_MAX]??'');
-                if (($sameDom||$samePar)&&in_array($os,['Sent','Contacted','Replied'])){$flags[]='duplicate_org';break;}
+    /**
+     * Sheet eligibility for one recipient and campaign kind. Rules live in
+     * OutreachEligibility: initial outreach refuses previously contacted
+     * prospects and duplicate organizations; follow-ups require a valid
+     * prior outreach record. Do Not Contact / unsubscribed / bounced /
+     * invalid rows and suppressed recipients are refused for every kind.
+     *
+     * @param string $kind initial | followup
+     * @param array  $ctx  suppressed?, org_suppressed?, ledger_sent?, require_in_sheet?
+     * @return array{ok: bool, flags: string[], hard: bool, in_sheet: bool, row: ?int, prior_outreach: bool}
+     */
+    public function preCheck(string $email, string $kind = OutreachEligibility::KIND_INITIAL, array $ctx = []): array {
+        return OutreachEligibility::evaluate($this->eligibilityIndex(), $email, $kind, $ctx);
+    }
+
+    private ?array $eligIndex = null;
+    /** Cached OutreachEligibility index over the loaded snapshot. */
+    public function eligibilityIndex(): array {
+        $this->load();
+        return $this->eligIndex ??= OutreachEligibility::index($this->header ?? [], $this->rows ?? []);
+    }
+
+    /**
+     * Record a confirmed send on the prospect's row. Only the named cells
+     * are written (values:batchUpdate), the row is located by email in this
+     * instance's snapshot, and the API response is checked - a transport
+     * failure or a zero-cell update throws so the caller can retry later
+     * without resending mail. The Gmail note is appended once: a repeat
+     * call with the same message id leaves the notes unchanged.
+     *
+     * @param array $fields header => value
+     * @return array{row: int, cells: int}
+     */
+    public function recordSend(string $email, array $fields, string $note = ''): array {
+        $p = $this->prospectRow(strtolower(trim($email)));
+        if (!$p) throw new RuntimeException('prospect row not found in sheet');
+        if ($note !== '') {
+            $nc = $this->colAny(['Outreach Notes', 'Notes']);
+            if ($nc !== null) {
+                $existing = trim((string)($p['data'][$nc] ?? ''));
+                if (strpos($existing, $note) === false) {
+                    $fields[$this->header[$nc]] = $existing !== '' ? $existing . ' | ' . $note : $note;
+                }
             }
         }
-        return ['ok'=>empty($flags),'flags'=>$flags];
+        $data = [];
+        foreach ($fields as $h => $v) {
+            $c = $this->colAny([(string)$h]);
+            if ($c === null) continue;
+            $data[] = ['range' => self::TAB . '!' . self::colLetter($c) . $p['row'], 'values' => [[(string)$v]]];
+        }
+        if (!$data) return ['row' => $p['row'], 'cells' => 0];
+        $resp = ProspectSheetSync::httpPublic('POST',
+            'https://sheets.googleapis.com/v4/spreadsheets/' . self::SHEET_ID . '/values:batchUpdate',
+            ['valueInputOption' => 'USER_ENTERED', 'data' => $data], false, $this->token);
+        $cells = (int)(json_decode((string)$resp, true)['totalUpdatedCells'] ?? 0);
+        if ($cells < 1) throw new RuntimeException('sheet update not confirmed');
+        return ['row' => $p['row'], 'cells' => $cells];
     }
+
+    private static function colLetter(int $zeroBased): string {
+        $col = ''; $n = $zeroBased + 1;
+        while ($n > 0) { $col = chr(65 + ($n - 1) % 26) . $col; $n = intdiv($n - 1, 26); }
+        return $col;
+    }
+
     /** Full sheet snapshot: ['header'=>string[], 'rows'=>array<int,array>] (row 0 = first data row). */
     public function sheet(): array {
         $this->load();
@@ -95,7 +156,9 @@ class McpSheetSync {
         $data=[]; foreach($vals as $h=>$v){$c=$this->col($h); if($c===null) continue;
             $col='';$n=$c+1;while($n>0){$col=chr(65+($n-1)%26).$col;$n=intdiv($n-1,26);}
             $data[]=['range'=>self::TAB."!{$col}{$p['row']}",'values'=>[[$v]]];}
-        ProspectSheetSync::httpPublic('POST','https://sheets.googleapis.com/v4/spreadsheets/'.self::SHEET_ID.'/values:batchUpdate',['valueInputOption'=>'USER_ENTERED','data'=>$data],false,$this->token);
-        return true;
+        $resp=ProspectSheetSync::httpPublic('POST','https://sheets.googleapis.com/v4/spreadsheets/'.self::SHEET_ID.'/values:batchUpdate',['valueInputOption'=>'USER_ENTERED','data'=>$data],false,$this->token);
+        // Only report success when the API confirms cells were written, so
+        // an unconfirmed write-back stays queued for retry.
+        return (int)(json_decode((string)$resp,true)['totalUpdatedCells']??0) > 0;
     }
 }

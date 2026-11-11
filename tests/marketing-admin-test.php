@@ -87,9 +87,60 @@ assertContains($api, '/content_hash/', 'approval must bind a content hash');
 assertContains($api, '/content changed since approval/', 'send must refuse content edited after approval');
 assertContains($api, '/isSuppressed\(\$email\)/', 'send must re-check email suppression');
 assertContains($api, '/isOrgSuppressed\(\$orgRef\)/', 'send must re-check org suppression');
-assertContains($api, '/preCheck\(\$email\)/', 'send must run the sheet pre-check');
+assertContains($api, '/preCheck\(\$email, \$camp\[\'kind\'\], \$ctx\)/', 'send must run the kind-aware sheet pre-check');
 assertContains($api, '/mo_audit\(/', 'mutations must write the audit log');
-assertContains($api, '/status=\'sending\' WHERE id=\? AND status IN/', 'send must atomically claim the campaign');
+assertContains($api, '/SET status=\'sending\', updated_at=NOW\(\) WHERE id=\? AND \(/', 'send must atomically claim the campaign');
+assertContains($api, '/send already in progress/', 'concurrent send must be refused');
+
+// ---- 5b. Pre-launch hardening ----
+$elig = $baseDir . '/api/marketing/OutreachEligibility.php';
+$policy = $baseDir . '/api/marketing/MarketingSendingPolicy.php';
+$thread = $baseDir . '/api/marketing/OutreachThreadResolver.php';
+$hardening = $baseDir . '/migrations/2026_11_12_marketing_send_hardening.php';
+$schemaCheck = $baseDir . '/scripts/marketing-schema-check.php';
+
+assertContains($flags, '/MARKETING_SENDING.\s*=>\s*false/', 'MARKETING_SENDING must default to false');
+assertContains($flags, '/MARKETING_SEND_ALLOWLIST/', 'allowlist env var must be documented in flags');
+// Administration vs sending separation
+assertContains($api, '/sending_disabled/', 'admin send must refuse when sending is disabled');
+assertContains($api, '/new MarketingSendingPolicy\(\)/', 'admin API must build the sending policy');
+assertContains($sendEp, '/sending_disabled|recipient_not_allowlisted/', 'token endpoint must surface delivery-control blocks');
+// Kind-aware eligibility
+assertContains($elig, '/KIND_INITIAL/', 'eligibility must define campaign kinds');
+assertContains($elig, '/no_prior_outreach/', 'follow-ups must require prior outreach');
+assertContains($elig, '/already_contacted/', 'initial outreach must refuse contacted prospects');
+assertContains($elig, '/do_not_contact/', 'eligibility must enforce Do Not Contact');
+assertContains($api, '/mo_elig_ctx\(/', 'send must build per-recipient eligibility context');
+// Threading
+assertContains($thread, '/campaign_record/', 'thread resolver must use campaign records');
+assertContains($thread, '/send_ledger/', 'thread resolver must use the send ledger');
+assertContains($thread, '/sheet_notes/', 'thread resolver must use sheet notes');
+assertContains($thread, '/ambiguous/', 'thread resolver must refuse ambiguous threads');
+assertContains($api, '/resolve_threads/', 'admin API must expose thread re-resolution');
+// Uncertain/reconciliation + sheet write-back
+assertContains($api, '/resolve_uncertain/', 'admin API must expose operator resolution');
+assertContains($api, '/reconcile/', 'admin API must expose ledger reconciliation');
+assertContains($api, '/retry_sheet_sync/', 'admin API must expose sheet write-back retry');
+assertContains($api, '/sheet_sync_status/', 'recipients must track sheet write-back state');
+assertContains($mailer, '/uncertain/', 'mailer must model uncertain outcomes');
+assertContains($mailer, '/X-DentaTrak-Send-Id/', 'mailer must stamp sends for reconciliation');
+assertContains($mailer, '/idempotency_key/', 'mailer must persist the idempotency key');
+// Recovery actions must never send mail: they are separate cases that do
+// not call MarketingMailer::send (checked structurally below).
+$apiSrc = (string)@file_get_contents($api);
+foreach (['reconcile', 'resolve_uncertain', 'retry_sheet_sync', 'resolve_threads'] as $act) {
+    if (preg_match('/case \'' . $act . '\'\s*:\s*\{(.*?)\n    \}/s', $apiSrc, $m)) {
+        ok2(!str_contains($m[1], "->send("), "action '$act' must not send mail");
+    }
+}
+function ok2(bool $cond, string $msg): void {
+    global $failures, $passes;
+    if ($cond) $passes++; else $failures[] = $msg;
+}
+// Migrations + schema check
+assertContains($hardening, '/idempotency_key/', 'hardening migration must add the idempotency key');
+assertContains($hardening, '/uncertain/', 'hardening migration must allow the uncertain status');
+assertContains($schemaCheck, '/--post/', 'schema check must support post verification');
 
 // ---- 6. Shared mailer + endpoint contract ----
 assertContains($sendEp, '/new MarketingMailer\(/', 'marketing-send.php must delegate to the shared mailer');

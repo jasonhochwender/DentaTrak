@@ -16,18 +16,27 @@
  *                       Sent/Contacted/Replied
  *  - overdue_followup : follow-up date is in the past and the record is not
  *                       Replied / Do Not Contact / bounced
+ *
+ * Each prospect also carries `eligibility` => ['initial' => ..., 'followup'
+ * => ...] from OutreachEligibility, so campaign creation can apply the rule
+ * for its own kind. `eligible` remains the kind-independent answer: the
+ * prospect has a usable address and no permanent exclusion.
  */
 require_once __DIR__ . '/McpSheetSync.php';
 require_once __DIR__ . '/SuppressionService.php';
+require_once __DIR__ . '/OutreachEligibility.php';
 
 final class ProspectDirectory
 {
     private McpSheetSync $sheet;
     private ?SuppressionService $suppression;
     private array $problems = [];
+    private PDO $pdo;
+    private ?array $ledgerSent = null;
 
     public function __construct(PDO $pdo, ?McpSheetSync $sheet = null, ?SuppressionService $suppression = null)
     {
+        $this->pdo = $pdo;
         $this->sheet = $sheet ?? new McpSheetSync();
         $this->suppression = $suppression ?? new SuppressionService($pdo);
     }
@@ -79,6 +88,21 @@ final class ProspectDirectory
         return $this->annotate($out);
     }
 
+    /** Emails with a confirmed send in the ledger (prior outreach record). */
+    private function ledgerSentEmails(): array
+    {
+        if ($this->ledgerSent !== null) return $this->ledgerSent;
+        $this->ledgerSent = [];
+        try {
+            $rows = $this->pdo->query("SELECT DISTINCT email_normalized FROM marketing_sends WHERE status='sent'")
+                ->fetchAll(PDO::FETCH_COLUMN);
+            foreach ($rows as $e) $this->ledgerSent[strtolower((string)$e)] = true;
+        } catch (Throwable $e) {
+            $this->problems[] = 'send_ledger_unavailable';
+        }
+        return $this->ledgerSent;
+    }
+
     /** Add computed flags + display helpers to raw prospect records. */
     private function annotate(array $records): array
     {
@@ -98,6 +122,8 @@ final class ProspectDirectory
             if ($parent !== '') $contactedParents[$parent] = true;
         }
 
+        $index = $this->sheet->eligibilityIndex();
+        $ledger = $this->ledgerSentEmails();
         foreach ($records as &$r) {
             $f = &$r['fields'];
             $email = strtolower(trim($f['email']));
@@ -141,6 +167,25 @@ final class ProspectDirectory
             $r['flags'] = $flags;
             $r['contact_name'] = $f['contact_name'] !== '' ? $f['contact_name']
                 : trim($f['contact_first'] . ' ' . $f['contact_last']);
+            // Per-kind eligibility from the shared rules.
+            $suppressed = $email !== '' && $this->suppression->isSuppressed($email);
+            $orgRef = $email !== '' ? SuppressionService::orgRefForEmail($email) : null;
+            $ctx = [
+                'suppressed' => $suppressed,
+                'org_suppressed' => !$suppressed && $orgRef !== null && $this->suppression->isOrgSuppressed($orgRef),
+                'ledger_sent' => isset($ledger[$email]),
+            ];
+            $r['eligibility'] = [
+                'initial' => OutreachEligibility::evaluate($index, $email, OutreachEligibility::KIND_INITIAL, $ctx),
+                'followup' => OutreachEligibility::evaluate($index, $email, OutreachEligibility::KIND_FOLLOWUP, $ctx),
+            ];
+            if ($r['eligibility']['initial']['hard'] && !in_array('missing_contact', $flags, true)
+                && !in_array('do_not_contact', $flags, true)) {
+                // unsubscribed / bounced / invalid sheet statuses are
+                // permanent exclusions too.
+                $flags[] = 'do_not_contact';
+                $r['flags'] = $flags;
+            }
             $r['eligible'] = !in_array('missing_contact', $flags, true)
                 && !in_array('do_not_contact', $flags, true);
         }

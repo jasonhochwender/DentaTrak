@@ -77,6 +77,13 @@ function ma($k) { return t('marketing_admin.' . $k); }
         .mo-pill.suppressed, .mo-pill.skipped, .mo-pill.excluded { background: #e5e7eb; color: #4b5563; }
         .mo-pill.partial, .mo-pill.awaiting_response { background: #fef3c7; color: #92400e; }
         .mo-pill.draft { background: #f3f4f6; color: #6b7280; }
+        .mo-pill.uncertain, .mo-pill.sheet-failed, .mo-pill.thread-new { background: #fef3c7; color: #92400e; }
+        .mo-pill.thread-resolved, .mo-pill.sheet-synced { background: #d1fae5; color: #065f46; }
+        .mo-sending { padding: 10px 14px; border-radius: 6px; font-size: 0.85rem; margin-bottom: 14px; border: 1px solid #d1d5db; background: #f9fafb; color: #374151; }
+        .mo-sending.allowlist { border-color: #fde68a; background: #fffbeb; color: #92400e; }
+        .mo-sending.unrestricted { border-color: #fecaca; background: #fef2f2; color: #991b1b; font-weight: 600; }
+        .mo-msg-note { font-size: 0.75rem; color: #6b7280; margin: 4px 0; }
+        .mo-subj[readonly] { background: #f3f4f6; color: #4b5563; }
         .mo-toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
         .mo-toolbar input[type="search"], .mo-toolbar select, .mo-toolbar input[type="text"] {
             padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.85rem; }
@@ -116,6 +123,7 @@ function ma($k) { return t('marketing_admin.' . $k); }
 </head>
 <?php paAdminChrome('marketing', ma('title'), ma('subtitle')); ?>
 
+<div id="moSendingBanner" class="mo-sending mo-hidden" role="status"></div>
 <div id="moGlobalError" class="mo-error mo-hidden"></div>
 <div id="moGlobalOk" class="mo-ok mo-hidden"></div>
 
@@ -184,6 +192,9 @@ function ma($k) { return t('marketing_admin.' . $k); }
                 <button class="mo-btn" id="moCampGenerate"><?php echo h(ma('generate_emails')); ?></button>
                 <button class="mo-btn secondary" id="moCampApprove"><?php echo h(ma('approve_and_send')); ?></button>
                 <button class="mo-btn danger mo-hidden" id="moCampRetry"><?php echo h(ma('retry_failed')); ?></button>
+                <button class="mo-btn secondary mo-hidden" id="moCampThreads"><?php echo h(ma('recheck_threads')); ?></button>
+                <button class="mo-btn secondary mo-hidden" id="moCampReconcile"><?php echo h(ma('reconcile_uncertain')); ?></button>
+                <button class="mo-btn secondary mo-hidden" id="moCampSheetSync"><?php echo h(ma('retry_sheet_sync')); ?></button>
                 <span class="mo-step-note" id="moCampStep"></span>
             </div>
             <div id="moCampMessages" class="mo-msg-list"></div>
@@ -263,6 +274,33 @@ function ma($k) { return t('marketing_admin.' . $k); }
         noSends: <?php echo json_encode(ma('no_sends')); ?>,
         confirmSend: <?php echo json_encode(ma('confirm_send')); ?>,
         working: <?php echo json_encode(ma('working')); ?>,
+        sendingDisabled: <?php echo json_encode(ma('sending_disabled_banner')); ?>,
+        sendingAllowlist: <?php echo json_encode(ma('sending_allowlist_banner')); ?>,
+        sendingUnrestricted: <?php echo json_encode(ma('sending_unrestricted_banner')); ?>,
+        approveOnly: <?php echo json_encode(ma('approve_only')); ?>,
+        approveAndSend: <?php echo json_encode(ma('approve_and_send')); ?>,
+        approvedNotSent: <?php echo json_encode(ma('approved_not_sent')); ?>,
+        confirmApproveOnly: <?php echo json_encode(ma('confirm_approve_only')); ?>,
+        confirmSendTest: <?php echo json_encode(ma('confirm_send_test')); ?>,
+        sendResult: <?php echo json_encode(ma('send_result')); ?>,
+        sendResultExtra: <?php echo json_encode(ma('send_result_extra')); ?>,
+        thread: {
+            resolved: <?php echo json_encode(ma('thread_resolved')); ?>,
+            unresolved: <?php echo json_encode(ma('thread_new')); ?>,
+            ambiguous: <?php echo json_encode(ma('thread_ambiguous')); ?>,
+            unverifiable: <?php echo json_encode(ma('thread_unverifiable')); ?>
+        },
+        threadSubjectLocked: <?php echo json_encode(ma('thread_subject_locked')); ?>,
+        uncertainNote: <?php echo json_encode(ma('uncertain_note')); ?>,
+        markNotSent: <?php echo json_encode(ma('mark_not_sent')); ?>,
+        markSent: <?php echo json_encode(ma('mark_sent')); ?>,
+        confirmMarkNotSent: <?php echo json_encode(ma('confirm_mark_not_sent')); ?>,
+        confirmMarkSent: <?php echo json_encode(ma('confirm_mark_sent')); ?>,
+        sheetPending: <?php echo json_encode(ma('sheet_sync_pending')); ?>,
+        sheetFailed: <?php echo json_encode(ma('sheet_sync_failed')); ?>,
+        sheetSyncResult: <?php echo json_encode(ma('sheet_sync_result')); ?>,
+        reconcileResult: <?php echo json_encode(ma('reconcile_result')); ?>,
+        notEligibleFollowup: <?php echo json_encode(ma('not_eligible_followup')); ?>,
         cancelled: <?php echo json_encode(ma('cancelled')); ?>
     };
     var state = { prospectPage: 1, currentCampaign: null, templates: [] };
@@ -286,6 +324,23 @@ function ma($k) { return t('marketing_admin.' . $k); }
         return fetch(API, { method: 'POST', credentials: 'same-origin',
             headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
             .then(function (r) { return r.json(); });
+    }
+    // Sending is controlled separately from this interface. The banner
+    // always states what an approved campaign can actually deliver.
+    function renderSending(sending) {
+        if (!sending) return;
+        state.sending = sending;
+        var el = document.getElementById('moSendingBanner');
+        var text = sending.mode === 'unrestricted' ? STR.sendingUnrestricted
+            : sending.mode === 'allowlist' ? STR.sendingAllowlist.replace('{n}', sending.allowlist_count)
+            : STR.sendingDisabled;
+        el.textContent = text;
+        el.className = 'mo-sending ' + sending.mode;
+    }
+    function sendSummary(d) {
+        var msg = STR.sendResult.replace('{sent}', d.sent).replace('{skipped}', d.skipped).replace('{failed}', d.failed);
+        if (d.uncertain || d.blocked) msg += ' ' + STR.sendResultExtra.replace('{uncertain}', d.uncertain || 0).replace('{blocked}', d.blocked || 0);
+        return msg;
     }
     function fmtDate(ts) { return ts ? new Date(ts * 1000).toISOString().slice(0, 10) : ''; }
     function fmtDT(s) { if (!s) return ''; var d = new Date(s.replace(' ', 'T') + 'Z'); return isNaN(d) ? s : d.toISOString().slice(0, 16).replace('T', ' '); }
@@ -313,10 +368,12 @@ function ma($k) { return t('marketing_admin.' . $k); }
     // ---------- overview ----------
     function loadOverview() {
         apiGet('overview').then(function (d) {
-            if (!d.success) { showErr(STR.loadFailed); return; }
+            if (!d.success) { showErr(d.error || STR.loadFailed); return; }
             var o = d.overview, html = '';
+            renderSending(o.sending);
             var metrics = [
                 ['Prospects', o.prospects_total], ['Eligible', o.prospects_eligible],
+                ['Eligible: initial', o.eligible_initial], ['Eligible: follow-up', o.eligible_followup],
                 ['Due today', o.followup_buckets.due_today], ['Overdue', o.followup_buckets.overdue],
                 ['Upcoming', o.followup_buckets.upcoming], ['Awaiting response', o.followup_buckets.awaiting_response],
                 ['Campaigns', Object.keys(o.campaigns || {}).reduce(function (a, k) { return a + o.campaigns[k]; }, 0)],
@@ -465,6 +522,18 @@ function ma($k) { return t('marketing_admin.' . $k); }
         apiGet('campaign', { id: id }).then(function (d) {
             if (!d.success) { showErr(d.error || STR.loadFailed); return; }
             var c = d.campaign;
+            renderSending(d.sending);
+            var canSend = !!(state.sending && state.sending.enabled);
+            var recips = d.recipients || [];
+            var hasUncertain = recips.some(function (r) { return r.status === 'uncertain'; });
+            var hasSheetWork = recips.some(function (r) { return r.status === 'sent' && (r.sheet_sync_status === 'pending' || r.sheet_sync_status === 'failed'); });
+            document.getElementById('moCampApprove').textContent = canSend ? STR.approveAndSend : STR.approveOnly;
+            document.getElementById('moCampReconcile').classList.toggle('mo-hidden', !hasUncertain);
+            document.getElementById('moCampSheetSync').classList.toggle('mo-hidden', !hasSheetWork);
+            document.getElementById('moCampThreads').classList.toggle('mo-hidden',
+                !(c.kind === 'followup' && (c.status === 'draft' || c.status === 'ready')));
+            document.getElementById('moCampRetry').disabled = !canSend;
+            state.currentKind = c.kind;
             document.getElementById('moCampTitle').textContent = c.name;
             document.getElementById('moCampMeta').textContent =
                 c.kind + ' · ' + c.status + (c.created_by ? ' · ' + c.created_by : '') +
@@ -494,14 +563,34 @@ function ma($k) { return t('marketing_admin.' . $k); }
             var flags = (r.status === 'suppressed' || r.status === 'skipped')
                 ? '<span class="mo-pill ' + r.status + '">' + esc(r.status + (r.skip_reason ? ': ' + r.skip_reason : '')) + '</span>' : '';
             var canEdit = editable && r.status !== 'suppressed';
+            // Follow-up threading: say plainly whether this message joins
+            // the original conversation or starts a new one, and why.
+            var notes = '';
+            var locked = r.thread_status === 'resolved';
+            if (state.currentKind === 'followup' && r.thread_status) {
+                var tText = STR.thread[r.thread_status] || r.thread_status;
+                flags += '<span class="mo-pill ' + (locked ? 'thread-resolved' : 'thread-new') + '">' + esc(tText) + '</span> ';
+                if (locked) notes += '<div class="mo-msg-note">' + esc(STR.threadSubjectLocked) + '</div>';
+                else if (r.thread_reason) notes += '<div class="mo-msg-note">' + esc(r.thread_reason.replace(/_/g, ' ')) + '</div>';
+            }
+            if (r.status === 'uncertain') {
+                notes += '<div class="mo-msg-note">' + esc(STR.uncertainNote) + '</div>' +
+                    '<div style="margin:6px 0;display:flex;gap:8px;flex-wrap:wrap;">' +
+                    '<button class="mo-btn secondary small" data-resolve="not_sent">' + esc(STR.markNotSent) + '</button>' +
+                    '<button class="mo-btn secondary small" data-resolve="sent">' + esc(STR.markSent) + '</button></div>';
+            }
+            if (r.status === 'sent' && (r.sheet_sync_status === 'pending' || r.sheet_sync_status === 'failed')) {
+                flags += '<span class="mo-pill sheet-failed">' + esc(r.sheet_sync_status === 'failed' ? STR.sheetFailed : STR.sheetPending) + '</span> ';
+                if (r.sheet_sync_error) notes += '<div class="mo-msg-note">' + esc(r.sheet_sync_error) + '</div>';
+            }
             div.innerHTML =
                 '<div class="mo-msg-head"><strong>' + esc(r.prospect_contact || r.prospect_email) + '</strong>' +
                 '<span>' + flags + '<span class="mo-pill ' + r.status + '">' + esc(r.status) + '</span>' +
                 (r.is_edited == 1 ? ' <span class="mo-pill">' + esc(<?php echo json_encode(ma('edited')); ?>) + '</span>' : '') + '</span></div>' +
                 '<div class="mo-msg-sub">' + esc(r.prospect_org || '') + ' · ' + esc(r.prospect_email) +
-                (r.error ? ' · <span style="color:#b91c1c;">' + esc(r.error) + '</span>' : '') + '</div>' +
+                (r.error ? ' · <span style="color:#b91c1c;">' + esc(r.error) + '</span>' : '') + '</div>' + notes +
                 (canEdit
-                    ? '<input type="text" class="mo-subj" value="' + esc(r.subject || '') + '" placeholder="' + esc(<?php echo json_encode(ma('subject_ph')); ?>) + '">' +
+                    ? '<input type="text" class="mo-subj"' + (locked ? ' readonly' : '') + ' value="' + esc(r.subject || '') + '" placeholder="' + esc(<?php echo json_encode(ma('subject_ph')); ?>) + '">' +
                       '<textarea class="mo-body">' + esc(r.body_html || '') + '</textarea>' +
                       '<div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;">' +
                       '<button class="mo-btn small" data-act="save">' + esc(<?php echo json_encode(ma('save')); ?>) + '</button>' +
@@ -509,6 +598,14 @@ function ma($k) { return t('marketing_admin.' . $k); }
                       '<div class="mo-preview mo-hidden" style="margin-top:8px;"></div>'
                     : '<div class="mo-preview">' + (r.body_html || '<em>' + esc(<?php echo json_encode(ma('no_content')) ?>) + '</em>') + '</div>');
             host.appendChild(div);
+            div.querySelectorAll('button[data-resolve]').forEach(function (b) {
+                b.addEventListener('click', function () {
+                    var outcome = b.dataset.resolve;
+                    if (!window.confirm(outcome === 'sent' ? STR.confirmMarkSent : STR.confirmMarkNotSent)) return;
+                    apiPost('resolve_uncertain', { campaign_id: state.currentCampaign, recipient_id: r.id, outcome: outcome })
+                        .then(function (d2) { if (!d2.success) showErr(d2.error || STR.loadFailed); openCampaign(state.currentCampaign); });
+                });
+            });
             div.querySelectorAll('button[data-act]').forEach(function (b) {
                 b.addEventListener('click', function () {
                     if (b.dataset.act === 'preview') {
@@ -542,25 +639,59 @@ function ma($k) { return t('marketing_admin.' . $k); }
         apiPost('send', { campaign_id: state.currentCampaign }).then(function (d2) {
             btn.disabled = false; btn.textContent = <?php echo json_encode(ma('retry_failed')); ?>;
             if (!d2.success) { showErr(d2.error || STR.loadFailed); openCampaign(state.currentCampaign); return; }
-            var ok = <?php echo json_encode(ma('send_result')); ?>;
-            showOk(ok.replace('{sent}', d2.sent).replace('{skipped}', d2.skipped).replace('{failed}', d2.failed));
+            showOk(sendSummary(d2));
             openCampaign(state.currentCampaign);
         });
     });
     document.getElementById('moCampApprove').addEventListener('click', function () {
         var btn = this;
-        if (!window.confirm(STR.confirmSend)) return;
+        // Sending is a separate control: with it off, this only approves.
+        var canSend = !!(state.sending && state.sending.enabled);
+        var live = canSend && state.sending.mode === 'unrestricted';
+        if (!window.confirm(!canSend ? STR.confirmApproveOnly : (live ? STR.confirmSend : STR.confirmSendTest))) return;
         btn.disabled = true; btn.textContent = STR.working;
         apiPost('approve', { campaign_id: state.currentCampaign }).then(function (d) {
-            if (!d.success) { btn.disabled = false; btn.textContent = <?php echo json_encode(ma('approve_and_send')); ?>; showErr(d.error || STR.loadFailed); return; }
+            if (!d.success) { btn.disabled = false; showErr(d.error || STR.loadFailed); openCampaign(state.currentCampaign); return; }
+            if (!canSend) {
+                btn.disabled = false;
+                showOk(STR.approvedNotSent);
+                openCampaign(state.currentCampaign);
+                return;
+            }
             // approved -> now send
             apiPost('send', { campaign_id: state.currentCampaign }).then(function (d2) {
-                btn.disabled = false; btn.textContent = <?php echo json_encode(ma('approve_and_send')); ?>;
+                btn.disabled = false;
                 if (!d2.success) { showErr(d2.error || STR.loadFailed); openCampaign(state.currentCampaign); return; }
-                var ok = <?php echo json_encode(ma('send_result')); ?>;
-                showOk(ok.replace('{sent}', d2.sent).replace('{skipped}', d2.skipped).replace('{failed}', d2.failed));
+                showOk(sendSummary(d2));
                 openCampaign(state.currentCampaign);
             });
+        });
+    });
+    // Recovery actions below never send email.
+    document.getElementById('moCampThreads').addEventListener('click', function () {
+        var btn = this; btn.disabled = true;
+        apiPost('resolve_threads', { campaign_id: state.currentCampaign }).then(function (d) {
+            btn.disabled = false;
+            if (!d.success) showErr(d.error || STR.loadFailed);
+            openCampaign(state.currentCampaign);
+        });
+    });
+    document.getElementById('moCampReconcile').addEventListener('click', function () {
+        var btn = this; btn.disabled = true;
+        apiPost('reconcile', { campaign_id: state.currentCampaign }).then(function (d) {
+            btn.disabled = false;
+            if (!d.success) showErr(d.error || STR.loadFailed);
+            else showOk(STR.reconcileResult.replace('{sent}', d.sent).replace('{not_sent}', d.not_sent).replace('{unknown}', d.unknown));
+            openCampaign(state.currentCampaign);
+        });
+    });
+    document.getElementById('moCampSheetSync').addEventListener('click', function () {
+        var btn = this; btn.disabled = true;
+        apiPost('retry_sheet_sync', { campaign_id: state.currentCampaign }).then(function (d) {
+            btn.disabled = false;
+            if (!d.success) showErr(d.error || STR.loadFailed);
+            else showOk(STR.sheetSyncResult.replace('{synced}', d.synced).replace('{failed}', d.failed));
+            openCampaign(state.currentCampaign);
         });
     });
 
@@ -583,7 +714,10 @@ function ma($k) { return t('marketing_admin.' . $k); }
                     '<td><span class="mo-pill">' + esc(p.status || '—') + '</span>' + (p.response ? '<br><span style="color:#6b7280;font-size:0.72rem;">' + esc(p.response) + '</span>' : '') + '</td>' +
                     '<td>' + esc(fmtDate(p.followup_ts)) + ' <span class="mo-pill ' + p.bucket + '">' + esc(p.bucket.replace(/_/g, ' ')) + '</span></td>' +
                     '<td>' + esc(p.last_contact || '—') + '</td>' +
-                    '<td>' + (p.eligible ? '<button class="mo-btn secondary small mo-fu-add" data-email="' + esc(p.email) + '">' + esc(<?php echo json_encode(ma('add_to_campaign')); ?>) + '</button>' : '') + '</td></tr>';
+                    '<td>' + (p.eligible
+                        ? '<button class="mo-btn secondary small mo-fu-add" data-email="' + esc(p.email) + '">' + esc(<?php echo json_encode(ma('add_to_campaign')); ?>) + '</button>'
+                        : '<span class="mo-msg-note">' + esc(STR.notEligibleFollowup) + '</span><br>' +
+                          (p.followup_flags || []).map(function (f) { return '<span class="mo-flag duplicate_org">' + esc(f.replace(/_/g, ' ')) + '</span>'; }).join('')) + '</td></tr>';
             });
             host.innerHTML = html + '</tbody></table>';
             host.querySelectorAll('.mo-fu-add').forEach(function (b) {

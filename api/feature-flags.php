@@ -20,11 +20,21 @@ $FEATURE_DEFAULTS = [
     'SHOW_AI_CHAT' => false,
     'SHOW_IN_STATUS' => false,
     'SHOW_DEV_TOOLS' => false,
-    'MARKETING_OUTREACH' => false, // Platform Administration > Marketing
-                                   // Outreach. Must remain OFF until the
-                                   // admin UI, sheet sync, suppression, and
-                                   // unsubscribe flow are verified end-to-end.
+    'MARKETING_OUTREACH' => false, // Marketing Administration: Platform
+                                   // Administration > Marketing Outreach
+                                   // interface (review prospects, generate,
+                                   // edit, prepare, approve). Grants NO
+                                   // ability to deliver email.
                                    // Enable via env var only.
+    'MARKETING_SENDING' => false,  // Marketing Sending: whether marketing
+                                   // email may be delivered at all. Read
+                                   // from the environment only by
+                                   // MarketingSendingPolicy (no session
+                                   // override). Recipients must also match
+                                   // MARKETING_SEND_ALLOWLIST; unset/empty
+                                   // allowlist permits nobody, "*" permits
+                                   // real prospects. Transactional email
+                                   // is unaffected.
     'SHOW_REVISION_COUNT' => true,
     'SHOW_GOOGLE_DRIVE_BACKUP' => false,
     'SHOW_TOUR' => false,

@@ -154,7 +154,7 @@ $hdr = MarketingFooter::headers($u);
 ok($hdr === ['List-Unsubscribe' => '<' . $u . '>', 'List-Unsubscribe-Post' => 'List-Unsubscribe=One-Click'], 'RFC 8058 headers unchanged');
 $mailer = file_get_contents($root . '/api/marketing/MarketingMailer.php');
 ok(strpos($mailer, "'/unsubscribe.php?t='") !== false, 'mailer still builds the recipient-specific unsubscribe URL');
-ok(strpos($mailer, 'MarketingFooter::headers($u)') !== false && strpos($mailer, 'MarketingFooter::html($u)') !== false, 'mailer still applies footer + headers');
+ok(strpos($mailer, 'MarketingFooter::headers(') !== false && strpos($mailer, 'MarketingFooter::html(') !== false, 'mailer still applies footer + headers');
 ok(is_file($root . '/unsubscribe.php') && is_file($root . '/api/unsubscribe-one-click.php'), 'unsubscribe endpoints present');
 
 echo "\n$pass passed, $fail failed\n";

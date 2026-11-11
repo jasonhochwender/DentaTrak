@@ -5,6 +5,10 @@
  * - eligibility check immediately before send (email + org domain)
  * - per-recipient unsubscribe token + branded footer + RFC 8058 headers
  * - marketing_sends ledger: UNIQUE(campaign,email) = idempotent
+ * - delivery requires MARKETING_SENDING=true and an allowlisted recipient
+ *   (503 {"status":"sending_disabled"|"recipient_not_allowlisted"} otherwise)
+ * - an unknown provider outcome returns 202 {"status":"uncertain"}; it is
+ *   reconciled against Gmail before that recipient can be sent again
  *
  * All send mechanics live in api/marketing/MarketingMailer.php, shared
  * with the Platform Administration campaign sender. This endpoint keeps
@@ -26,6 +30,23 @@ $in  = json_decode(file_get_contents('php://input'), true) ?? [];
 
 $mailer = new MarketingMailer($pdo, (string)($appConfig['baseUrl'] ?? ''));
 $res = $mailer->send($in);
+
+// Delivery control (MARKETING_SENDING / MARKETING_SEND_ALLOWLIST) is
+// enforced inside MarketingMailer for every caller, this endpoint
+// included. A blocked send wrote nothing to the ledger and reached no
+// provider; say so explicitly rather than as a generic failure.
+if (in_array($res['status'] ?? '', ['sending_disabled', 'recipient_not_allowlisted'], true)) {
+    http_response_code(503);
+    echo json_encode(['status' => $res['status'], 'error' => $res['status']]);
+    exit;
+}
+// Outcome unknown or another request owns this send: the caller must not
+// retry blindly. The ledger row is reconciled before any resend.
+if (in_array($res['status'] ?? '', ['uncertain', 'in_progress'], true)) {
+    http_response_code(202);
+    echo json_encode(['status' => 'uncertain', 'error' => $res['error'] ?? $res['status']]);
+    exit;
+}
 
 // Preserve the original endpoint's response contract.
 if (($res['error'] ?? '') === 'campaign required') {

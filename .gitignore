@@ -152,6 +152,9 @@ screenshots/
 !/tests/practice-insights-filters-test.php
 !/tests/platform-admin-test.php
 !/tests/marketing-admin-test.php
+!/tests/marketing-eligibility-test.php
+!/tests/marketing-mailer-test.php
+!/tests/marketing-thread-test.php
 !/tests/lab-insights-recs-test.php
 !/tests/lab-quality-test.php
 !/tests/lab-aging-test.php
