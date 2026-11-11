@@ -1,0 +1,339 @@
+/* ============================================
+   Platform Administration - shared shell
+   Used by platform-admin.php, admin-practices.php,
+   practice-usage-report.php, dev-ask-usage.php,
+   test-diagnostics.php via admin-layout.php.
+   ============================================ */
+
+.pa-body {
+  margin: 0;
+  font-family: 'Poppins', 'Inter', 'Noto Sans KR', sans-serif;
+  background: #f3f4f6;
+}
+
+.pa-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ---- Sidebar ---- */
+.pa-sidebar {
+  flex: 0 0 220px;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border-right: 1px solid #e5e7eb;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.pa-brand {
+  display: flex;
+  flex-direction: column;
+  padding: 18px 18px 14px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.pa-brand-app {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.pa-brand-sub {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #1e40af;
+  margin-top: 2px;
+}
+
+.pa-nav {
+  display: flex;
+  flex-direction: column;
+  padding: 10px 10px;
+  gap: 2px;
+  flex: 1;
+}
+
+.pa-nav-link {
+  display: block;
+  padding: 9px 12px;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: #4b5563;
+  text-decoration: none;
+  border-left: 3px solid transparent;
+}
+
+.pa-nav-link:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.pa-nav-link:focus-visible {
+  outline: 2px solid #1e40af;
+  outline-offset: 1px;
+}
+
+.pa-nav-link.is-active {
+  background: #eff6ff;
+  color: #1e40af;
+  border-left-color: #1e40af;
+  font-weight: 600;
+}
+
+.pa-sidebar-foot {
+  padding: 14px 18px;
+  border-top: 1px solid #f3f4f6;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ---- Environment badge ---- */
+.pa-env {
+  display: inline-block;
+  align-self: flex-start;
+  padding: 3px 10px;
+  border-radius: 10px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.pa-env-prod {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.pa-env-dev {
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+}
+
+.pa-env-top {
+  align-self: auto;
+}
+
+.pa-back-app {
+  font-size: 0.8rem;
+  color: #6b7280;
+  text-decoration: none;
+}
+
+.pa-back-app:hover {
+  color: #1e40af;
+  text-decoration: underline;
+}
+
+/* ---- Content column ---- */
+.pa-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.pa-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 16px 24px;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.pa-topbar h1 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #111827;
+}
+
+.pa-topbar-sub {
+  margin: 2px 0 0;
+  font-size: 0.82rem;
+  color: #6b7280;
+}
+
+.pa-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pa-back-top {
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.pa-content {
+  flex: 1;
+  padding: 24px;
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* ---- Shared admin card/table primitives ---- */
+.pa-card {
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  padding: 18px 20px;
+  margin-bottom: 20px;
+}
+
+.pa-card h2 {
+  margin: 0 0 4px;
+  font-size: 1rem;
+  color: #111827;
+}
+
+.pa-card .pa-card-sub {
+  margin: 0 0 14px;
+  font-size: 0.82rem;
+  color: #6b7280;
+}
+
+.pa-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.pa-metric {
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  padding: 14px 16px;
+}
+
+.pa-metric .pa-metric-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.1;
+}
+
+.pa-metric .pa-metric-label {
+  font-size: 0.78rem;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+.pa-metric .pa-metric-note {
+  font-size: 0.72rem;
+  color: #9ca3af;
+  margin-top: 4px;
+}
+
+.pa-section-links {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.pa-section-link {
+  display: block;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 16px 18px;
+  text-decoration: none;
+  color: #111827;
+}
+
+.pa-section-link:hover {
+  border-color: #1e40af;
+}
+
+.pa-section-link .pa-section-link-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.pa-section-link .pa-section-link-desc {
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+.pa-alert {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #92400e;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  margin-bottom: 16px;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 860px) {
+  .pa-shell {
+    flex-direction: column;
+  }
+
+  .pa-sidebar {
+    flex: none;
+    width: 100%;
+    height: auto;
+    position: static;
+    border-right: none;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .pa-nav {
+    flex-direction: row;
+    overflow-x: auto;
+    padding: 8px 10px;
+    gap: 4px;
+  }
+
+  .pa-nav-link {
+    flex: 0 0 auto;
+    border-left: none;
+    border-bottom: 2px solid transparent;
+    padding: 8px 12px;
+    white-space: nowrap;
+  }
+
+  .pa-nav-link.is-active {
+    border-left-color: transparent;
+    border-bottom-color: #1e40af;
+    background: transparent;
+  }
+
+  .pa-sidebar-foot {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .pa-topbar {
+    padding: 12px 16px;
+    position: static;
+  }
+
+  .pa-topbar h1 {
+    font-size: 1.05rem;
+  }
+
+  .pa-content {
+    padding: 16px;
+  }
+}

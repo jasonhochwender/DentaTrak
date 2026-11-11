@@ -817,7 +817,6 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <link rel="preload" href="<?= appAssetUrl('css/assignments.css') ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="<?= appAssetUrl('css/practice-name.css') ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="<?= appAssetUrl('css/logo-upload.css') ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="<?= appAssetUrl('css/dev-tools.css') ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="<?= appAssetUrl('css/analytics-pro.css') ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="<?= appAssetUrl('css/attachment-viewer.css') ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="<?= appAssetUrl('css/od-send-case.css') ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
@@ -853,7 +852,6 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
     <link rel="stylesheet" href="<?= appAssetUrl('css/assignments.css') ?>">
     <link rel="stylesheet" href="<?= appAssetUrl('css/practice-name.css') ?>">
     <link rel="stylesheet" href="<?= appAssetUrl('css/logo-upload.css') ?>">
-    <link rel="stylesheet" href="<?= appAssetUrl('css/dev-tools.css') ?>">
     <link rel="stylesheet" href="<?= appAssetUrl('css/analytics-pro.css') ?>">
 <?php if (isFeatureEnabled('SHOW_LAB_INSIGHTS')): ?>
     <link rel="stylesheet" href="<?= appAssetUrl('css/lab-insights.css') ?>">
@@ -908,11 +906,12 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   } else {
       $envClass = 'env-dev';
   }
-  // Determine dev tools visibility using the new access control
+  // Platform Administration access: super users only; the local development
+  // environment additionally allows any authenticated user (same rule the
+  // administration pages enforce server-side).
   $userEmail = $_SESSION['user_email'] ?? ($user['email'] ?? '');
-  $showDevTools = canAccessDevTools($appConfig, $userEmail);
-  $isSuperUserInProd = $showDevTools && isProductionOrUAT($appConfig);
-  $environmentDisplayName = getEnvironmentDisplayName($appConfig);
+  $platformAdminDevEnv = ($appConfig['current_environment'] ?? '') === 'development';
+  $showPlatformAdmin = isSuperUser($appConfig, $userEmail) || $platformAdminDevEnv;
 
   // Practice-level Case Review Tracking flag. Defaults to OFF so existing
   // practices do not show review UI before Settings is loaded.
@@ -1152,6 +1151,10 @@ endif;
 <?php endif; ?>
 <?php if ($showAskDentatrak): ?>
           <a href="#" class="user-menu-item" id="askDentatrakMenuItem"><span><?php echo t('ask_dentatrak.menu_item', ['appName' => htmlspecialchars($appName)]); ?></span><kbd class="user-menu-kbd" id="askDentatrakKbd" data-shortcut="open_ask_dentatrak" aria-hidden="true"></kbd></a>
+<?php endif; ?>
+<?php if ($showPlatformAdmin): ?>
+          <div class="user-menu-divider"></div>
+          <a href="platform-admin.php" class="user-menu-item" id="platformAdminMenuItem"><?php echo t('admin_nav.menu_item'); ?></a>
 <?php endif; ?>
           <a href="#" class="user-menu-item" id="contactUsLink"><?php echo t('navigation.feedback'); ?><kbd class="user-menu-kbd" data-shortcut="open_feedback" aria-hidden="true"></kbd></a>
           <?php if (isFeatureEnabled('SHOW_TOUR')): ?>
@@ -4994,61 +4997,6 @@ endif;
     </div>
   </div>
   
-  <!-- Dev Tools Panel -->
-  <?php if ($showDevTools): ?>
-  <div class="dev-tools-panel collapsed <?php echo $isSuperUserInProd ? 'super-user-mode' : ''; ?>" id="devToolsPanel" 
-       data-is-super-user="<?php echo $isSuperUserInProd ? 'true' : 'false'; ?>"
-       data-env-display-name="<?php echo htmlspecialchars($environmentDisplayName); ?>">
-    <div class="dev-tools-header">
-      <h3>🛠️ <?php echo t('dev_tools.title'); ?> <?php if ($isSuperUserInProd): ?><span class="env-badge"><?php echo htmlspecialchars($environmentDisplayName); ?></span><?php endif; ?></h3>
-      <button id="toggleDevTools" style="background: none; border: none; color: white; font-size: 18px; cursor: pointer; padding: 4px;">+</button>
-    </div>
-    <div class="dev-tools-content" id="devToolsContent" style="display: none;">
-      <?php if ($isSuperUserInProd): ?>
-      <!-- Super User Warning Banner -->
-      <div class="dev-tools-warning">
-        <strong><?php echo t('dev_tools.prompt_warning', ['environment' => htmlspecialchars($environmentDisplayName)]); ?></strong>
-        <p><?php echo t('dev_tools.super_warning', ['environment' => htmlspecialchars($environmentDisplayName)]); ?></p>
-      </div>
-      <?php endif; ?>
-      
-      
-      <!-- Test Case Creation -->
-      <div class="dev-tools-section">
-        <h4>🧪 <?php echo t('dev_tools.test_cases'); ?></h4>
-        <div class="test-case-controls">
-          <label for="devCaseType" class="sr-only"><?php echo t('dev_tools.test_case_type'); ?></label>
-          <select id="devCaseType" class="dev-select">
-            <option value="Mixed Case Type"><?php echo t('case_types.mixed'); ?></option>
-            <?php echo renderCaseTypeOptions(array_diff(getCanonicalCaseTypes(), [CASE_TYPE_NEEDS_CLASSIFICATION])); ?>
-          </select>
-          <label for="devCaseCount" class="sr-only"><?php echo t('dev_tools.test_case_count'); ?></label>
-          <input type="number" id="devCaseCount" class="dev-input" placeholder="<?php echo t('dev_tools.count_placeholder'); ?>" value="10" min="1" max="100">
-          <button id="devGenerateCasesBtn" class="dev-btn dev-btn-primary"><?php echo t('dev_tools.generate'); ?></button>
-        </div>
-      </div>
-      
-      <!-- Data Management -->
-      <div class="dev-tools-section">
-        <h4>🗂️ <?php echo t('dev_tools.data_management'); ?></h4>
-        <div class="data-controls">
-          <button id="devDeleteAllCasesBtn" class="dev-btn dev-btn-danger"><?php echo t('dev_tools.delete_all_cases'); ?></button>
-        </div>
-      </div>
-      
-      <!-- Admin Tools -->
-      <div class="dev-tools-section">
-        <h4>👑 <?php echo t('dev_tools.admin_tools'); ?></h4>
-        <div class="admin-links" style="display: flex; flex-direction: column; gap: 8px;">
-          <a href="admin-practices.php" class="dev-btn" style="text-align: center; text-decoration: none;"><?php echo t('dev_tools.practice_administration'); ?></a>
-          <a href="practice-usage-report.php" class="dev-btn" style="text-align: center; text-decoration: none;"><?php echo t('dev_tools.practice_usage_report'); ?></a>
-          <a href="dev-ask-usage.php" class="dev-btn" style="text-align: center; text-decoration: none;"><?php echo t('dev_tools.ask_usage'); ?></a>
-        </div>
-      </div>
-    </div>
-  </div>
-  <?php endif; ?>
-  
   <!-- Toast notification container -->
   <div class="toast-container" id="toastContainer"></div>
 
@@ -5193,99 +5141,6 @@ endif;
   <script src="<?= appAssetUrl('js/scan-inbox.js') ?>" defer></script>
 <?php endif; ?>
   
-<?php if ($showDevTools): ?>
-<!-- Dev Tools JavaScript -->
-  <script>
-    // Billing plan dropdown is set via PHP selected attribute
-    
-    // Toggle documentation content
-    function toggleDocumentation() {
-      const docContent = document.getElementById('documentation-content');
-      if (docContent) {
-        // Toggle documentation
-        docContent.style.display = docContent.style.display === 'none' ? 'block' : 'none';
-      }
-    }
-
-    // Dev Tools Functionality
-    document.addEventListener('DOMContentLoaded', function() {
-      const devToolsPanel = document.getElementById('devToolsPanel');
-      const toggleBtn = document.getElementById('toggleDevTools');
-      const devToolsContent = document.getElementById('devToolsContent');
-
-      const isSuperUserInProd = devToolsPanel?.dataset?.isSuperUser === 'true';
-      const envDisplayName = devToolsPanel?.dataset?.envDisplayName || 'Production';
-      
-      // Helper function for confirmation dialogs in UAT/Production
-      function confirmDestructiveAction(actionName, details) {
-        if (!isSuperUserInProd) {
-          return true; // No confirmation needed in development
-        }
-
-        const message = t('dev_tools.destructive_prompt', {environment: envDisplayName, action: actionName, details: details});
-
-        const userInput = prompt(message);
-        return userInput === 'CONFIRM';
-      }
-      
-      // Toggle dev tools panel
-      if (toggleBtn) toggleBtn.addEventListener('click', function() {
-        const isCollapsed = devToolsContent.style.display === 'none';
-        devToolsContent.style.display = isCollapsed ? 'block' : 'none';
-        toggleBtn.textContent = isCollapsed ? '−' : '+';
-        if (devToolsPanel) devToolsPanel.classList.toggle('collapsed', !isCollapsed);
-      });
-      
-      // Generate test cases - handled by app.js, no duplicate handler needed here
-      
-      // Delete all cases
-      const devDeleteAllCasesBtn = document.getElementById('devDeleteAllCasesBtn');
-      if (devDeleteAllCasesBtn) devDeleteAllCasesBtn.addEventListener('click', function() {
-          // Require confirmation in UAT/Production
-          if (!confirmDestructiveAction(
-            t('dev_tools.delete_all_cases_confirm'),
-            t('dev_tools.delete_all_cases_details')
-          )) {
-            showToast(t('common.action_cancelled'), 'info');
-            return;
-          }
-
-          this.disabled = true;
-          this.textContent = t('common.deleting');
-          showToast(t('dev_tools.delete_all_cases_toast'), 'warning');
-
-          fetch('api/delete-all-cases.php', {
-            method: 'DELETE',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || ''
-            },
-            credentials: 'same-origin'
-          })
-          .then(response => response.json())
-          .then(data => {
-            if (data.success) {
-              showToast(t('dev_tools.delete_all_cases_success'), 'success');
-              setTimeout(() => location.reload(), 1000);
-            } else {
-              showToast(t('dev_tools.delete_all_cases_error', {message: data.message}), 'error');
-              this.disabled = false;
-              this.textContent = t('dev_tools.delete_all_cases');
-            }
-          })
-          .catch(error => {
-            showToast(t('dev_tools.delete_all_cases_unknown_error'), 'error');
-            this.disabled = false;
-            this.textContent = t('dev_tools.delete_all_cases');
-          });
-      });
-      
-      
-      
-      
-    });
-  </script>
-<?php endif; ?>
 
   <!-- Confirmation Modal (reusable) -->
   <div id="confirmModal" class="modal confirm-modal">

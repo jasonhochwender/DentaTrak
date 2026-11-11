@@ -150,6 +150,7 @@ screenshots/
 !/tests/lab-trend-viz-test.php
 !/tests/practice-insights-usability-test.php
 !/tests/practice-insights-filters-test.php
+!/tests/platform-admin-test.php
 !/tests/admin-practices-auth-test.php
 !/tests/admin-practices-csrf-and-auth-test.php
 !/tests/admin-practices-subscription-test.php

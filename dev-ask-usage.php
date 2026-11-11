@@ -25,6 +25,7 @@ require_once __DIR__ . '/api/dev-tools-access.php';
 require_once __DIR__ . '/api/feature-flags.php';
 require_once __DIR__ . '/api/ask-dentatrak-telemetry.php';
 require_once __DIR__ . '/api/asset-url.php';
+require_once __DIR__ . '/admin-layout.php';
 
 $userEmail = $_SESSION['user_email'] ?? '';
 $isDev = ($appConfig['current_environment'] ?? '') === 'development';
@@ -145,10 +146,11 @@ $successRate = $summary['total'] > 0 ? round(100 * $summary['answered'] / $summa
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
-    <title><?php echo h(u('title', 'Ask DentaTrak Usage')); ?> - <?php echo h($appConfig['appName']); ?></title>
+    <title><?php echo h(t('admin_nav.ai_analytics')); ?> - <?php echo h($appConfig['appName']); ?></title>
     <link rel="stylesheet" href="<?= appAssetUrl('css/app.css') ?>">
+    <link rel="stylesheet" href="<?= appAssetUrl('css/admin.css') ?>">
     <style>
-        body { font-family: 'Poppins','Inter',sans-serif; background: #f3f4f6; margin: 0; padding: 20px; }
+        body { font-family: 'Poppins','Inter',sans-serif; background: #f3f4f6; margin: 0; }
         .admin-container { max-width: 1400px; margin: 0 auto; }
         .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .admin-header h1 { font-size: 1.5rem; margin: 0; }
@@ -177,12 +179,8 @@ $successRate = $summary['total'] > 0 ? round(100 * $summary['answered'] / $summa
         .empty-note { background: #fff; border-radius: 8px; padding: 24px; text-align: center; color: #6b7280; }
     </style>
 </head>
-<body>
+<?php paAdminChrome('ai', t('admin_nav.ai_analytics'), t('admin_nav.ai_subtitle')); ?>
 <div class="admin-container">
-    <div class="admin-header">
-        <h1><?php echo h(u('title', 'Ask DentaTrak Usage')); ?></h1>
-        <a class="back-link" href="main.php">&larr; <?php echo h(u('back', 'Back to app')); ?></a>
-    </div>
 
     <form class="filter-bar" method="get" action="dev-ask-usage.php">
         <label for="range"><?php echo h(u('range', 'Range')); ?></label>
@@ -289,5 +287,5 @@ $successRate = $summary['total'] > 0 ? round(100 * $summary['answered'] / $summa
 
     <?php endif; ?>
 </div>
-</body>
+<?php paAdminChromeEnd(); ?>
 </html>

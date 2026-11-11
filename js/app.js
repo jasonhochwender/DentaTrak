@@ -11635,63 +11635,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  // Dev-only fake case generator (power users only)
-  var devGenerateBtn = document.getElementById('devGenerateCasesBtn');
-  var devCaseCountInput = document.getElementById('devCaseCount');
-
-  if (devGenerateBtn && devCaseCountInput) {
-    devGenerateBtn.addEventListener('click', function () {
-      var raw = devCaseCountInput.value;
-      var count = parseInt(raw, 10);
-
-      if (isNaN(count) || count < 1) {
-        showToast(t('common.enter_case_count'), 'warning');
-        return;
-      }
-
-      if (count > 500) {
-        count = 500;
-        devCaseCountInput.value = '500';
-      }
-
-      devGenerateBtn.disabled = true;
-      var originalText = devGenerateBtn.textContent;
-      devGenerateBtn.textContent = 'Working...';
-
-      fetch('api/generate-fake-cases.php', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-Token': csrfToken
-        },
-        credentials: 'same-origin',
-        body: JSON.stringify({ count: count })
-      })
-      .then(function (response) { return response.json(); })
-      .then(function (data) {
-        devGenerateBtn.disabled = false;
-        devGenerateBtn.textContent = originalText;
-
-        if (!data || !data.success) {
-          var msg = (data && data.message) ? data.message : t('demo_data.generate_failed');
-          showToast(msg, 'error');
-          return;
-        }
-
-        showToast(data.message || t('demo_data.fake_cases_generated'), 'success');
-
-        // Reload the page so the new cases are fetched and rendered
-        setTimeout(function () {
-          window.location.reload();
-        }, 500);
-      })
-      .catch(function (err) {
-        devGenerateBtn.disabled = false;
-        devGenerateBtn.textContent = originalText;
-        showToast(t('demo_data.generate_error', {message: err.message}), 'error');
-      });
-    });
-  }
 
 
   // Function to print a case with all details and file contents

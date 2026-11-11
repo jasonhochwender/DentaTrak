@@ -99,16 +99,16 @@ assertContains(
     'app.light.css .confirm-modal .confirm-modal-content must be viewport-safe (min-width: 0, max-width: 90vw)'
 );
 
-// 8. Dev Tools are positioned safely and below modal backdrops.
+// 8. Platform Administration shell collapses to a top nav strip on phones.
 assertContains(
-    $baseDir . '/css/dev-tools.css',
-    '/\.dev-tools-panel\s*\{[^}]*z-index:\s*50/s',
-    'dev-tools.css .dev-tools-panel must have a z-index below modal backdrops'
+    $baseDir . '/css/admin.css',
+    '/@media\s*\(max-width:\s*860px\)[^}]*\.pa-shell\s*\{[^}]*flex-direction:\s*column/s',
+    'admin.css must collapse the administration shell to a column on small screens'
 );
 assertContains(
-    $baseDir . '/css/dev-tools.css',
-    '/@media\s*\(max-width:\s*480px\)[^}]*\.dev-tools-panel\s*\{[^}]*right:/s',
-    'dev-tools.css must reposition the panel on phones so it does not block primary controls'
+    $baseDir . '/css/admin.css',
+    '/\.pa-nav-link\s*\{[^}]*white-space:\s*nowrap/s',
+    'admin.css mobile nav links must not wrap (horizontal scroll strip)'
 );
 
 // 9. Toasts cannot overflow the viewport on small screens.

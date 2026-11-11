@@ -27,6 +27,7 @@ if (empty($_SESSION['db_user_id'])) {
 // Load dev tools access control
 require_once __DIR__ . '/api/dev-tools-access.php';
 require_once __DIR__ . '/api/feature-flags.php';
+require_once __DIR__ . '/admin-layout.php';
 
 require_once __DIR__ . '/api/asset-url.php';
 
@@ -66,12 +67,12 @@ $userEmail = $_SESSION['user_email'] ?? '';
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?= appAssetUrl('css/app.css') ?>">
+    <link rel="stylesheet" href="<?= appAssetUrl('css/admin.css') ?>">
     <style>
         body {
             font-family: 'Poppins', 'Inter', 'Noto Sans KR', sans-serif;
             background: #f3f4f6;
             margin: 0;
-            padding: 20px;
         }
         
         .admin-container {
@@ -980,25 +981,13 @@ $userEmail = $_SESSION['user_email'] ?? '';
         }
     </style>
 </head>
-<body>
+<?php paAdminChrome('practices', t('admin_practices.title'), t('admin_practices.subtitle')); ?>
     <div class="admin-container">
         <?php if ($isDev && !isSuperUser($appConfig, $userEmail)): ?>
         <div class="dev-mode-notice" style="background: #fff7ed; border: 1px solid #fdba74; color: #9a3412; padding: 12px 16px; border-radius: 6px; margin-bottom: 16px; font-weight: 500;">
             Development environment: admin tools are open to any authenticated user for local testing. In production, only super users can access this page.
         </div>
         <?php endif; ?>
-        <div class="admin-header">
-            <div>
-                <h1>🏥 <?php echo t('admin_practices.title'); ?></h1>
-                <div class="subtitle"><?php echo t('admin_practices.subtitle'); ?></div>
-            </div>
-            <div style="display: flex; align-items: center; gap: 16px;">
-                <?php echo renderLanguageSelector('api/save-user-language.php', getResolvedLocale(), false, $csrfToken); ?>
-                <a href="main.php" class="back-link">
-                    ← <?php echo t('admin_practices.back_to_dashboard'); ?>
-                </a>
-            </div>
-        </div>
         
         <div class="stats-grid" id="statsGrid">
             <div class="stat-card">
@@ -3263,6 +3252,6 @@ $userEmail = $_SESSION['user_email'] ?? '';
             </div>
         </div>
     </div>
-</body>
+<?php paAdminChromeEnd(); ?>
 
 </html>

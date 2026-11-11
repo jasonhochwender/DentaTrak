@@ -32,6 +32,7 @@ if (empty($_SESSION['db_user_id'])) {
 require_once __DIR__ . '/api/dev-tools-access.php';
 require_once __DIR__ . '/api/feature-flags.php';
 require_once __DIR__ . '/api/asset-url.php';
+require_once __DIR__ . '/admin-layout.php';
 
 $userEmail = $_SESSION['user_email'] ?? '';
 $isDev = ($appConfig['current_environment'] ?? '') === 'development';
@@ -62,8 +63,9 @@ function ur($k) { return h(t('usage_report.' . $k)); }
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?= appAssetUrl('css/app.css') ?>">
+    <link rel="stylesheet" href="<?= appAssetUrl('css/admin.css') ?>">
     <style>
-        body { font-family: 'Poppins','Inter','Noto Sans KR',sans-serif; background: #f3f4f6; margin: 0; padding: 20px; }
+        body { font-family: 'Poppins','Inter','Noto Sans KR',sans-serif; background: #f3f4f6; margin: 0; }
         .admin-container { max-width: 1400px; margin: 0 auto; }
         .admin-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; gap: 12px; flex-wrap: wrap; }
         .admin-header h1 { font-size: 1.5rem; margin: 0; }
@@ -108,15 +110,9 @@ function ur($k) { return h(t('usage_report.' . $k)); }
         }
     </style>
 </head>
-<body>
+<?php paAdminChrome('usage', ur('title'), ur('subtitle')); ?>
 <div class="admin-container">
-    <div class="admin-header">
-        <div>
-            <h1>📊 <?php echo ur('title'); ?></h1>
-            <div class="subtitle"><?php echo ur('subtitle'); ?></div>
-        </div>
-        <a class="back-link" href="main.php">&larr; <?php echo ur('back'); ?></a>
-    </div>
+    <div class="pa-scope-note" style="font-size:0.78rem;color:#6b7280;margin:-8px 0 14px;"><?php echo ur('scope_note'); ?></div>
 
     <div class="filter-bar">
         <label for="urSearch" class="sr-only"><?php echo ur('search_placeholder'); ?></label>
@@ -445,5 +441,5 @@ function ur($k) { return h(t('usage_report.' . $k)); }
         .catch(() => { document.getElementById('urError').hidden = false; });
 </script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
-</body>
+<?php paAdminChromeEnd(); ?>
 </html>
