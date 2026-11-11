@@ -267,6 +267,15 @@ function ma($k) { return t('marketing_admin.' . $k); }
     var STR = {
         loadFailed: <?php echo json_encode(ma('load_failed')); ?>,
         sheetDown: <?php echo json_encode(ma('sheet_unavailable')); ?>,
+        sheetErrs: {
+            auth: <?php echo json_encode(ma('sheet_err_auth')); ?>,
+            forbidden: <?php echo json_encode(ma('sheet_err_forbidden')); ?>,
+            not_found: <?php echo json_encode(ma('sheet_err_not_found')); ?>,
+            headers: <?php echo json_encode(ma('sheet_err_headers')); ?>,
+            api: <?php echo json_encode(ma('sheet_err_api')); ?>,
+            db: <?php echo json_encode(ma('sheet_err_db')); ?>,
+            unknown: <?php echo json_encode(ma('sheet_err_unknown')); ?>
+        },
         noProspects: <?php echo json_encode(ma('no_prospects')); ?>,
         noCampaigns: <?php echo json_encode(ma('no_campaigns')); ?>,
         noFollowups: <?php echo json_encode(ma('no_followups')); ?>,
@@ -310,6 +319,7 @@ function ma($k) { return t('marketing_admin.' . $k); }
             return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
         });
     }
+    function sheetErrorText(code) { return (code && STR.sheetErrs[code]) || STR.sheetDown; }
     function showErr(m) { var e = document.getElementById('moGlobalError'); e.textContent = m; e.classList.remove('mo-hidden'); }
     function showOk(m) { var e = document.getElementById('moGlobalOk'); e.textContent = m; e.classList.remove('mo-hidden'); setTimeout(function(){ e.classList.add('mo-hidden'); }, 6000); }
     function clearMsgs() { document.getElementById('moGlobalError').classList.add('mo-hidden'); document.getElementById('moGlobalOk').classList.add('mo-hidden'); }
@@ -393,7 +403,7 @@ function ma($k) { return t('marketing_admin.' . $k); }
                 fl += '<span class="mo-flag ' + f + '">' + esc(f.replace(/_/g, ' ')) + ': ' + (o.flags[f] || 0) + '</span> ';
             });
             document.getElementById('moOvFlags').innerHTML = fl || '—';
-            document.getElementById('moOvSheetNote').textContent = o.sheet_error ? STR.sheetDown : '';
+            document.getElementById('moOvSheetNote').textContent = o.sheet_error ? sheetErrorText(o.sheet_error) : '';
         }).catch(function () { showErr(STR.loadFailed); });
     }
 
@@ -405,7 +415,12 @@ function ma($k) { return t('marketing_admin.' . $k); }
         apiGet('prospects', { q: q, flag: flag, bucket: bucket, page: state.prospectPage }).then(function (d) {
             var host = document.getElementById('moProspectList');
             if (!d.success) { showErr(d.error || STR.loadFailed); host.innerHTML = ''; return; }
-            if (d.sheet_error) showErr(STR.sheetDown);
+            if (d.sheet_error) {
+                var msg = sheetErrorText(d.sheet_error);
+                showErr(msg);
+                host.innerHTML = '<div class="pa-card">' + esc(msg) + '</div>';
+                return;
+            }
             if (!d.prospects.length) { host.innerHTML = '<div class="pa-card">' + esc(STR.noProspects) + '</div>'; return; }
             var html = '<table class="mo-table"><thead><tr>' +
                 '<th>' + esc(<?php echo json_encode(ma('col_org')); ?>) + '</th>' +
@@ -700,6 +715,12 @@ function ma($k) { return t('marketing_admin.' . $k); }
         apiGet('followups', { bucket: bucket }).then(function (d) {
             var host = document.getElementById('moFuList');
             if (!d.success) { showErr(d.error || STR.loadFailed); return; }
+            if (d.sheet_error) {
+                var msg = sheetErrorText(d.sheet_error);
+                showErr(msg);
+                host.innerHTML = '<div class="pa-card">' + esc(msg) + '</div>';
+                return;
+            }
             if (!d.followups.length) { host.innerHTML = '<div class="pa-card">' + esc(STR.noFollowups) + '</div>'; return; }
             var html = '<table class="mo-table"><thead><tr>' +
                 '<th>' + esc(<?php echo json_encode(ma('col_org')); ?>) + '</th>' +

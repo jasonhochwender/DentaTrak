@@ -47,6 +47,7 @@ require_once __DIR__ . '/marketing/MarketingMailer.php';
 require_once __DIR__ . '/marketing/MarketingSendingPolicy.php';
 require_once __DIR__ . '/marketing/OutreachEligibility.php';
 require_once __DIR__ . '/marketing/OutreachThreadResolver.php';
+require_once __DIR__ . '/marketing/SheetSyncException.php';
 setSecurityHeaders();
 header('Content-Type: application/json');
 
@@ -218,17 +219,22 @@ function mo_directory(PDO $pdo): ProspectDirectory {
 }
 
 /**
- * Load all prospects; returns [records, sheetError, directory|null].
- * Never throws - sheet/auth failures degrade to an empty list plus an
- * honest sheet_error flag so the UI can say data may be incomplete.
+ * Load all prospects; returns [records, ?errorCode, directory|null].
+ * Never throws - sheet/auth/db failures degrade to an empty list plus a
+ * stable error-code string so the UI can distinguish "no prospects" from
+ * "the sheet could not be read" and show the right message. Codes are
+ * non-sensitive (see SheetSyncException); details go to error_log only.
  */
 function mo_load_prospects(PDO $pdo): array {
     try {
         $dir = mo_directory($pdo);
-        return [$dir->prospects(), false, $dir];
+        return [$dir->prospects(), null, $dir];
     } catch (Throwable $e) {
-        error_log('[marketing-admin] prospect load: ' . $e->getMessage());
-        return [[], true, null];
+        $code = SheetSyncException::UNKNOWN;
+        if ($e instanceof SheetSyncException) $code = $e->errorCode;
+        elseif ($e instanceof PDOException) $code = SheetSyncException::DB;
+        error_log('[marketing-admin] prospect load [' . $code . ']: ' . $e->getMessage());
+        return [[], $code, null];
     }
 }
 
@@ -377,7 +383,7 @@ if ($method === 'GET') {
                 'campaigns' => $campaigns,
                 'sends_30d' => $sent30,
                 'suppressions' => $suppressed,
-                'sheet_error' => $sheetErr ? 'sheet_unavailable' : null,
+                'sheet_error' => $sheetErr,
             ]]);
         }
         case 'prospects': {
@@ -425,13 +431,13 @@ if ($method === 'GET') {
                     'followup_flags' => $p['eligibility']['followup']['flags'] ?? [],
                 ];
             }, $slice), 'total' => $total, 'page' => $page, 'per' => $per,
-               'sheet_error' => $sheetErr ? 'sheet_unavailable' : null]);
+               'sheet_error' => $sheetErr]);
         }
         case 'prospect': {
             $email = SuppressionService::normalizeEmail((string)($_GET['email'] ?? ''));
             if ($email === '') mo_fail('email required');
             [, $sheetErr, $dir] = mo_load_prospects($pdo);
-            if ($dir === null) mo_fail('prospect sheet unreachable', 503);
+            if ($dir === null) mo_fail('prospect sheet unavailable: ' . $sheetErr, 503);
             $p = $dir->findByEmail($email);
             if (!$p) mo_fail('not found', 404);
             $hist = $pdo->prepare("SELECT campaign_ref,status,gmail_message_id,sent_at,created_at FROM marketing_sends WHERE email_normalized=? ORDER BY id DESC LIMIT 50");
@@ -463,7 +469,7 @@ if ($method === 'GET') {
                     'eligible' => !empty($p['eligibility']['followup']['ok']),
                     'followup_flags' => $p['eligibility']['followup']['flags'] ?? [],
                 ];
-            }, $all), 'sheet_error' => $sheetErr ? 'sheet_unavailable' : null]);
+            }, $all), 'sheet_error' => $sheetErr]);
         }
         case 'campaigns': {
             $rows = $pdo->query("SELECT c.*, 
@@ -516,7 +522,7 @@ switch ($action) {
         // Resolve each email against the sheet; ineligible prospects are
         // still recorded but flagged so the UI can show why.
         [$sheetProspects, $sheetErr] = mo_load_prospects($pdo);
-        if ($sheetErr) mo_fail('prospect sheet unreachable', 503);
+        if ($sheetErr) mo_fail('prospect sheet unavailable: ' . $sheetErr, 503);
         $prospects = [];
         foreach ($sheetProspects as $p) $prospects[strtolower($p['fields']['email'])] = $p;
 
@@ -561,7 +567,7 @@ switch ($action) {
         $template = $tpl->fetch(PDO::FETCH_ASSOC) ?: null;
 
         [$sheetProspects, $sheetErr] = mo_load_prospects($pdo);
-        if ($sheetErr) mo_fail('prospect sheet unreachable', 503);
+        if ($sheetErr) mo_fail('prospect sheet unavailable: ' . $sheetErr, 503);
         $byEmail = [];
         foreach ($sheetProspects as $p) $byEmail[strtolower($p['fields']['email'])] = $p;
 
@@ -831,7 +837,7 @@ switch ($action) {
         if (!$camp) mo_fail('not found', 404);
         if ($camp['kind'] !== 'followup') mo_fail('threading applies to follow-up campaigns only');
         if (!in_array($camp['status'], ['draft', 'ready'], true)) mo_fail('campaign locked');
-        [, , $dir] = mo_load_prospects($pdo);
+        [, $sheetErr2, $dir] = mo_load_prospects($pdo);
         $rs = $pdo->prepare("SELECT * FROM marketing_campaign_recipients WHERE campaign_id=? AND status IN ('draft','ready') ORDER BY id");
         $rs->execute([$cid]);
         $tm = new MarketingMailer($pdo, $baseUrl);
@@ -843,7 +849,7 @@ switch ($action) {
             $counts[$t['status']] = ($counts[$t['status']] ?? 0) + 1;
         }
         mo_audit($pdo, $userEmail, 'campaign_resolve_threads', $cid, $counts);
-        mo_out(['success' => true, 'threads' => $counts, 'sheet_error' => $dir === null ? 'sheet_unavailable' : null]);
+        mo_out(['success' => true, 'threads' => $counts, 'sheet_error' => $dir === null ? $sheetErr2 : null]);
     }
 
     case 'reconcile': {

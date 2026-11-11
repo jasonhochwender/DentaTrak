@@ -7407,6 +7407,13 @@
         "retry_sheet_sync": "Tentar atualizações da planilha novamente",
         "sheet_sync_result": "Atualizações da planilha: {synced} registradas, {failed} ainda com falha. Nenhum e-mail foi enviado.",
         "reconcile_result": "Envios incertos verificados: {sent} entregues, {not_sent} não entregues, {unknown} ainda desconhecidos.",
-        "not_eligible_followup": "Não elegível para follow-up"
+        "not_eligible_followup": "Não elegível para follow-up",
+        "sheet_err_auth": "Não foi possível autenticar com o Google. A planilha de prospects não pôde ser lida.",
+        "sheet_err_forbidden": "O acesso à planilha de prospects foi negado. A conta conectada pode não ter acesso à planilha.",
+        "sheet_err_not_found": "A planilha de prospects ou sua guia «Prospects» não foi encontrada.",
+        "sheet_err_headers": "A planilha de prospects está sem colunas obrigatórias, então os registros não podem ser lidos.",
+        "sheet_err_api": "O serviço do Google Sheets retornou um erro. A planilha de prospects não pôde ser lida.",
+        "sheet_err_db": "Ocorreu um erro de banco de dados ao carregar os dados de prospects.",
+        "sheet_err_unknown": "A planilha de prospects não pôde ser lida. Os dados podem estar incompletos."
     }
 }

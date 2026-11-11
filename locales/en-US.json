@@ -7417,6 +7417,13 @@
         "retry_sheet_sync": "Retry sheet updates",
         "sheet_sync_result": "Sheet updates: {synced} recorded, {failed} still failing. No email was sent.",
         "reconcile_result": "Checked uncertain sends: {sent} delivered, {not_sent} not delivered, {unknown} still unknown.",
-        "not_eligible_followup": "Not eligible for follow-up"
+        "not_eligible_followup": "Not eligible for follow-up",
+        "sheet_err_auth": "Could not authenticate with Google. The prospects sheet could not be read.",
+        "sheet_err_forbidden": "Access to the prospects spreadsheet was denied. The connected account may not have been granted access to the sheet.",
+        "sheet_err_not_found": "The prospects spreadsheet or its 'Prospects' tab was not found.",
+        "sheet_err_headers": "The prospects sheet is missing required columns, so records cannot be read.",
+        "sheet_err_api": "The Google Sheets service returned an error. The prospects sheet could not be read.",
+        "sheet_err_db": "A database error occurred while loading prospect data.",
+        "sheet_err_unknown": "The prospects sheet could not be read. Data may be incomplete."
     }
 }

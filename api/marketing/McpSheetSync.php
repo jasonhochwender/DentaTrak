@@ -4,6 +4,8 @@
  * connector. Reuses ProspectSheetSync's sheet/token internals.
  */
 require_once __DIR__ . '/OutreachEligibility.php';
+require_once __DIR__ . '/ProspectSheetSync.php';
+require_once __DIR__ . '/SheetSyncException.php';
 
 class McpSheetSync {
     private const SHEET_ID = '1r7G5QaKe69LAU93d0WoWDSXIsWVr0cbDnpjF7z1tARc';
@@ -21,14 +23,37 @@ class McpSheetSync {
             $this->rows = array_values($snapshot['rows'] ?? []);
             return;
         }
-        $this->token = ProspectSheetSync::accessTokenPublic();
+        try {
+            $this->token = ProspectSheetSync::accessTokenPublic();
+        } catch (Throwable $e) {
+            throw new SheetSyncException(SheetSyncException::AUTH, 'sheet token acquisition failed', $e);
+        }
     }
     private function load(): void {
         if ($this->rows !== null) return;
-        $r = ProspectSheetSync::httpPublic('GET','https://sheets.googleapis.com/v4/spreadsheets/'.self::SHEET_ID.'/values/'.rawurlencode(self::TAB),null,false,$this->token);
-        $v = json_decode($r,true)['values'] ?? [];
+        try {
+            $r = ProspectSheetSync::httpPublic('GET','https://sheets.googleapis.com/v4/spreadsheets/'.self::SHEET_ID.'/values/'.rawurlencode(self::TAB),null,false,$this->token);
+        } catch (Throwable $e) {
+            throw self::classifySheetError($e);
+        }
+        $v = json_decode($r,true)['values'] ?? null;
+        if (!is_array($v) || !$v) {
+            throw new SheetSyncException(SheetSyncException::NOT_FOUND, 'sheet returned no values');
+        }
         $this->header = array_shift($v) ?: [];
         $this->rows = $v;
+    }
+
+    /** Map a transport/API failure to a non-sensitive SheetSyncException code. */
+    private static function classifySheetError(Throwable $e): SheetSyncException {
+        $msg = $e->getMessage();
+        if (preg_match('/HTTP (\d{3})/', $msg, $m)) {
+            $code = (int)$m[1];
+            if ($code === 401) return new SheetSyncException(SheetSyncException::AUTH, 'sheets auth failed', $e);
+            if ($code === 403) return new SheetSyncException(SheetSyncException::FORBIDDEN, 'sheets access denied', $e);
+            if ($code === 404 || $code === 400) return new SheetSyncException(SheetSyncException::NOT_FOUND, 'sheet or tab not found', $e);
+        }
+        return new SheetSyncException(SheetSyncException::API, 'sheets api error', $e);
     }
     private function col(string $name): ?int { $this->load(); $i = array_search($name,$this->header); return $i===false?null:$i; }
     public function prospectRow(string $email): ?array {

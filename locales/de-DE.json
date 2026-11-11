@@ -7407,6 +7407,13 @@
         "retry_sheet_sync": "Tabellenaktualisierungen wiederholen",
         "sheet_sync_result": "Tabellenaktualisierungen: {synced} erfasst, {failed} weiterhin fehlgeschlagen. Es wurde keine E-Mail gesendet.",
         "reconcile_result": "Unklare Sendungen geprüft: {sent} zugestellt, {not_sent} nicht zugestellt, {unknown} weiterhin unbekannt.",
-        "not_eligible_followup": "Nicht für Follow-up geeignet"
+        "not_eligible_followup": "Nicht für Follow-up geeignet",
+        "sheet_err_auth": "Authentifizierung bei Google fehlgeschlagen. Das Prospekten-Tabellenblatt konnte nicht gelesen werden.",
+        "sheet_err_forbidden": "Der Zugriff auf die Prospekten-Tabelle wurde verweigert. Dem verbundenen Konto wurde möglicherweise kein Zugriff auf das Tabellenblatt erteilt.",
+        "sheet_err_not_found": "Die Prospekten-Tabelle oder ihr Tab \"Prospects\" wurde nicht gefunden.",
+        "sheet_err_headers": "Der Prospekten-Tabelle fehlen erforderliche Spalten, daher können keine Datensätze gelesen werden.",
+        "sheet_err_api": "Der Google-Sheets-Dienst hat einen Fehler zurückgegeben. Das Prospekten-Tabellenblatt konnte nicht gelesen werden.",
+        "sheet_err_db": "Beim Laden der Prospect-Daten ist ein Datenbankfehler aufgetreten.",
+        "sheet_err_unknown": "Das Prospekten-Tabellenblatt konnte nicht gelesen werden. Die Daten sind möglicherweise unvollständig."
     }
 }

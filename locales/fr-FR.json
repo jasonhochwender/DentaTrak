@@ -7407,6 +7407,13 @@
         "retry_sheet_sync": "Réessayer les mises à jour de la feuille",
         "sheet_sync_result": "Mises à jour de la feuille : {synced} enregistrée(s), {failed} toujours en échec. Aucun e-mail n’a été envoyé.",
         "reconcile_result": "Envois incertains vérifiés : {sent} délivré(s), {not_sent} non délivré(s), {unknown} toujours inconnu(s).",
-        "not_eligible_followup": "Non éligible à une relance"
+        "not_eligible_followup": "Non éligible à une relance",
+        "sheet_err_auth": "Impossible de s'authentifier auprès de Google. La feuille des prospects n'a pas pu être lue.",
+        "sheet_err_forbidden": "L'accès au tableur des prospects a été refusé. Le compte connecté n'a peut-être pas été autorisé à accéder à la feuille.",
+        "sheet_err_not_found": "Le tableur des prospects ou son onglet « Prospects » est introuvable.",
+        "sheet_err_headers": "Il manque des colonnes obligatoires à la feuille des prospects ; les enregistrements ne peuvent pas être lus.",
+        "sheet_err_api": "Le service Google Sheets a renvoyé une erreur. La feuille des prospects n'a pas pu être lue.",
+        "sheet_err_db": "Une erreur de base de données s'est produite lors du chargement des prospects.",
+        "sheet_err_unknown": "La feuille des prospects n'a pas pu être lue. Les données peuvent être incomplètes."
     }
 }

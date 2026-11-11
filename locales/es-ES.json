@@ -7407,6 +7407,13 @@
         "retry_sheet_sync": "Reintentar actualizaciones de la hoja",
         "sheet_sync_result": "Actualizaciones de la hoja: {synced} registradas, {failed} siguen fallando. No se envió ningún correo.",
         "reconcile_result": "Envíos inciertos comprobados: {sent} entregados, {not_sent} no entregados, {unknown} aún desconocidos.",
-        "not_eligible_followup": "No apto para seguimiento"
+        "not_eligible_followup": "No apto para seguimiento",
+        "sheet_err_auth": "No se pudo autenticar con Google. No se pudo leer la hoja de prospectos.",
+        "sheet_err_forbidden": "Se denegó el acceso a la hoja de cálculo de prospectos. Es posible que la cuenta conectada no tenga acceso a la hoja.",
+        "sheet_err_not_found": "No se encontró la hoja de cálculo de prospectos ni su pestaña «Prospects».",
+        "sheet_err_headers": "A la hoja de prospectos le faltan columnas obligatorias, por lo que no se pueden leer los registros.",
+        "sheet_err_api": "El servicio de Google Sheets devolvió un error. No se pudo leer la hoja de prospectos.",
+        "sheet_err_db": "Se produjo un error de base de datos al cargar los datos de prospectos.",
+        "sheet_err_unknown": "No se pudo leer la hoja de prospectos. Los datos pueden estar incompletos."
     }
 }

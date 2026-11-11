@@ -7407,6 +7407,13 @@
         "retry_sheet_sync": "Riprova aggiornamenti del foglio",
         "sheet_sync_result": "Aggiornamenti del foglio: {synced} registrati, {failed} ancora non riusciti. Nessuna email inviata.",
         "reconcile_result": "Invii incerti controllati: {sent} consegnati, {not_sent} non consegnati, {unknown} ancora sconosciuti.",
-        "not_eligible_followup": "Non idoneo al follow-up"
+        "not_eligible_followup": "Non idoneo al follow-up",
+        "sheet_err_auth": "Impossibile autenticarsi con Google. Il foglio dei prospect non è stato letto.",
+        "sheet_err_forbidden": "Accesso al foglio di calcolo dei prospect negato. L'account collegato potrebbe non avere accesso al foglio.",
+        "sheet_err_not_found": "Il foglio di calcolo dei prospect o il suo foglio «Prospects» non è stato trovato.",
+        "sheet_err_headers": "Al foglio dei prospect mancano colonne obbligatorie, quindi i record non possono essere letti.",
+        "sheet_err_api": "Il servizio Google Sheets ha restituito un errore. Il foglio dei prospect non è stato letto.",
+        "sheet_err_db": "Si è verificato un errore del database durante il caricamento dei prospect.",
+        "sheet_err_unknown": "Il foglio dei prospect non è stato letto. I dati potrebbero essere incompleti."
     }
 }

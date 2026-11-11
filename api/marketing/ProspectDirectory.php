@@ -25,6 +25,7 @@
 require_once __DIR__ . '/McpSheetSync.php';
 require_once __DIR__ . '/SuppressionService.php';
 require_once __DIR__ . '/OutreachEligibility.php';
+require_once __DIR__ . '/SheetSyncException.php';
 
 final class ProspectDirectory
 {
@@ -75,6 +76,11 @@ final class ProspectDirectory
         $idx = [];
         foreach (self::COLS as $key => $names) {
             $idx[$key] = $this->sheet->colAny($names);
+        }
+        // A readable sheet without the columns we depend on is a data
+        // problem, not "zero prospects" - report it distinctly.
+        if ($idx['email'] === null || $idx['status'] === null) {
+            throw new SheetSyncException(SheetSyncException::HEADERS, 'required prospect headers missing');
         }
         $out = [];
         foreach ($snap['rows'] as $i => $row) {
