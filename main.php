@@ -2716,32 +2716,23 @@ endif;
                   <div id="liLabDetailBody"></div>
                 </div>
 
-                <div class="ap-section li-inner-section" id="liRevisionsSection" style="display: none;">
+                <div class="ap-section li-inner-section" id="liQualitySection" style="display: none;">
                   <div class="ap-section-header">
                     <div class="ap-section-icon">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="1 4 1 10 7 10"></polyline>
-                        <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 12l2 2 4-4"></path>
+                        <path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"></path>
                       </svg>
                     </div>
                     <div>
-                      <h2 class="ap-section-title"><?= t('insights.perf.revisions.title') ?></h2>
-                      <p class="ap-section-subtitle"><?= t('insights.perf.revisions.subtitle') ?></p>
+                      <h2 class="ap-section-title"><?= t('insights.quality.title') ?></h2>
+                      <p class="ap-section-subtitle"><?= t('insights.quality.subtitle') ?></p>
+                    </div>
+                    <div class="ap-section-actions">
+                      <select class="ap-select" id="liQualityLab" aria-label="<?= t('insights.quality.lab_scope_label') ?>"></select>
                     </div>
                   </div>
-                  <p class="li-revision-note"><?= t('insights.perf.revisions.note') ?></p>
-                  <div class="li-table-wrap">
-                    <table class="li-table">
-                      <thead>
-                        <tr>
-                          <th><?= t('insights.perf.table.lab') ?></th>
-                          <th><?= t('insights.perf.revisions.count_header') ?></th>
-                          <th><?= t('insights.perf.revisions.rate_header') ?></th>
-                        </tr>
-                      </thead>
-                      <tbody id="liRevisionsBody"></tbody>
-                    </table>
-                  </div>
+                  <div id="liQualityBody"></div>
                 </div>
               </div>
             </div>

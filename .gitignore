@@ -153,6 +153,7 @@ screenshots/
 !/tests/platform-admin-test.php
 !/tests/marketing-admin-test.php
 !/tests/lab-insights-recs-test.php
+!/tests/lab-quality-test.php
 !/tests/admin-practices-auth-test.php
 !/tests/admin-practices-csrf-and-auth-test.php
 !/tests/admin-practices-subscription-test.php

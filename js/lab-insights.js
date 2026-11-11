@@ -896,6 +896,11 @@
   var liRecsPayload = null;        // {status, items, computed_at}
   var liRecStateFilter = 'active'; // active|reviewed|dismissed|resolved|all
   var liRecScope = 'practice';     // 'practice' or a labKey - mirrors liSelectedLab
+  var liQuality = null;            // last quality payload (data.quality)
+  var liQualityLab = 'practice';   // Quality & Revisions lab scope
+  var liQualityChart = null;
+  var liQualityTrendMetric = 'remakeCases';
+  var liQualityShowAllEvents = false;
   var liRecShowAll = false;
   var liRecBusy = false;
 
@@ -1974,7 +1979,7 @@
     html += '<p class="li-scorecard-links">' +
       '<a href="#liDetailRemakes">' + escapeHtml(t('insights.perf.detail.remake_details_link')) + '</a>' +
       ' &middot; ' +
-      '<a href="#liRevisionsSection">' + escapeHtml(t('insights.perf.detail.regressions_link')) + '</a>' +
+      '<a href="#liQualitySection">' + escapeHtml(t('insights.perf.detail.regressions_link')) + '</a>' +
       '</p></div>'; // quality group
     html += '</div>'; // .li-scorecard
 
@@ -2486,6 +2491,8 @@
     renderPerfTable();
     renderPerfDetail();
     liRecSyncScope();
+    liQualitySyncScope();
+    renderQualitySection();
     if (opts && opts.noScroll) { return; }
     var detail = document.getElementById('liLabDetail');
     if (detail) {
@@ -2495,26 +2502,398 @@
     }
   }
 
-  function renderRevisionsSection(labs) {
-    var section = document.getElementById('liRevisionsSection');
-    var tbody = document.getElementById('liRevisionsBody');
-    if (!section || !tbody) { return; }
+  // ======================================================================
+  // Quality & Revisions
+  //
+  // Consolidates remake events (explicit case_remake_events records),
+  // workflow regressions (recorded backward status transitions), and their
+  // trends. Remakes and regressions are deliberately kept distinct: a
+  // regression is a workflow movement, never an implied remake or lab
+  // fault. Rates come from the performance payload so they reconcile with
+  // Lab Performance / Lab Detail.
+  // ======================================================================
 
-    var anyRevisions = (labs || []).some(function (l) { return (l.revisionCount || 0) > 0; });
-    if (!anyRevisions) {
+  /** Keep the section's lab select in step with the Lab Detail selection. */
+  function liQualitySyncScope() {
+    var sel = document.getElementById('liQualityLab');
+    if (!sel || !liQuality) { return; }
+    var valid = liSelectedLab === 'practice' || liSelectedLab === 'all'
+      || (liQuality.byLab && liQuality.byLab[liSelectedLab]);
+    liQualityLab = valid && liSelectedLab !== 'all' ? liSelectedLab : 'practice';
+    sel.value = liQualityLab;
+  }
+
+  function liQualityPopulateScope() {
+    var sel = document.getElementById('liQualityLab');
+    if (!sel || !liQuality) { return; }
+    var keys = Object.keys(liQuality.byLab || {});
+    var html = '<option value="practice">' + escapeHtml(t('insights.quality.scope_all')) + '</option>';
+    keys.sort(function (a, b) {
+      return String((liQuality.byLab[a] || {}).name || a)
+        .localeCompare(String((liQuality.byLab[b] || {}).name || b));
+    });
+    keys.forEach(function (k) {
+      var lab = liQuality.byLab[k] || {};
+      html += '<option value="' + escapeHtml(k) + '">' + escapeHtml(lab.name || k) + '</option>';
+    });
+    sel.innerHTML = html;
+    liQualitySyncScope();
+  }
+
+  /**
+   * Resolve the active scope to display aggregates.
+   * Returns { lab, caseType, summary, remakes, regressions, byLabEntry }.
+   * caseType comes from the global Lab Insights case-type filter.
+   */
+  function liQualityScopeData() {
+    var q = liQuality || {};
+    var labKey = (liQualityLab && liQualityLab !== 'practice') ? liQualityLab : null;
+    var caseType = liCaseType || '';
+    var labEntry = labKey ? (q.byLab || {})[labKey] || null : null;
+    var typeEntry = caseType ? (q.byCaseType || {})[caseType] || null : null;
+
+    // Rates/denominators: prefer the lab-scoped perf aggregates; when a
+    // case type is also selected, fall back to the type-scoped event
+    // aggregates (perf caseTypes carry their own denominators).
+    var summary = q.summary || {};
+    if (labEntry) {
+      summary = {
+        remakeRatePct: null, remakeCases: labEntry.remakeCases || 0,
+        remakeDenominator: null, remakeSufficient: false,
+        labAttrRatePct: null, labAttrCases: labEntry.labAttrCases || 0,
+        openRemakes: labEntry.openRemakes || 0,
+        regressionEvents: labEntry.regressionEvents || 0,
+        regressionCases: labEntry.regressionCases || 0,
+      };
+      // Lab-scoped rates live on the perf lab entry.
+      var perfLab = null;
+      (liPerfLabs || []).forEach(function (l) { if (l.labKey === labKey) { perfLab = l; } });
+      if (perfLab && perfLab.remakes) {
+        summary.remakeRatePct = perfLab.remakes.remakeRatePct;
+        summary.remakeDenominator = perfLab.remakes.rateDenominator;
+        summary.remakeSufficient = !!perfLab.remakes.rateSufficient;
+        summary.labAttrRatePct = perfLab.remakes.labAttributedRatePct;
+      }
+    }
+    if (caseType && typeEntry) {
+      summary.remakeCases = typeEntry.remakeCases || 0;
+      summary.regressionEvents = typeEntry.regressionEvents || 0;
+      summary.regressionCases = typeEntry.regressionCases || 0;
+    }
+
+    var remakes = q.remakes || {};
+    var regressions = q.regressions || {};
+
+    // Event lists: filter by lab + case type for display.
+    var rmList = (remakes.list || []).filter(function (r) {
+      if (labKey && r.labKey !== labKey) { return false; }
+      if (caseType && r.caseType !== caseType) { return false; }
+      return true;
+    });
+    var regList = (regressions.list || []).filter(function (r) {
+      // Regression rows carry labKeys resolved at render time via case map;
+      // the payload stores the matched lab keys on each row.
+      if (labKey && (r.labKeys || []).indexOf(labKey) === -1) { return false; }
+      if (caseType && r.caseType !== caseType) { return false; }
+      return true;
+    });
+
+    return {
+      labKey: labKey, caseType: caseType, summary: summary,
+      remakes: remakes, regressions: regressions,
+      rmList: rmList, regList: regList,
+      trends: q.trends || {},
+    };
+  }
+
+  function liQualityStatCard(label, valueHtml, tipKey) {
+    var tip = tipKey ? ' title="' + escapeHtml(t(tipKey)) + '"' : '';
+    return '<div class="li-quality-stat"' + tip + '>' +
+      '<div class="li-quality-stat-label">' + escapeHtml(label) + '</div>' +
+      '<div class="li-quality-stat-value">' + valueHtml + '</div></div>';
+  }
+
+  function liQualityMetricHtml(value, n, sufficient, fmt) {
+    if (value === null || value === undefined) {
+      return '<span class="li-muted">' + escapeHtml(t('insights.quality.not_available')) + '</span>';
+    }
+    var html = escapeHtml(fmt(value));
+    if (n !== null && n !== undefined && n > 0) {
+      html += '<div class="li-metric-note">' + escapeHtml(I18n.pluralize(n, 'insights.quality.cases_n')) + '</div>';
+    }
+    if (sufficient === false && n !== null && n !== undefined) {
+      html += '<div class="li-metric-note">' + escapeHtml(t('insights.quality.small_sample')) + '</div>';
+    }
+    return html;
+  }
+
+  /** Horizontal bars for reason/attribution/transition breakdowns. */
+  function liQualityBars(title, entries, labelFn) {
+    if (!entries || !entries.length) { return ''; }
+    var max = entries[0].count || 1;
+    var html = '<div class="li-quality-breakdown"><h4 class="li-quality-subhead">' + escapeHtml(title) + '</h4><ul class="li-quality-bars">';
+    entries.forEach(function (e) {
+      var pct = Math.max(4, Math.round((e.count / max) * 100));
+      html += '<li class="li-quality-bar-row">' +
+        '<span class="li-quality-bar-label">' + escapeHtml(labelFn(e)) + '</span>' +
+        '<span class="li-quality-bar-track"><span class="li-quality-bar-fill" style="width:' + pct + '%"></span></span>' +
+        '<span class="li-quality-bar-count">' + escapeHtml(fmtCount(e.count)) + '</span></li>';
+    });
+    return html + '</ul></div>';
+  }
+
+  function liQualityEventCaseBtn(caseId) {
+    return '<button type="button" class="li-quality-case-link" data-li-quality-case="' +
+      escapeHtml(caseId) + '">' + escapeHtml(caseId) + '</button>';
+  }
+
+  function liQualityRenderEvents(scope) {
+    var rows = [];
+    scope.rmList.forEach(function (r) {
+      rows.push({
+        ts: r.initiatedAt, kind: 'remake', caseId: r.caseId,
+        labName: r.labName || '—', caseType: r.caseType,
+        detail: t('remakes.reasons.' + (r.reason || 'other')),
+        attribution: r.attribution,
+        open: r.open,
+      });
+    });
+    scope.regList.forEach(function (r) {
+      rows.push({
+        ts: r.at, kind: 'regression', caseId: r.caseId,
+        labName: (r.labKeys || []).map(function (k) {
+          var e = (liQuality.byLab || {})[k];
+          return e ? e.name : k;
+        }).join(', ') || '—',
+        caseType: r.caseType,
+        detail: (r.from ? liAttnStatusLabel(r.from) : t('insights.quality.unknown_status')) +
+          ' → ' + (r.to ? liAttnStatusLabel(r.to) : t('insights.quality.unknown_status')),
+        detailKey: null,
+        attribution: null, open: false,
+      });
+    });
+    rows.sort(function (a, b) { return String(b.ts).localeCompare(String(a.ts)); });
+
+    var visible = liQualityShowAllEvents ? rows : rows.slice(0, 5);
+    var html = '<div class="li-quality-events" id="liQualityEvents">' +
+      '<h3 class="li-quality-subhead li-quality-events-title">' + escapeHtml(t('insights.quality.events_title')) + '</h3>';
+    if (!visible.length) {
+      html += '<p class="li-muted">' + escapeHtml(t('insights.quality.events_empty')) + '</p></div>';
+      return html;
+    }
+    html += '<div class="li-table-wrap"><table class="li-table li-quality-table"><thead><tr>' +
+      '<th>' + escapeHtml(t('insights.quality.col_case')) + '</th>' +
+      '<th>' + escapeHtml(t('insights.quality.col_lab')) + '</th>' +
+      '<th>' + escapeHtml(t('insights.quality.col_event')) + '</th>' +
+      '<th>' + escapeHtml(t('insights.quality.col_detail')) + '</th>' +
+      '<th>' + escapeHtml(t('insights.quality.col_attribution')) + '</th>' +
+      '<th>' + escapeHtml(t('insights.quality.col_date')) + '</th>' +
+      '<th></th></tr></thead><tbody>';
+    visible.forEach(function (r) {
+      var kindLabel = r.kind === 'remake'
+        ? t('insights.quality.kind_remake') + (r.open ? ' · ' + t('insights.quality.open') : '')
+        : t('insights.quality.kind_regression');
+      var attrLabel = '';
+      if (r.kind === 'remake' && r.attribution) {
+        attrLabel = t('remakes.attribution.' + r.attribution);
+      }
+      html += '<tr>' +
+        '<td>' + liQualityEventCaseBtn(r.caseId) + '</td>' +
+        '<td>' + escapeHtml(r.labName) + '</td>' +
+        '<td>' + escapeHtml(kindLabel) + '</td>' +
+        '<td>' + escapeHtml(r.detail) + '</td>' +
+        '<td>' + escapeHtml(attrLabel || '—') + '</td>' +
+        '<td>' + escapeHtml(String(r.ts || '').slice(0, 10)) + '</td>' +
+        '<td><button type="button" class="li-quality-case-link" data-li-quality-case="' +
+          escapeHtml(r.caseId) + '">' + escapeHtml(t('insights.quality.view_case')) + '</button></td>' +
+        '</tr>';
+    });
+    html += '</tbody></table></div>';
+    if (rows.length > 5) {
+      html += '<button type="button" class="li-quality-more" id="liQualityEventsMore">' +
+        escapeHtml(liQualityShowAllEvents
+          ? t('insights.quality.show_less')
+          : t('insights.quality.view_all', { count: rows.length })) + '</button>';
+    }
+    return html + '</div>';
+  }
+
+  function liQualityRenderTrend(scope) {
+    var trends = scope.trends || {};
+    var metricKey = liQualityTrendMetric;
+    var series = trends[metricKey] || {};
+    var labels = Object.keys(series).sort();
+    var values = labels.map(function (k) { return series[k]; });
+    var metricLabel = t('insights.quality.trend_' + metricKey);
+
+    var html = '<div class="ap-chart-card li-quality-trend">' +
+      '<div class="ap-chart-header"><div>' +
+      '<h3 class="ap-chart-title">' + escapeHtml(t('insights.quality.trend_title')) + '</h3>' +
+      '<p class="ap-chart-description">' + escapeHtml(t('insights.quality.trend_desc')) + '</p>' +
+      '</div><div class="ap-chart-controls">' +
+      '<select class="ap-select" id="liQualityTrendMetric" aria-label="' + escapeHtml(t('insights.quality.trend_metric_label')) + '">' +
+      ['remakeCases', 'labAttrCases', 'regressionEvents'].map(function (m) {
+        return '<option value="' + m + '"' + (m === metricKey ? ' selected' : '') + '>' +
+          escapeHtml(t('insights.quality.trend_' + m)) + '</option>';
+      }).join('') + '</select></div></div>' +
+      '<div class="li-quality-trend-body" id="liQualityTrendBody"></div></div>';
+
+    var body = document.createElement('div');
+    body.innerHTML = html;
+    var container = body.firstChild;
+    var trendBody = container.querySelector('#liQualityTrendBody');
+
+    var nonZero = values.filter(function (v) { return v > 0; });
+    if (!labels.length || (labels.length === 1 && values[0] === 0)) {
+      trendBody.innerHTML = '<p class="li-muted">' + escapeHtml(t('insights.quality.trend_empty')) + '</p>';
+    } else if (labels.length === 1) {
+      trendBody.innerHTML = '<p class="li-quality-trend-single">' +
+        escapeHtml(I18n.pluralize(values[0], 'insights.quality.trend_single_n')) + '</p>';
+    } else {
+      var canvas = document.createElement('canvas');
+      canvas.id = 'liQualityTrendChart';
+      canvas.setAttribute('role', 'img');
+      trendBody.appendChild(canvas);
+      if (liQualityChart) { liQualityChart.destroy(); liQualityChart = null; }
+      var color = getComputedStyle(document.documentElement).getPropertyValue('--ap-accent').trim() || '#3b82f6';
+      liQualityChart = new Chart(canvas.getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: metricLabel,
+            data: values,
+            backgroundColor: color,
+            borderRadius: 3,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { ticks: { font: { size: 10, family: "'Poppins', sans-serif" } } },
+            y: { beginAtZero: true, ticks: { precision: 0, font: { size: 10, family: "'Poppins', sans-serif" } } },
+          },
+          plugins: { legend: { display: false } },
+        },
+      });
+      setChartAriaLabel(canvas, metricLabel, labels, values, function (v) { return String(v); });
+    }
+
+    var metricSel = container.querySelector('#liQualityTrendMetric');
+    if (metricSel) {
+      metricSel.addEventListener('change', function () {
+        liQualityTrendMetric = metricSel.value;
+        renderQualitySection();
+      });
+    }
+    return container;
+  }
+
+  function renderQualitySection() {
+    var section = document.getElementById('liQualitySection');
+    var body = document.getElementById('liQualityBody');
+    if (!section || !body) { return; }
+    if (!liQuality) {
       section.style.display = 'none';
       return;
     }
-    section.style.display = 'block';
-    tbody.innerHTML = '';
-    labs.forEach(function (l) {
-      var tr = document.createElement('tr');
-      tr.innerHTML =
-        '<td><span class="li-lab-name">' + escapeHtml(l.name) + '</span></td>' +
-        '<td>' + escapeHtml(fmtCount(l.revisionCount)) + '</td>' +
-        '<td>' + escapeHtml(fmtPercent(l.revisionRate)) + '</td>';
-      tbody.appendChild(tr);
+    liQualityPopulateScope();
+    var scope = liQualityScopeData();
+    var s = scope.summary || {};
+    var rm = scope.remakes || {};
+    var rg = scope.regressions || {};
+
+    var html = '';
+
+    // ── Quality Summary: four compact metrics ──
+    html += '<div class="li-quality-summary">';
+    html += liQualityStatCard(t('insights.perf.summary.remake_rate'),
+      liQualityMetricHtml(s.remakeRatePct, s.remakeCases, s.remakeSufficient, fmtPercent),
+      'insights.perf.detail.tip_remake');
+    html += liQualityStatCard(t('insights.perf.summary.lab_remake_rate'),
+      liQualityMetricHtml(s.labAttrRatePct, s.labAttrCases, s.remakeSufficient, fmtPercent),
+      'insights.perf.detail.tip_lab_attr');
+    html += liQualityStatCard(t('insights.quality.open_remakes'),
+      escapeHtml(fmtCount(s.openRemakes || 0)),
+      'insights.quality.tip_open_remakes');
+    html += liQualityStatCard(t('insights.perf.detail.workflow_regressions'),
+      escapeHtml(fmtCount(s.regressionEvents || 0)) +
+        '<div class="li-metric-note">' + escapeHtml(I18n.pluralize(s.regressionCases || 0, 'insights.quality.cases_n')) + '</div>',
+      'insights.perf.detail.tip_regressions');
+    html += '</div>';
+
+    // Scope/case-type context note when filters narrow the view.
+    if (scope.labKey || scope.caseType) {
+      var scopeBits = [];
+      if (scope.labKey) {
+        var le = (liQuality.byLab || {})[scope.labKey];
+        scopeBits.push(le ? le.name : scope.labKey);
+      }
+      if (scope.caseType) { scopeBits.push(liAttnCaseTypeLabel(scope.caseType)); }
+      html += '<p class="li-quality-scope-note">' + escapeHtml(
+        t('insights.quality.scope_note', { scope: scopeBits.join(' · ') })) + '</p>';
+    }
+
+    // ── Remake Analysis ──
+    html += '<div class="li-quality-block">' +
+      '<h3 class="li-quality-subhead">' + escapeHtml(t('insights.quality.remakes_title')) + '</h3>' +
+      '<div class="li-quality-stats">';
+    html += liQualityStatCard(t('insights.quality.total_events'), escapeHtml(fmtCount(rm.events || 0)), null);
+    html += liQualityStatCard(t('insights.perf.detail.cases_with_remakes'), escapeHtml(fmtCount(rm.cases || 0)), null);
+    html += liQualityStatCard(t('insights.quality.open'), escapeHtml(fmtCount(rm.open || 0)), null);
+    html += liQualityStatCard(t('insights.quality.resolved'), escapeHtml(fmtCount(rm.resolved || 0)), null);
+    html += liQualityStatCard(t('insights.perf.detail.multi_remake_cases'), escapeHtml(fmtCount(rm.multiRemakeCases || 0)), null);
+    html += '</div>';
+    if ((rm.unlinked || 0) > 0) {
+      html += '<p class="li-muted li-quality-note">' + escapeHtml(
+        t('insights.quality.unlinked_note', { count: rm.unlinked })) + '</p>';
+    }
+    var reasonEntries = Object.keys(rm.reasons || {}).map(function (k) {
+      return { code: k, count: rm.reasons[k] };
+    }).sort(function (a, b) { return b.count - a.count; });
+    var attrEntries = Object.keys(rm.attributions || {}).map(function (k) {
+      return { code: k, count: rm.attributions[k] };
+    }).sort(function (a, b) { return b.count - a.count; });
+    html += '<div class="li-quality-breakdowns">' +
+      liQualityBars(t('insights.perf.detail.reasons'), reasonEntries.slice(0, 5), function (e) {
+        return t('remakes.reasons.' + e.code);
+      }) +
+      liQualityBars(t('insights.perf.detail.attribution'), attrEntries, function (e) {
+        return t('remakes.attribution.' + e.code);
+      }) +
+      '</div></div>';
+
+    // ── Workflow Revisions & Regressions ──
+    html += '<div class="li-quality-block">' +
+      '<h3 class="li-quality-subhead">' + escapeHtml(t('insights.quality.regressions_title')) + '</h3>' +
+      '<div class="li-quality-stats">' +
+      liQualityStatCard(t('insights.quality.reg_events'), escapeHtml(fmtCount(rg.events || 0)), 'insights.perf.detail.tip_regressions') +
+      liQualityStatCard(t('insights.quality.reg_cases'), escapeHtml(fmtCount(rg.cases || 0)), null) +
+      '</div>' +
+      '<p class="li-muted li-quality-note">' + escapeHtml(t('insights.quality.reg_note')) + '</p>';
+    var transEntries = (rg.transitions || []).map(function (tr) {
+      return {
+        count: tr.count,
+        label: (tr.from ? liAttnStatusLabel(tr.from) : t('insights.quality.unknown_status')) +
+          ' → ' + (tr.to ? liAttnStatusLabel(tr.to) : t('insights.quality.unknown_status')),
+      };
     });
+    html += liQualityBars(t('insights.quality.top_transitions'), transEntries, function (e) { return e.label; });
+    html += '</div>';
+
+    // ── Trend ──
+    var trendNode = liQualityRenderTrend(scope);
+    html += '<div class="li-quality-block li-quality-trend-block"></div>';
+
+    // ── Supporting case list ──
+    html += liQualityRenderEvents(scope);
+
+    body.innerHTML = html;
+    var trendBlock = body.querySelector('.li-quality-trend-block');
+    if (trendBlock && trendNode) { trendBlock.appendChild(trendNode); }
+
+    section.style.display = 'block';
   }
 
   /** Render the performance layout; returns false when no perf payload. */
@@ -2531,6 +2910,8 @@
 
     liPerf = data.performance;
     liPerfLabs = (liPerf.labs || []).slice();
+    liQuality = data.quality || null;
+    liQualityShowAllEvents = false;
     if (!liSelectedLab) { liSelectedLab = 'practice'; }
     populateCaseTypeFilter();
 
@@ -2549,7 +2930,17 @@
       renderPerfTable();
       renderLabDetailSelect();
       renderPerfDetail();
-      renderRevisionsSection(data.labs || []);
+      try {
+        liQualitySyncScope();
+        renderQualitySection();
+      } catch (qErr) {
+        // A bad quality payload must not take down the perf layout.
+        if (typeof console !== 'undefined' && console.error) {
+          console.error('[Lab Insights] Quality render failed:', qErr);
+        }
+        var qSec = document.getElementById('liQualitySection');
+        if (qSec) { qSec.style.display = 'none'; }
+      }
     } catch (e) {
       // Any render failure must not break the page - restore the legacy
       // layout and let the existing renderers handle the payload.
@@ -2980,6 +3371,30 @@
       caseTypeSelect.addEventListener('change', function () {
         liCaseType = caseTypeSelect.value || '';
         renderPerfTable();
+        renderQualitySection();
+      });
+    }
+
+    var qualityLabSel = document.getElementById('liQualityLab');
+    if (qualityLabSel) {
+      qualityLabSel.addEventListener('change', function () {
+        liQualityLab = qualityLabSel.value || 'practice';
+        renderQualitySection();
+      });
+    }
+    var qualityBody = document.getElementById('liQualityBody');
+    if (qualityBody) {
+      qualityBody.addEventListener('click', function (e) {
+        var moreBtn = e.target.closest('#liQualityEventsMore');
+        if (moreBtn) {
+          liQualityShowAllEvents = !liQualityShowAllEvents;
+          renderQualitySection();
+          return;
+        }
+        var caseBtn = e.target.closest('[data-li-quality-case]');
+        if (caseBtn && typeof window.openCaseById === 'function') {
+          window.openCaseById(caseBtn.getAttribute('data-li-quality-case'));
+        }
       });
     }
 

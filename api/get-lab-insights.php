@@ -283,13 +283,14 @@ try {
     }
 
     // Batched revision events for the same case set.
-    $revisionsByCase = []; // case_id => [ ['created_at' => ...], ... ]
+    $revisionsByCase = [];   // case_id => [ created_at, ... ] (legacy metric)
+    $regressionsByCase = []; // case_id => [ ['at'=>..,'from'=>..,'to'=>..], ... ] (Quality & Revisions)
     if (!empty($caseIds)) {
         $chunks = array_chunk($caseIds, 500);
         foreach ($chunks as $chunk) {
             $placeholders = implode(',', array_fill(0, count($chunk), '?'));
             $stmt = $pdo->prepare("
-                SELECT case_id, created_at
+                SELECT case_id, created_at, old_status, new_status
                 FROM case_activity_log
                 WHERE event_type = 'case_regression' AND case_id IN ($placeholders)
                 ORDER BY case_id ASC, created_at ASC
@@ -297,6 +298,11 @@ try {
             $stmt->execute($chunk);
             foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
                 $revisionsByCase[$row['case_id']][] = $row['created_at'];
+                $regressionsByCase[$row['case_id']][] = [
+                    'at'   => $row['created_at'],
+                    'from' => $row['old_status'],
+                    'to'   => $row['new_status'],
+                ];
             }
         }
     }
@@ -882,6 +888,52 @@ try {
         $recommendations = ['status' => 'unavailable', 'items' => [], 'computed_at' => date('Y-m-d H:i:s')];
     }
 
+    // ── Quality & Revisions payload ──
+    // Consolidates remake events (case_remake_events), workflow regressions
+    // (case_activity_log case_regression), and their trends into one section.
+    // Rates reuse the performance payload so they reconcile with Lab
+    // Performance / Lab Detail. Failures degrade to 'quality' => null and
+    // never break the rest of the response.
+    $quality = null;
+    if (is_array($performance)) {
+        try {
+            require_once __DIR__ . '/lab-quality.php';
+            if (function_exists('ensureAuthorizedCaseIdsTempTable')) {
+                ensureAuthorizedCaseIdsTempTable($practiceId);
+            }
+            $remakeRows = [];
+            $rmStmt = $pdo->prepare("
+                SELECT r.case_id, r.remake_number, r.reason_code, r.attribution,
+                       r.initiated_at, r.completed_at, r.lab_period_id
+                FROM case_remake_events r
+                INNER JOIN authorized_case_ids a
+                    ON a.case_id = r.case_id COLLATE utf8mb4_unicode_ci
+                WHERE r.practice_id = :practice_id
+                ORDER BY r.initiated_at DESC
+            ");
+            $rmStmt->execute(['practice_id' => $practiceId]);
+            $remakeRows = $rmStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $qualityLabNames = [];
+            foreach (($labs ?? []) as $lk => $li) {
+                if (!empty($li['currentName'])) { $qualityLabNames[$lk] = $li['currentName']; }
+            }
+            foreach (($performance['labs'] ?? []) as $pl) {
+                if (!empty($pl['labKey']) && !isset($qualityLabNames[$pl['labKey']])) {
+                    $qualityLabNames[$pl['labKey']] = $pl['name'] ?? $pl['labKey'];
+                }
+            }
+            $quality = buildLabQualityInsights(
+                $performance, $periodsByLab ?? [], $regressionsByCase ?? [],
+                $remakeRows, $casesById ?? [], $qualityLabNames,
+                $rangeStart ?? null, $now
+            );
+        } catch (Throwable $qEx) {
+            error_log('[get-lab-insights] quality payload failed: ' . $qEx->getMessage());
+            $quality = null;
+        }
+    }
+
     // Record a Lab Insights visit only for screen-activation loads
     // (X-Insights-Visit header) that produced a successful payload. Refresh,
     // range-change, and background refetches omit the header and never
@@ -905,6 +957,7 @@ try {
         'trend' => $trend,
         'performance' => $performance,
         'recommendations' => $recommendations,
+        'quality' => $quality,
         'operational' => $operational,
         'attentionQueue' => $attentionQueue,
     ]);
