@@ -921,7 +921,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .pms-flow-label { font-size: 0.64rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--dt-ink-muted); margin-bottom: 2px; }
     .pms-flow-item { display: flex; align-items: center; gap: 10px; background: #fff; border: 1px solid var(--dt-border); border-radius: 12px; padding: 10px 12px; box-shadow: 0 4px 14px -8px rgba(0,0,0,0.08); }
     .pms-flow-item strong { display: block; font-size: 0.8rem; color: var(--dt-ink); }
-    .pms-flow-item span { display: block; font-size: 0.68rem; color: var(--dt-ink-muted); line-height: 1.35; }
+    .pms-flow-item div span { display: block; font-size: 0.68rem; color: var(--dt-ink-muted); line-height: 1.35; }
     .pms-ico { flex-shrink: 0; width: 30px; height: 30px; border-radius: 8px; background: var(--dt-pale); color: var(--dt-blue); display: inline-flex; align-items: center; justify-content: center; }
     .pms-ico svg { width: 17px; height: 17px; }
     .pms-ico-lg { width: 44px; height: 44px; border-radius: 12px; background: #fff; border: 1px solid var(--dt-border); }
@@ -929,7 +929,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .pms-flow-arrow { color: var(--dt-blue); font-size: 1.4rem; flex-shrink: 0; }
     .pms-flow-hub { display: flex; flex-direction: column; align-items: center; gap: 4px; background: var(--dt-ink); color: #fff; border-radius: 16px; padding: 18px 22px; min-width: 150px; text-align: center; }
     .pms-flow-hub strong { font-size: 0.95rem; }
-    .pms-flow-hub span { font-size: 0.68rem; color: #cbd5e1; }
+    .pms-flow-hub > span:not(.pms-ico) { font-size: 0.68rem; color: #cbd5e1; }
     .pms-card { background: #fff; border: 1px solid var(--dt-border); border-radius: 14px; padding: 16px 18px; text-align: left; min-width: 230px; box-shadow: 0 4px 14px -8px rgba(0,0,0,0.08); }
     .pms-card-label { font-size: 0.64rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--dt-ink-muted); margin-bottom: 8px; }
     .pms-card h4 { font-size: 0.9rem; font-weight: 700; color: var(--dt-ink); margin: 0 0 4px; }
@@ -2618,7 +2618,24 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       <h2><?php echo t('marketing.languages.title'); ?></h2>
       <p class="lead"><?php echo t('marketing.languages.lead'); ?></p>
       <div class="lang-grid">
-        <span class="lang-chip"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 640 480"><rect width="640" height="480" fill="#012169"/><path d="M0 0l640 480M640 0L0 480" stroke="#fff" stroke-width="60"/><path d="M0 0l640 480M640 0L0 480" stroke="#C8102E" stroke-width="36"/><path d="M280 0h80v480h-80zM0 200h640v80H0z" fill="#fff"/><path d="M300 0h40v480h-40zM0 220h640v40H0z" fill="#C8102E"/></svg></span>English</span>
+        <span class="lang-chip"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 640 480"><rect width="640" height="480" fill="#fff"/><?php
+          for ($i = 0; $i < 13; $i++) { printf('<rect y="%.2f" width="640" height="37.5" fill="%s"/>', $i * 480 / 13, $i % 2 ? '#fff' : '#B22234'); }
+          echo '<rect width="255" height="259" fill="#3C3B6E"/>';
+          for ($row = 0; $row < 9; $row++) {
+              $count = $row % 2 ? 5 : 6;
+              $y = 22 + $row * 26.5;
+              $xStart = $row % 2 ? 36 : 20;
+              for ($col = 0; $col < $count; $col++) {
+                  $cx = $xStart + $col * 38; $cy = $y; $pts = [];
+                  for ($k = 0; $k < 10; $k++) {
+                      $a = -M_PI / 2 + $k * M_PI / 5;
+                      $r = $k % 2 ? 2.6 : 6.2;
+                      $pts[] = round($cx + $r * cos($a), 1) . ',' . round($cy + $r * sin($a), 1);
+                  }
+                  echo '<polygon points="' . implode(' ', $pts) . '" fill="#fff"/>';
+              }
+          }
+        ?></svg></span>English</span>
         <span class="lang-chip"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 640 480"><rect width="640" height="160" fill="#000"/><rect y="160" width="640" height="160" fill="#DD0000"/><rect y="320" width="640" height="160" fill="#FFCE00"/></svg></span>Deutsch</span>
         <span class="lang-chip"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 640 480"><rect width="640" height="160" fill="#AA151B"/><rect y="160" width="640" height="160" fill="#F1BF00"/><rect y="320" width="640" height="160" fill="#AA151B"/></svg></span>Espa&ntilde;ol</span>
         <span class="lang-chip"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 640 480"><rect width="640" height="480" fill="#0055A4"/><rect x="200" y="120" width="240" height="240" fill="#fff"/><rect x="240" y="160" width="160" height="160" fill="#EF4135"/></svg></span>Fran&ccedil;ais</span>
