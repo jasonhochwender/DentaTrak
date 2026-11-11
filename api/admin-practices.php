@@ -28,6 +28,7 @@ require_once __DIR__ . '/billing-bypass.php';
 require_once __DIR__ . '/subscription-access.php';
 require_once __DIR__ . '/admin-subscription-helpers.php';
 require_once __DIR__ . '/practice-storage-usage.php';
+require_once __DIR__ . '/admin-practice-scope.php';
 require_once __DIR__ . '/integrations/IntegrationManager.php';
 require_once __DIR__ . '/integrations/IntegrationEvents.php';
 require_once __DIR__ . '/email-sender.php';
@@ -1046,6 +1047,14 @@ function handleGetRequest($action) {
             //   prefix - the same predicates manage-demo-data.php uses).
             //   Practice names are never inspected.
             ensurePracticeStorageUsageTable($pdo);
+
+            // Reporting scope: non-hidden practices by default; hidden rows
+            // only when the caller explicitly asks (include_hidden=1).
+            $includeHidden = paIncludeHiddenParam($_GET['include_hidden'] ?? '');
+            $adminUserId = (int)($_SESSION['db_user_id'] ?? 0);
+            [$scopeFrag, $scopeParams] = paPracticeScopeSql('p.id', $includeHidden, $adminUserId);
+            $scopeCounts = paPracticeScopeCounts($pdo, $adminUserId);
+
             $demoRunsTable = false;
             try {
                 $tblStmt = $pdo->query("SHOW TABLES LIKE 'demo_generation_runs'");
@@ -1081,12 +1090,15 @@ function handleGetRequest($action) {
                     GROUP BY practice_id
                 ) dr ON dr.practice_id = p.id" : "") . "
                 LEFT JOIN practice_storage_usage su ON su.practice_id = p.id
+                WHERE 1 = 1" . $scopeFrag . "
                 GROUP BY p.id, p.practice_name, p.legal_name, p.display_name, p.is_active,
                          " . ($demoRunsTable ? "dr.has_demo_runs, " : "") . "su.status, su.calculated_at,
                          su.total_bytes, su.unmeasured_files, su.measurement_notes, su.last_error
                 ORDER BY p.practice_name, p.id
             ";
-            $usageRows = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+            $usageStmt = $pdo->prepare($sql);
+            $usageStmt->execute($scopeParams);
+            $usageRows = $usageStmt->fetchAll(PDO::FETCH_ASSOC);
 
             $usagePractices = [];
             foreach ($usageRows as $row) {
@@ -1130,6 +1142,12 @@ function handleGetRequest($action) {
                 'success' => true,
                 'generated_at' => gmdate('Y-m-d\TH:i:s\Z'),
                 'practices' => $usagePractices,
+                'scope' => [
+                    'include_hidden' => $includeHidden,
+                    'visible' => $includeHidden ? $scopeCounts['total'] : $scopeCounts['visible'],
+                    'hidden' => $scopeCounts['hidden'],
+                    'returned' => count($usagePractices),
+                ],
             ]);
             break;
 
@@ -2332,90 +2350,11 @@ function logAdminAction($action, $details = []) {
 }
 
 /**
- * Ensure the admin_hidden_practices table exists.
+ * Hidden-practice helpers (ensureAdminHiddenPracticesSchema,
+ * getAdminHiddenPracticeIds, hidePracticeForAdmin,
+ * unhidePracticeForAdmin) live in api/admin-practice-scope.php, shared
+ * with the Overview and Usage & Storage reporting endpoints.
  */
-function ensureAdminHiddenPracticesSchema() {
-    global $pdo;
-    static $initialized = false;
-    
-    if ($initialized || !$pdo || $pdo->inTransaction()) {
-        return;
-    }
-    
-    try {
-        $pdo->exec("CREATE TABLE IF NOT EXISTS admin_hidden_practices (
-            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-            admin_user_id BIGINT UNSIGNED NOT NULL,
-            practice_id BIGINT UNSIGNED NOT NULL,
-            hidden_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_admin_user_id (admin_user_id),
-            INDEX idx_practice_id (practice_id),
-            UNIQUE KEY idx_admin_practice (admin_user_id, practice_id)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-        
-        $initialized = true;
-    } catch (PDOException $e) {
-        error_log('[admin-practices] Error ensuring admin hidden practices schema: ' . $e->getMessage());
-    }
-}
-
-/**
- * Get the practice IDs hidden by the given admin.
- */
-function getAdminHiddenPracticeIds($adminUserId) {
-    global $pdo;
-    
-    if (!$pdo || !$adminUserId) {
-        return [];
-    }
-    
-    try {
-        $stmt = $pdo->prepare("SELECT practice_id FROM admin_hidden_practices WHERE admin_user_id = ?");
-        $stmt->execute([$adminUserId]);
-        return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
-    } catch (PDOException $e) {
-        error_log('[admin-practices] Error getting hidden practice IDs: ' . $e->getMessage());
-        return [];
-    }
-}
-
-/**
- * Hide a practice from the admin's view.
- */
-function hidePracticeForAdmin($practiceId, $adminUserId) {
-    global $pdo;
-    
-    if (!$pdo || !$practiceId || !$adminUserId || !is_numeric($practiceId)) {
-        return false;
-    }
-    
-    try {
-        $stmt = $pdo->prepare("INSERT IGNORE INTO admin_hidden_practices (admin_user_id, practice_id, hidden_at) VALUES (?, ?, NOW())");
-        return $stmt->execute([$adminUserId, $practiceId]);
-    } catch (PDOException $e) {
-        error_log('[admin-practices] Error hiding practice: ' . $e->getMessage());
-        return false;
-    }
-}
-
-/**
- * Unhide a practice from the admin's view.
- */
-function unhidePracticeForAdmin($practiceId, $adminUserId) {
-    global $pdo;
-    
-    if (!$pdo || !$practiceId || !$adminUserId || !is_numeric($practiceId)) {
-        return false;
-    }
-    
-    try {
-        $stmt = $pdo->prepare("DELETE FROM admin_hidden_practices WHERE admin_user_id = ? AND practice_id = ?");
-        return $stmt->execute([$adminUserId, $practiceId]);
-    } catch (PDOException $e) {
-        error_log('[admin-practices] Error unhiding practice: ' . $e->getMessage());
-        return false;
-    }
-}
 
 /**
  * Get assignment labels for the Settings tab.

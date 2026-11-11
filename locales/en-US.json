@@ -3420,7 +3420,7 @@
         "stats_active": "Active Practices",
         "stats_inactive": "Inactive Practices",
         "stats_deletion_eligible": "Deletion Eligible",
-        "view_all": "All Practices",
+        "view_all": "Visible Practices",
         "view_hidden": "Hidden Practices",
         "refresh": "Refresh",
         "loading": "Loading practices...",
@@ -3455,11 +3455,11 @@
         "reactivate_button": "Reactivate",
         "deactivate_button_short": "Deactivate",
         "retention_warning": "Per HIPAA requirements, all practice data will be retained for 7 years after deactivation. Users will not be able to log in, but data will remain accessible for compliance purposes.",
-        "tabs_compliance": "Compliance Details",
+        "tabs_compliance": "Compliance & Audit",
         "tabs_usage": "Usage & Adoption",
         "tabs_subscription": "Subscription",
         "tabs_phi_log": "PHI Access Log",
-        "tabs_users": "Users",
+        "tabs_users": "Users & Access",
         "tabs_settings": "Settings",
         "label_legal_name": "Legal Name",
         "label_baa_status": "BAA Status",
@@ -3610,7 +3610,8 @@
         "storage_partial_note": "Partial result: some files could not be measured.",
         "storage_unmeasured": "{count} file(s) could not be measured and are excluded from the totals.",
         "storage_last_error": "The last refresh failed; showing the previous successful result.",
-        "storage_scope_note": "Includes case attachments, comment images, scanner inbox files, retained scan revisions, and the practice logo. Archived cases are counted while their files remain stored. Temporary unlinked uploads are excluded."
+        "storage_scope_note": "Includes case attachments, comment images, scanner inbox files, retained scan revisions, and the practice logo. Archived cases are counted while their files remain stored. Temporary unlinked uploads are excluded.",
+        "search_placeholder": "Search practices…"
     },
     "case_types": {
         "crown": "Crown",
@@ -7232,7 +7233,10 @@
         "storage_coverage": "Partial — storage measured for {measured} of {total} practices",
         "storage_link_title": "Open storage details in Practice Administration",
         "subtitle": "Case counts and cached storage measurements across all practices.",
-        "title": "Practice Usage Report"
+        "title": "Practice Usage Report",
+        "include_hidden": "Include hidden practices",
+        "scope_visible": "Showing {count} visible practices",
+        "scope_all": "Showing all {count} practices"
     },
     "admin_nav": {
         "brand": "Administration",
@@ -7250,8 +7254,8 @@
     "admin_overview": {
         "subtitle": "Platform-wide administration snapshot",
         "dev_notice": "Development environment: administration pages are open to any authenticated user for local testing. In production, only super users can access them.",
-        "m_practices": "Total practices",
-        "m_practices_note": "All practices, including hidden, inactive, and demo/test practices.",
+        "m_practices": "Practices",
+        "m_practices_note": "Practices in the current reporting scope.",
         "m_active_practices": "Active practices",
         "m_active_practices_note": "Practices with is_active = 1.",
         "m_inactive": "Inactive practices",
@@ -7276,7 +7280,22 @@
         "storage_coverage": "Measured or partially measured for {measured} of {total} practices",
         "storage_complete": "All practices measured",
         "alert_storage": "{count} practice(s) have a storage measurement error — see Usage & Storage.",
-        "alert_trials": "{count} subscription(s) have trials ending within 14 days."
+        "alert_trials": "{count} subscription(s) have trials ending within 14 days.",
+        "scope_loading": "Loading…",
+        "scope_visible": "Showing {count} visible practices",
+        "scope_all": "Showing all {count} practices",
+        "include_hidden": "Include hidden practices",
+        "group_practices": "Practices",
+        "group_subscriptions": "Subscriptions",
+        "group_usage": "Usage",
+        "attention_title": "Needs attention",
+        "attention_sub": "Items that may require administrative action.",
+        "attention_loading": "Checking…",
+        "attention_empty": "Nothing needs attention right now.",
+        "attention_trials": "{count} subscription(s) have trials ending within 14 days",
+        "attention_storage": "{count} practice(s) have a storage measurement error",
+        "m_trials_ending": "Trials ending ≤14 days",
+        "m_trials_ending_note": "Trials ending within the next 14 days."
     },
     "admin_testdiag": {
         "subtitle": "Test-case generation and destructive utilities — restricted",

@@ -185,6 +185,7 @@
   max-width: 1400px;
   width: 100%;
   margin: 0 auto;
+  box-sizing: border-box;
 }
 
 /* ---- Shared admin card/table primitives ---- */
@@ -280,6 +281,82 @@
   padding: 10px 14px;
   font-size: 0.85rem;
   margin-bottom: 16px;
+}
+
+/* ---- Reporting scope bar ---- */
+.pa-scope-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 10px 16px;
+  margin-bottom: 18px;
+}
+
+.pa-scope-text {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.pa-scope-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: #4b5563;
+  cursor: pointer;
+}
+
+.pa-scope-toggle input {
+  accent-color: #1e40af;
+}
+
+/* ---- Metric group labels ---- */
+.pa-group-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6b7280;
+  margin: 4px 0 10px;
+}
+
+/* ---- Needs Attention ---- */
+.pa-attention-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 4px;
+  border-bottom: 1px solid #f3f4f6;
+  text-decoration: none;
+  color: #111827;
+  font-size: 0.88rem;
+}
+
+.pa-attention-item:last-child {
+  border-bottom: none;
+}
+
+.pa-attention-item:hover {
+  color: #1e40af;
+}
+
+.pa-attention-link {
+  color: #9ca3af;
+  flex: none;
+}
+
+.pa-empty {
+  padding: 18px 4px;
+  font-size: 0.85rem;
+  color: #6b7280;
+  text-align: center;
 }
 
 /* ---- Responsive ---- */

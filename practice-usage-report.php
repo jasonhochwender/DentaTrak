@@ -119,6 +119,11 @@ function ur($k) { return h(t('usage_report.' . $k)); }
             <option value="exclude" selected><?php echo ur('filter_exclude'); ?></option>
             <option value="only"><?php echo ur('filter_only'); ?></option>
         </select>
+        <label class="pa-scope-toggle" for="urIncludeHidden" style="font-size:0.82rem;color:#4b5563;">
+            <input type="checkbox" id="urIncludeHidden">
+            <span><?php echo ur('include_hidden'); ?></span>
+        </label>
+        <span class="included-note" id="urScopeText"></span>
         <span class="included-note" id="urIncludedNote"></span>
     </div>
 
@@ -185,8 +190,10 @@ function ur($k) { return h(t('usage_report.' . $k)); }
 
     const state = {
         practices: [],
+        scope: null,
         search: '',
         demoFilter: 'exclude',
+        includeHidden: false,
         sortKey: 'total_cases',
         sortDir: -1,
         charts: {},
@@ -406,6 +413,15 @@ function ur($k) { return h(t('usage_report.' . $k)); }
 
     function renderAll() {
         const included = includedPractices();
+        const sc = state.scope || {};
+        const scopeEl = document.getElementById('urScopeText');
+        if (sc.visible != null) {
+            scopeEl.textContent = sc.include_hidden
+                ? <?php echo json_encode(t('usage_report.scope_all')); ?>.replace('{count}', sc.visible)
+                : <?php echo json_encode(t('usage_report.scope_visible')); ?>.replace('{count}', sc.visible);
+        } else {
+            scopeEl.textContent = '';
+        }
         document.getElementById('urIncludedNote').textContent = <?php echo json_encode(t('usage_report.included_note')); ?>
             .replace('{included}', included.length).replace('{total}', state.practices.length);
         renderSummary(included);
@@ -421,20 +437,31 @@ function ur($k) { return h(t('usage_report.' . $k)); }
         state.demoFilter = e.target.value;
         renderAll();
     });
+    document.getElementById('urIncludeHidden').addEventListener('change', e => {
+        state.includeHidden = e.target.checked;
+        loadData();
+    });
 
-    fetch('api/admin-practices.php?action=usage_report', { credentials: 'same-origin' })
-        .then(r => r.json())
-        .then(data => {
-            if (!data || !data.success) {
-                document.getElementById('urError').hidden = false;
-                return;
-            }
-            state.practices = data.practices || [];
-            document.getElementById('urGenerated').textContent = <?php echo json_encode(t('usage_report.generated')); ?>
-                .replace('{time}', formatDateTime(data.generated_at));
-            renderAll();
-        })
-        .catch(() => { document.getElementById('urError').hidden = false; });
+    function loadData() {
+        const url = 'api/admin-practices.php?action=usage_report' +
+            (state.includeHidden ? '&include_hidden=1' : '');
+        return fetch(url, { credentials: 'same-origin' })
+            .then(r => r.json())
+            .then(data => {
+                if (!data || !data.success) {
+                    document.getElementById('urError').hidden = false;
+                    return;
+                }
+                state.practices = data.practices || [];
+                state.scope = data.scope || null;
+                document.getElementById('urGenerated').textContent = <?php echo json_encode(t('usage_report.generated')); ?>
+                    .replace('{time}', formatDateTime(data.generated_at));
+                renderAll();
+            })
+            .catch(() => { document.getElementById('urError').hidden = false; });
+    }
+
+    loadData();
 </script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
 <?php paAdminChromeEnd(); ?>

@@ -2,10 +2,11 @@
 /**
  * Platform Administration - Overview
  *
- * Administration landing page: concise platform-wide metrics with links
- * into each administration section. Read-only; all numbers come from
- * api/platform-admin-overview.php using the same definitions as the
- * Practice Usage Report and Practice Administration.
+ * Administration landing page: platform-wide metrics scoped to the
+ * caller's visible (non-hidden) practices by default, plus a Needs
+ * Attention panel for actionable items. Read-only; all numbers come
+ * from api/platform-admin-overview.php using the same definitions as
+ * the Practice Usage Report and Practice Administration.
  *
  * Access: super user, or the local development environment (same rule
  * as the other administration pages). Unauthorized users are redirected.
@@ -62,9 +63,17 @@ function u($k) { return t('admin_overview.' . $k); }
 <div class="pa-alert"><?php echo h(u('dev_notice')); ?></div>
 <?php endif; ?>
 
-<div id="ovError" class="pa-alert" hidden></div>
-<div id="ovAlerts"></div>
+<div class="pa-scope-bar">
+    <span class="pa-scope-text" id="ovScopeText"><?php echo h(u('scope_loading')); ?></span>
+    <label class="pa-scope-toggle">
+        <input type="checkbox" id="ovIncludeHidden">
+        <span><?php echo h(u('include_hidden')); ?></span>
+    </label>
+</div>
 
+<div id="ovError" class="pa-alert" hidden></div>
+
+<div class="pa-group-label"><?php echo h(u('group_practices')); ?></div>
 <div class="pa-grid" id="ovPracticeMetrics">
     <div class="pa-metric"><div class="pa-metric-value" id="ovMPractices">–</div><div class="pa-metric-label"><?php echo h(u('m_practices')); ?></div><div class="pa-metric-note"><?php echo h(u('m_practices_note')); ?></div></div>
     <div class="pa-metric"><div class="pa-metric-value" id="ovMActivePractices">–</div><div class="pa-metric-label"><?php echo h(u('m_active_practices')); ?></div><div class="pa-metric-note"><?php echo h(u('m_active_practices_note')); ?></div></div>
@@ -72,35 +81,24 @@ function u($k) { return t('admin_overview.' . $k); }
     <div class="pa-metric"><div class="pa-metric-value" id="ovMDemo">–</div><div class="pa-metric-label"><?php echo h(u('m_demo')); ?></div><div class="pa-metric-note"><?php echo h(u('m_demo_note')); ?></div></div>
 </div>
 
+<div class="pa-group-label"><?php echo h(u('group_subscriptions')); ?></div>
 <div class="pa-grid" id="ovSubMetrics">
     <div class="pa-metric"><div class="pa-metric-value" id="ovMSubs">–</div><div class="pa-metric-label"><?php echo h(u('m_subscriptions')); ?></div><div class="pa-metric-note" id="ovMSubsNote"></div></div>
     <div class="pa-metric"><div class="pa-metric-value" id="ovMTrials">–</div><div class="pa-metric-label"><?php echo h(u('m_trials')); ?></div><div class="pa-metric-note"><?php echo h(u('m_trials_note')); ?></div></div>
+    <div class="pa-metric"><div class="pa-metric-value" id="ovMTrialsEnding">–</div><div class="pa-metric-label"><?php echo h(u('m_trials_ending')); ?></div><div class="pa-metric-note"><?php echo h(u('m_trials_ending_note')); ?></div></div>
+</div>
+
+<div class="pa-group-label"><?php echo h(u('group_usage')); ?></div>
+<div class="pa-grid" id="ovUsageMetrics">
     <div class="pa-metric"><div class="pa-metric-value" id="ovMCasesActive">–</div><div class="pa-metric-label"><?php echo h(u('m_cases_active')); ?></div><div class="pa-metric-note"><?php echo h(u('m_cases_note')); ?></div></div>
     <div class="pa-metric"><div class="pa-metric-value" id="ovMCasesArchived">–</div><div class="pa-metric-label"><?php echo h(u('m_cases_archived')); ?></div><div class="pa-metric-note"><?php echo h(u('m_cases_note')); ?></div></div>
     <div class="pa-metric"><div class="pa-metric-value" id="ovMStorage">–</div><div class="pa-metric-label"><?php echo h(u('m_storage')); ?></div><div class="pa-metric-note" id="ovMStorageNote"></div></div>
 </div>
 
 <div class="pa-card">
-    <h2><?php echo h(u('sections_title')); ?></h2>
-    <p class="pa-card-sub"><?php echo h(u('sections_sub')); ?></p>
-    <div class="pa-section-links">
-        <a class="pa-section-link" href="admin-practices.php">
-            <div class="pa-section-link-title"><?php echo h(t('admin_nav.practices')); ?></div>
-            <div class="pa-section-link-desc"><?php echo h(u('sec_practices_desc')); ?></div>
-        </a>
-        <a class="pa-section-link" href="practice-usage-report.php">
-            <div class="pa-section-link-title"><?php echo h(t('admin_nav.usage')); ?></div>
-            <div class="pa-section-link-desc"><?php echo h(u('sec_usage_desc')); ?></div>
-        </a>
-        <a class="pa-section-link" href="dev-ask-usage.php">
-            <div class="pa-section-link-title"><?php echo h(t('admin_nav.ai_analytics')); ?></div>
-            <div class="pa-section-link-desc"><?php echo h(u('sec_ai_desc')); ?></div>
-        </a>
-        <a class="pa-section-link" href="test-diagnostics.php">
-            <div class="pa-section-link-title"><?php echo h(t('admin_nav.test_diag')); ?></div>
-            <div class="pa-section-link-desc"><?php echo h(u('sec_test_desc')); ?></div>
-        </a>
-    </div>
+    <h2><?php echo h(u('attention_title')); ?></h2>
+    <p class="pa-card-sub"><?php echo h(u('attention_sub')); ?></p>
+    <div id="ovAttention"><div class="pa-empty"><?php echo h(u('attention_loading')); ?></div></div>
 </div>
 
 <?php require_once __DIR__ . '/api/auth-timeout-script.php'; ?>
@@ -111,8 +109,11 @@ function u($k) { return t('admin_overview.' . $k); }
         subsNote: <?php echo json_encode(u('subs_note')); ?>,
         storageCoverage: <?php echo json_encode(u('storage_coverage')); ?>,
         storageComplete: <?php echo json_encode(u('storage_complete')); ?>,
-        alertStorage: <?php echo json_encode(u('alert_storage')); ?>,
-        alertTrials: <?php echo json_encode(u('alert_trials')); ?>
+        scopeVisible: <?php echo json_encode(u('scope_visible')); ?>,
+        scopeAll: <?php echo json_encode(u('scope_all')); ?>,
+        attentionEmpty: <?php echo json_encode(u('attention_empty')); ?>,
+        attentionTrials: <?php echo json_encode(u('attention_trials')); ?>,
+        attentionStorage: <?php echo json_encode(u('attention_storage')); ?>
     };
 
     function formatBytes(bytes) {
@@ -124,55 +125,91 @@ function u($k) { return t('admin_overview.' . $k); }
         return (v >= 100 || i === 0 ? Math.round(v) : v.toFixed(1)) + ' ' + units[i];
     }
 
-    fetch('api/platform-admin-overview.php', { credentials: 'same-origin' })
-        .then(function (r) { return r.json(); })
-        .then(function (data) {
-            if (!data || !data.success) {
-                var err = document.getElementById('ovError');
-                err.textContent = STR.loadFailed;
-                err.hidden = false;
-                return;
-            }
-            var m = data.metrics || {};
-            document.getElementById('ovMPractices').textContent = m.practices_total != null ? m.practices_total : '–';
-            document.getElementById('ovMActivePractices').textContent = m.practices_active != null ? m.practices_active : '–';
-            document.getElementById('ovMInactive').textContent = m.practices_inactive != null ? m.practices_inactive : '–';
-            document.getElementById('ovMDemo').textContent = m.practices_demo != null ? m.practices_demo : '–';
+    function esc(s) {
+        var d = document.createElement('div');
+        d.textContent = s == null ? '' : String(s);
+        return d.innerHTML;
+    }
 
-            var subs = m.subscriptions || {};
-            var subTotal = Object.keys(subs).reduce(function (a, k) { return a + subs[k]; }, 0);
-            document.getElementById('ovMSubs').textContent = subTotal;
-            document.getElementById('ovMSubsNote').textContent = STR.subsNote
-                .replace('{active}', subs.active || 0)
-                .replace('{trialing}', subs.trialing || 0)
-                .replace('{past_due}', subs.past_due || 0);
-            document.getElementById('ovMTrials').textContent = m.subscriptions_trials_active != null ? m.subscriptions_trials_active : '–';
-            document.getElementById('ovMCasesActive').textContent = m.cases_active != null ? m.cases_active : '–';
-            document.getElementById('ovMCasesArchived').textContent = m.cases_archived != null ? m.cases_archived : '–';
+    function loadOverview() {
+        var includeHidden = document.getElementById('ovIncludeHidden').checked ? '1' : '';
+        var url = 'api/platform-admin-overview.php' + (includeHidden ? '?include_hidden=1' : '');
+        return fetch(url, { credentials: 'same-origin' })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (!data || !data.success) {
+                    var err = document.getElementById('ovError');
+                    err.textContent = STR.loadFailed;
+                    err.hidden = false;
+                    return;
+                }
+                document.getElementById('ovError').hidden = true;
+                var m = data.metrics || {};
+                var scope = data.scope || {};
 
-            var s = m.storage || {};
-            document.getElementById('ovMStorage').textContent = formatBytes(s.total_bytes || 0);
-            var measured = (s.measured || 0) + (s.partial || 0);
-            var denom = s.practices || 0;
-            document.getElementById('ovMStorageNote').textContent = denom > 0
-                ? (STR.storageCoverage.replace('{measured}', measured).replace('{total}', denom))
-                : STR.storageComplete;
+                // Scope indicator
+                var scopeText = document.getElementById('ovScopeText');
+                if (scope.include_hidden) {
+                    scopeText.textContent = STR.scopeAll.replace('{count}', scope.visible != null ? scope.visible : '–');
+                } else {
+                    scopeText.textContent = STR.scopeVisible.replace('{count}', scope.visible != null ? scope.visible : '–');
+                }
 
-            var alerts = document.getElementById('ovAlerts');
-            (m.alerts || []).forEach(function (a) {
-                var div = document.createElement('div');
-                div.className = 'pa-alert';
-                div.textContent = a.kind === 'storage_error'
-                    ? STR.alertStorage.replace('{count}', a.count)
-                    : STR.alertTrials.replace('{count}', a.count);
-                alerts.appendChild(div);
+                document.getElementById('ovMPractices').textContent = m.practices_total != null ? m.practices_total : '–';
+                document.getElementById('ovMActivePractices').textContent = m.practices_active != null ? m.practices_active : '–';
+                document.getElementById('ovMInactive').textContent = m.practices_inactive != null ? m.practices_inactive : '–';
+                document.getElementById('ovMDemo').textContent = m.practices_demo != null ? m.practices_demo : '–';
+
+                var subs = m.subscriptions || {};
+                var subTotal = Object.keys(subs).reduce(function (a, k) { return a + subs[k]; }, 0);
+                document.getElementById('ovMSubs').textContent = subTotal;
+                document.getElementById('ovMSubsNote').textContent = STR.subsNote
+                    .replace('{active}', subs.active || 0)
+                    .replace('{trialing}', subs.trialing || 0)
+                    .replace('{past_due}', subs.past_due || 0);
+                document.getElementById('ovMTrials').textContent = m.subscriptions_trials_active != null ? m.subscriptions_trials_active : '–';
+                document.getElementById('ovMTrialsEnding').textContent = m.subscriptions_trials_ending_14d != null ? m.subscriptions_trials_ending_14d : '–';
+                document.getElementById('ovMCasesActive').textContent = m.cases_active != null ? m.cases_active : '–';
+                document.getElementById('ovMCasesArchived').textContent = m.cases_archived != null ? m.cases_archived : '–';
+
+                var s = m.storage || {};
+                var denom = s.practices || 0;
+                var measured = (s.measured || 0) + (s.partial || 0);
+                document.getElementById('ovMStorage').textContent = (measured > 0 || denom > 0) ? formatBytes(s.total_bytes || 0) : '—';
+                document.getElementById('ovMStorageNote').textContent = denom > 0
+                    ? (STR.storageCoverage.replace('{measured}', measured).replace('{total}', denom))
+                    : STR.storageComplete;
+
+                // Needs Attention
+                var att = document.getElementById('ovAttention');
+                var items = m.attention || [];
+                if (!items.length) {
+                    att.innerHTML = '<div class="pa-empty">' + esc(STR.attentionEmpty) + '</div>';
+                } else {
+                    att.innerHTML = items.map(function (a) {
+                        var text = a.kind === 'storage_error'
+                            ? STR.attentionStorage.replace('{count}', a.count)
+                            : STR.attentionTrials.replace('{count}', a.count);
+                        return '<a class="pa-attention-item" href="' + esc(a.link || '#') + '">' +
+                            '<span>' + esc(text) + '</span><span class="pa-attention-link">&rarr;</span></a>';
+                    }).join('');
+                }
             });
-        })
-        .catch(function () {
+    }
+
+    document.getElementById('ovIncludeHidden').addEventListener('change', function () {
+        loadOverview().catch(function () {
             var err = document.getElementById('ovError');
             err.textContent = STR.loadFailed;
             err.hidden = false;
         });
+    });
+
+    loadOverview().catch(function () {
+        var err = document.getElementById('ovError');
+        err.textContent = STR.loadFailed;
+        err.hidden = false;
+    });
 })();
 </script>
 <?php paAdminChromeEnd(); ?>

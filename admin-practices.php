@@ -163,6 +163,8 @@ $userEmail = $_SESSION['user_email'] ?? '';
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
         }
         
         .table-header h2 {
@@ -750,6 +752,17 @@ $userEmail = $_SESSION['user_email'] ?? '';
         .view-toggle {
             display: flex;
             gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .practice-search {
+            flex: 1 1 160px;
+            min-width: 120px;
+            max-width: 260px;
+            padding: 7px 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 0.82rem;
         }
         
         .view-toggle .action-btn {
@@ -760,6 +773,12 @@ $userEmail = $_SESSION['user_email'] ?? '';
         .view-toggle .action-btn.active {
             background: #3b82f6;
             color: white;
+        }
+
+        .practice-search:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
         }
         
         .action-btn.secondary {
@@ -987,7 +1006,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
         
         <div class="stats-grid" id="statsGrid">
             <div class="stat-card">
-                <div class="label"><?php echo t('admin_practices.stats_total'); ?></div>
+                <div class="label" id="totalPracticesLabel"><?php echo t('admin_practices.stats_total'); ?></div>
                 <div class="value" id="totalPractices">-</div>
             </div>
             <div class="stat-card success">
@@ -1011,6 +1030,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
                 <div class="table-header">
                     <h2 id="practicesTableTitle"><?php echo t('admin_practices.view_all'); ?></h2>
                     <div class="view-toggle" id="viewToggle">
+                        <input type="search" id="practiceSearch" class="practice-search" placeholder="<?php echo t('admin_practices.search_placeholder'); ?>" aria-label="<?php echo t('admin_practices.search_placeholder'); ?>">
                         <button class="action-btn active" id="viewAllBtn" onclick="setView('all')"><?php echo t('admin_practices.view_all'); ?></button>
                         <button class="action-btn" id="viewHiddenBtn" onclick="setView('hidden')"><?php echo t('admin_practices.view_hidden'); ?></button>
                         <button class="action-btn primary" onclick="loadPractices()">↻ <?php echo t('admin_practices.refresh'); ?></button>
@@ -1157,6 +1177,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
         let practices = [];
         let selectedPracticeId = null;
         let currentView = 'all';
+        let practiceSearch = '';
 
         // Counter and helper to prevent stale tab requests (slower/older responses
         // from a previously selected practice or tab cannot overwrite the current view).
@@ -1243,15 +1264,39 @@ $userEmail = $_SESSION['user_email'] ?? '';
             renderPractices();
             updateStats();
         }
-        
-        function visiblePractices() {
-            if (currentView === 'hidden') {
-                return practices.filter(p => p.is_hidden);
-            }
-            return practices.filter(p => !p.is_hidden);
+
+        const practiceSearchEl = document.getElementById('practiceSearch');
+        if (practiceSearchEl) {
+            practiceSearchEl.addEventListener('input', e => {
+                practiceSearch = e.target.value.trim().toLowerCase();
+                renderPractices();
+                updateStats();
+            });
         }
-        
+
+        function visiblePractices() {
+            let visible;
+            if (currentView === 'hidden') {
+                visible = practices.filter(p => p.is_hidden);
+            } else {
+                visible = practices.filter(p => !p.is_hidden);
+            }
+            if (practiceSearch) {
+                visible = visible.filter(p => {
+                    const name = (p.practice_name || p.legal_name || '').toLowerCase();
+                    return name.indexOf(practiceSearch) !== -1;
+                });
+            }
+            return visible;
+        }
+
         function updateStats() {
+            const totalLabel = document.getElementById('totalPracticesLabel');
+            if (totalLabel) {
+                totalLabel.textContent = currentView === 'hidden'
+                    ? t('admin_practices.view_hidden')
+                    : t('admin_practices.view_all');
+            }
             const visible = visiblePractices();
             const total = visible.length;
             const active = visible.filter(p => p.is_active === true || p.is_active === '1' || p.is_active === 1).length;
@@ -1309,7 +1354,6 @@ $userEmail = $_SESSION['user_email'] ?? '';
                 const caseLabel = totalCases === 1 ? '1 case' : totalCases + ' cases';
                 const usagePrimaryText = userLabel + ' · ' + caseLabel;
                 const usagePrimaryTitle = escapeHtml(usagePrimaryText).replace(/"/g, '&quot;');
-                const lastActivity = formatRelativeTimestamp(practice.adoption?.last_activity, t('admin_practices.no_activity_recorded'));
 
                 const practiceNameRaw = practice.practice_name || practice.legal_name || t('admin_practices.unnamed');
                 const practiceName = escapeHtml(practiceNameRaw).replace(/'/g, "\\'");
@@ -1341,7 +1385,6 @@ $userEmail = $_SESSION['user_email'] ?? '';
                     '</td>' +
                     '<td class="col-usage">' +
                         '<div class="usage-primary" title="' + usagePrimaryTitle + '">' + usagePrimaryText + '</div>' +
-                        '<div class="usage-secondary">Last: ' + lastActivity + '</div>' +
                     '</td>' +
                     '<td class="col-actions" onclick="event.stopPropagation()">' +
                         '<button class="action-btn actions-toggle" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Actions for ' + practiceName + '" onclick="toggleActionsMenu(event, ' + practice.id + ')">' + t('admin_practices.table_actions') + '</button>' +
@@ -1403,30 +1446,35 @@ $userEmail = $_SESSION['user_email'] ?? '';
             // Show detail panel with tabs
             const isActive = practice.is_active === true || practice.is_active === '1' || practice.is_active === 1;
             
+            const sub = practice.subscription || {};
+            const subStatusText = sub.has_subscription
+                ? escapeHtml(sub.status_display || '')
+                : escapeHtml(t('admin_practices.no_subscription'));
+
             document.getElementById('detailPanel').innerHTML =
                 '<div class="detail-panel-header">' +
                     '<div style="display: flex; justify-content: space-between; align-items: flex-start;">' +
                         '<div>' +
                             '<h3>' + escapeHtml(practice.practice_name || practice.legal_name || t('admin_practices.unnamed')) + '</h3>' +
-                            '<div class="subtitle">' + (isActive ? '✅ ' + t('admin_practices.status_active') : '❌ ' + t('admin_practices.status_inactive')) + ' • ' + (practice.user_count || 0) + ' ' + t('admin_practices.table_users').toLowerCase() + ' • ' + (practice.case_count || 0) + ' ' + t('navigation.cases').toLowerCase() + '</div>' +
+                            '<div class="subtitle">' + (isActive ? '✅ ' + t('admin_practices.status_active') : '❌ ' + t('admin_practices.status_inactive')) + ' • ' + (practice.user_count || 0) + ' ' + t('admin_practices.table_users').toLowerCase() + ' • ' + (practice.case_count || 0) + ' ' + t('navigation.cases').toLowerCase() + (subStatusText ? ' • ' + subStatusText : '') + '</div>' +
                         '</div>' +
                         '<button class="action-btn primary" onclick="printPracticeDetails(' + practiceId + ')" style="flex-shrink: 0;">🖨️ ' + t('admin_practices.print') + '</button>' +
                     '</div>' +
                 '</div>' +
                 '<div class="detail-tabs">' +
-                    '<button class="detail-tab active" onclick="showTab(\'compliance\', ' + practiceId + ')">' + t('admin_practices.tabs_compliance') + '</button>' +
-                    '<button class="detail-tab" onclick="showTab(\'usage\', ' + practiceId + ')">' + t('admin_practices.tabs_usage') + '</button>' +
-                    '<button class="detail-tab" onclick="showTab(\'subscription\', ' + practiceId + ')">' + t('admin_practices.tabs_subscription') + '</button>' +
-                    '<button class="detail-tab" onclick="showTab(\'phi\', ' + practiceId + ')">' + t('admin_practices.tabs_phi_log') + '</button>' +
+                    '<button class="detail-tab active" onclick="showTab(\'settings\', ' + practiceId + ')">' + t('admin_practices.tabs_settings') + '</button>' +
                     '<button class="detail-tab" onclick="showTab(\'users\', ' + practiceId + ')">' + t('admin_practices.tabs_users') + '</button>' +
-                    '<button class="detail-tab" onclick="showTab(\'settings\', ' + practiceId + ')">' + t('admin_practices.tabs_settings') + '</button>' +
+                    '<button class="detail-tab" onclick="showTab(\'subscription\', ' + practiceId + ')">' + t('admin_practices.tabs_subscription') + '</button>' +
+                    '<button class="detail-tab" onclick="showTab(\'usage\', ' + practiceId + ')">' + t('admin_practices.tabs_usage') + '</button>' +
+                    '<button class="detail-tab" onclick="showTab(\'compliance\', ' + practiceId + ')">' + t('admin_practices.tabs_compliance') + '</button>' +
+                    '<button class="detail-tab" onclick="showTab(\'phi\', ' + practiceId + ')">' + t('admin_practices.tabs_phi_log') + '</button>' +
                 '</div>' +
                 '<div class="detail-content" id="detailContent">' +
                     '<div class="loading">' + t('common.loading') + '</div>' +
                 '</div>';
-            
-            // Load compliance tab by default
-            loadComplianceTab(practiceId);
+
+            // Load settings tab by default
+            loadSettingsTab(practiceId);
         }
         
         function showTab(tab, practiceId) {
@@ -1436,7 +1484,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
             loadTabByName(tab, practiceId);
         }
 
-        const DETAIL_TABS = ['compliance', 'usage', 'subscription', 'phi', 'users', 'settings'];
+        const DETAIL_TABS = ['settings', 'users', 'subscription', 'usage', 'compliance', 'phi'];
 
         function loadTabByName(tab, practiceId) {
             document.getElementById('detailContent').innerHTML = '<div class="loading">' + t('common.loading') + '</div>';

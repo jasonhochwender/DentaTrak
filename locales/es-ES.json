@@ -3410,7 +3410,7 @@
         "stats_active": "Consultorios activos",
         "stats_inactive": "Consultorios inactivos",
         "stats_deletion_eligible": "Elegibles para eliminación",
-        "view_all": "Todos los consultorios",
+        "view_all": "Clínicas visibles",
         "view_hidden": "Consultorios ocultos",
         "refresh": "Actualizar",
         "loading": "Cargando consultorios...",
@@ -3445,11 +3445,11 @@
         "reactivate_button": "Reactivar",
         "deactivate_button_short": "Desactivar",
         "retention_warning": "Según los requisitos de HIPAA, todos los datos del consultorio se conservarán durante 7 años después de la desactivación. Los usuarios no podrán iniciar sesión, pero los datos permanecerán accesibles con fines de cumplimiento.",
-        "tabs_compliance": "Detalles de cumplimiento",
+        "tabs_compliance": "Cumplimiento y auditoría",
         "tabs_usage": "Uso y adopción",
         "tabs_subscription": "Suscripción",
         "tabs_phi_log": "Registro de acceso a PHI",
-        "tabs_users": "Usuarios",
+        "tabs_users": "Usuarios y acceso",
         "tabs_settings": "Configuración",
         "label_legal_name": "Nombre legal",
         "label_baa_status": "Estado del BAA",
@@ -3600,7 +3600,8 @@
         "storage_partial_note": "Resultado parcial: algunos archivos no pudieron medirse.",
         "storage_unmeasured": "{count} archivo(s) no pudieron medirse y se excluyen de los totales.",
         "storage_last_error": "La última actualización falló; se muestra el resultado anterior.",
-        "storage_scope_note": "Incluye adjuntos de casos, imágenes de comentarios, archivos de la bandeja del escáner, revisiones de escaneo retenidas y el logotipo de la consulta. Los casos archivados se cuentan mientras sus archivos sigan almacenados. Se excluyen las subidas temporales no vinculadas."
+        "storage_scope_note": "Incluye adjuntos de casos, imágenes de comentarios, archivos de la bandeja del escáner, revisiones de escaneo retenidas y el logotipo de la consulta. Los casos archivados se cuentan mientras sus archivos sigan almacenados. Se excluyen las subidas temporales no vinculadas.",
+        "search_placeholder": "Buscar clínicas…"
     },
     "case_types": {
         "crown": "Corona",
@@ -7222,7 +7223,10 @@
         "storage_coverage": "Parcial — almacenamiento medido en {measured} de {total} consultorios",
         "storage_link_title": "Abrir detalles de almacenamiento en Administración de consultorios",
         "subtitle": "Recuento de casos y mediciones de almacenamiento en caché de todos los consultorios.",
-        "title": "Informe de uso por consultorio"
+        "title": "Informe de uso por consultorio",
+        "include_hidden": "Incluir clínicas ocultas",
+        "scope_visible": "Mostrando {count} clínicas visibles",
+        "scope_all": "Mostrando las {count} clínicas"
     },
     "admin_nav": {
         "brand": "Administración",
@@ -7240,8 +7244,8 @@
     "admin_overview": {
         "subtitle": "Instantánea de administración de toda la plataforma",
         "dev_notice": "Entorno de desarrollo: las páginas de administración están abiertas a cualquier usuario autenticado para pruebas locales. En producción, solo superusuarios.",
-        "m_practices": "Clínicas totales",
-        "m_practices_note": "Todas las clínicas, incluidas ocultas, inactivas y de demo/prueba.",
+        "m_practices": "Clínicas",
+        "m_practices_note": "Clínicas del ámbito de informe actual.",
         "m_active_practices": "Clínicas activas",
         "m_active_practices_note": "Clínicas con is_active = 1.",
         "m_inactive": "Clínicas inactivas",
@@ -7266,7 +7270,22 @@
         "storage_coverage": "Medido o parcialmente medido en {measured} de {total} clínicas",
         "storage_complete": "Todas las clínicas medidas",
         "alert_storage": "{count} clínica(s) tienen un error de medición de almacenamiento — vea Uso y almacenamiento.",
-        "alert_trials": "{count} suscripción(es) tienen pruebas que finalizan en 14 días."
+        "alert_trials": "{count} suscripción(es) tienen pruebas que finalizan en 14 días.",
+        "scope_loading": "Cargando…",
+        "scope_visible": "Mostrando {count} clínicas visibles",
+        "scope_all": "Mostrando las {count} clínicas",
+        "include_hidden": "Incluir clínicas ocultas",
+        "group_practices": "Clínicas",
+        "group_subscriptions": "Suscripciones",
+        "group_usage": "Uso",
+        "attention_title": "Requiere atención",
+        "attention_sub": "Elementos que pueden requerir acción administrativa.",
+        "attention_loading": "Comprobando…",
+        "attention_empty": "No hay nada que requiera atención ahora mismo.",
+        "attention_trials": "{count} suscripción(es) con prueba que termina en 14 días",
+        "attention_storage": "{count} clínica(s) con error de medición de almacenamiento",
+        "m_trials_ending": "Pruebas que terminan ≤14 días",
+        "m_trials_ending_note": "Pruebas que terminan en los próximos 14 días."
     },
     "admin_testdiag": {
         "subtitle": "Generación de casos de prueba y utilidades destructivas — restringido",

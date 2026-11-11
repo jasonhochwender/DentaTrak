@@ -3414,7 +3414,7 @@
         "stats_active": "활성 치과",
         "stats_inactive": "비활성 치과",
         "stats_deletion_eligible": "삭제 가능",
-        "view_all": "전체 치과",
+        "view_all": "표시되는 치과",
         "view_hidden": "숨겨진 치과",
         "refresh": "새로고침",
         "loading": "치과를 불러오는 중...",
@@ -3449,11 +3449,11 @@
         "reactivate_button": "재활성화",
         "deactivate_button_short": "비활성화",
         "retention_warning": "HIPAA 요건에 따라 모든 치과 데이터는 비활성화 후 7년간 보존됩니다. 사용자는 로그인할 수 없지만 준수 목적으로 데이터는 계속 접근 가능합니다.",
-        "tabs_compliance": "준수 세부 정보",
+        "tabs_compliance": "규정 준수 및 감사",
         "tabs_usage": "사용량 및 도입",
         "tabs_subscription": "구독",
         "tabs_phi_log": "PHI 접근 로그",
-        "tabs_users": "사용자",
+        "tabs_users": "사용자 및 액세스",
         "tabs_settings": "설정",
         "label_legal_name": "법적 명칭",
         "label_baa_status": "BAA 상태",
@@ -3604,7 +3604,8 @@
         "storage_partial_note": "부분 결과: 일부 파일을 측정할 수 없었습니다.",
         "storage_unmeasured": "{count}개 파일을 측정할 수 없어 합계에서 제외되었습니다.",
         "storage_last_error": "마지막 새로 고침에 실패했습니다. 이전 성공 결과를 표시합니다.",
-        "storage_scope_note": "케이스 첨부 파일, 댓글 이미지, 스캐너 수신함 파일, 보관된 스캔 리비전, 치과 로고가 포함됩니다. 보관된 케이스는 파일이 저장되어 있는 동안 계산됩니다. 임시 미연결 업로드는 제외됩니다."
+        "storage_scope_note": "케이스 첨부 파일, 댓글 이미지, 스캐너 수신함 파일, 보관된 스캔 리비전, 치과 로고가 포함됩니다. 보관된 케이스는 파일이 저장되어 있는 동안 계산됩니다. 임시 미연결 업로드는 제외됩니다.",
+        "search_placeholder": "치과 검색…"
     },
     "case_types": {
         "crown": "크라운",
@@ -7226,7 +7227,10 @@
         "storage_coverage": "일부 — {total}개 중 {measured}개 치과의 스토리지 측정됨",
         "storage_link_title": "치과 관리에서 스토리지 세부 정보 열기",
         "subtitle": "모든 치과의 케이스 수와 캐시된 스토리지 측정치입니다.",
-        "title": "치과별 사용 현황 보고서"
+        "title": "치과별 사용 현황 보고서",
+        "include_hidden": "숨긴 치과 포함",
+        "scope_visible": "표시 중인 치과 {count}곳",
+        "scope_all": "전체 치과 {count}곳 표시 중"
     },
     "admin_nav": {
         "brand": "관리",
@@ -7244,8 +7248,8 @@
     "admin_overview": {
         "subtitle": "플랫폼 전체 관리 요약",
         "dev_notice": "개발 환경: 관리 페이지는 로컬 테스트를 위해 인증된 모든 사용자에게 열려 있습니다. 프로덕션에서는 슈퍼 유저만 접근할 수 있습니다.",
-        "m_practices": "전체 치과",
-        "m_practices_note": "숨김, 비활성, 데모/테스트 치과를 포함한 모든 치과.",
+        "m_practices": "치과",
+        "m_practices_note": "현재 보고 범위의 치과입니다.",
         "m_active_practices": "활성 치과",
         "m_active_practices_note": "is_active = 1인 치과.",
         "m_inactive": "비활성 치과",
@@ -7270,7 +7274,22 @@
         "storage_coverage": "{total}개 치과 중 {measured}개 측정 또는 부분 측정됨",
         "storage_complete": "모든 치과 측정됨",
         "alert_storage": "{count}개 치과에 저장소 측정 오류가 있습니다 — 사용량 및 저장소를 참조하세요.",
-        "alert_trials": "{count}개 구독의 체험이 14일 내에 종료됩니다."
+        "alert_trials": "{count}개 구독의 체험이 14일 내에 종료됩니다.",
+        "scope_loading": "로딩 중…",
+        "scope_visible": "표시 중인 치과 {count}곳",
+        "scope_all": "전체 치과 {count}곳 표시 중",
+        "include_hidden": "숨긴 치과 포함",
+        "group_practices": "치과",
+        "group_subscriptions": "구독",
+        "group_usage": "사용량",
+        "attention_title": "주의 필요",
+        "attention_sub": "관리 조치가 필요할 수 있는 항목입니다.",
+        "attention_loading": "확인 중…",
+        "attention_empty": "현재 주의가 필요한 항목이 없습니다.",
+        "attention_trials": "14일 이내에 체험판이 만료되는 구독 {count}건",
+        "attention_storage": "저장소 측정 오류가 있는 치과 {count}곳",
+        "m_trials_ending": "14일 이내 만료 체험판",
+        "m_trials_ending_note": "향후 14일 이내에 만료되는 체험판입니다."
     },
     "admin_testdiag": {
         "subtitle": "테스트 사례 생성 및 파괴적 유틸리티 — 제한됨",

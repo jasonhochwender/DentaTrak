@@ -4189,7 +4189,7 @@
         "stats_active": "Clínicas ativas",
         "stats_inactive": "Clínicas inativas",
         "stats_deletion_eligible": "Elegíveis para exclusão",
-        "view_all": "Todas as clínicas",
+        "view_all": "Consultórios visíveis",
         "view_hidden": "Clínicas ocultas",
         "refresh": "Atualizar",
         "loading": "Carregando clínicas...",
@@ -4224,11 +4224,11 @@
         "reactivate_button": "Reativar",
         "deactivate_button_short": "Desativar",
         "retention_warning": "Conforme os requisitos da HIPAA, todos os dados da clínica serão retidos por 7 anos após a desativação. Os usuários não poderão fazer login, mas os dados permanecerão acessíveis para fins de conformidade.",
-        "tabs_compliance": "Detalhes de conformidade",
+        "tabs_compliance": "Conformidade e auditoria",
         "tabs_usage": "Uso e adoção",
         "tabs_subscription": "Assinatura",
         "tabs_phi_log": "Registro de acesso a PHI",
-        "tabs_users": "Usuários",
+        "tabs_users": "Usuários e acesso",
         "tabs_settings": "Configurações",
         "label_legal_name": "Razão social",
         "label_baa_status": "Status do BAA",
@@ -4379,7 +4379,8 @@
         "storage_partial_note": "Resultado parcial: alguns arquivos não puderam ser medidos.",
         "storage_unmeasured": "{count} arquivo(s) não puderam ser medidos e foram excluídos dos totais.",
         "storage_last_error": "A última atualização falhou; o resultado anterior é exibido.",
-        "storage_scope_note": "Inclui anexos de casos, imagens de comentários, arquivos da caixa de entrada do scanner, revisões de digitalização retidas e o logotipo da clínica. Casos arquivados são contados enquanto seus arquivos permanecerem armazenados. Uploads temporários não vinculados são excluídos."
+        "storage_scope_note": "Inclui anexos de casos, imagens de comentários, arquivos da caixa de entrada do scanner, revisões de digitalização retidas e o logotipo da clínica. Casos arquivados são contados enquanto seus arquivos permanecerem armazenados. Uploads temporários não vinculados são excluídos.",
+        "search_placeholder": "Buscar consultórios…"
     },
     "tour": {
         "welcome_title": "Bem-vindo ao {appName}",
@@ -7222,7 +7223,10 @@
         "storage_coverage": "Parcial — armazenamento medido em {measured} de {total} clínicas",
         "storage_link_title": "Abrir detalhes de armazenamento em Administração de clínicas",
         "subtitle": "Contagem de casos e medições de armazenamento em cache de todas as clínicas.",
-        "title": "Relatório de uso por clínica"
+        "title": "Relatório de uso por clínica",
+        "include_hidden": "Incluir consultórios ocultos",
+        "scope_visible": "Mostrando {count} consultórios visíveis",
+        "scope_all": "Mostrando todos os {count} consultórios"
     },
     "admin_nav": {
         "brand": "Administração",
@@ -7240,8 +7244,8 @@
     "admin_overview": {
         "subtitle": "Instantâneo de administração de toda a plataforma",
         "dev_notice": "Ambiente de desenvolvimento: as páginas de administração estão abertas a qualquer usuário autenticado para testes locais. Em produção, apenas superusuários.",
-        "m_practices": "Consultórios totais",
-        "m_practices_note": "Todos os consultórios, incluindo ocultos, inativos e de demonstração/teste.",
+        "m_practices": "Consultórios",
+        "m_practices_note": "Consultórios no escopo de relatório atual.",
         "m_active_practices": "Consultórios ativos",
         "m_active_practices_note": "Consultórios com is_active = 1.",
         "m_inactive": "Consultórios inativos",
@@ -7266,7 +7270,22 @@
         "storage_coverage": "Medido ou parcialmente medido em {measured} de {total} consultórios",
         "storage_complete": "Todos os consultórios medidos",
         "alert_storage": "{count} consultório(s) com erro de medição de armazenamento — veja Uso e armazenamento.",
-        "alert_trials": "{count} assinatura(s) com testes terminando em 14 dias."
+        "alert_trials": "{count} assinatura(s) com testes terminando em 14 dias.",
+        "scope_loading": "Carregando…",
+        "scope_visible": "Mostrando {count} consultórios visíveis",
+        "scope_all": "Mostrando todos os {count} consultórios",
+        "include_hidden": "Incluir consultórios ocultos",
+        "group_practices": "Consultórios",
+        "group_subscriptions": "Assinaturas",
+        "group_usage": "Uso",
+        "attention_title": "Requer atenção",
+        "attention_sub": "Itens que podem exigir ação administrativa.",
+        "attention_loading": "Verificando…",
+        "attention_empty": "Nada requer atenção no momento.",
+        "attention_trials": "{count} assinatura(s) com teste expirando em 14 dias",
+        "attention_storage": "{count} consultório(s) com erro de medição de armazenamento",
+        "m_trials_ending": "Testes expirando ≤14 dias",
+        "m_trials_ending_note": "Testes que expiram nos próximos 14 dias."
     },
     "admin_testdiag": {
         "subtitle": "Geração de casos de teste e utilitários destrutivos — restrito",

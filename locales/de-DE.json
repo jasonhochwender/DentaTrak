@@ -4188,7 +4188,7 @@
         "stats_active": "Aktive Praxen",
         "stats_inactive": "Inaktive Praxen",
         "stats_deletion_eligible": "Zur Löschung berechtigt",
-        "view_all": "Alle Praxen",
+        "view_all": "Sichtbare Praxen",
         "view_hidden": "Ausgeblendete Praxen",
         "refresh": "Aktualisieren",
         "loading": "Praxen werden geladen...",
@@ -4223,11 +4223,11 @@
         "reactivate_button": "Reaktivieren",
         "deactivate_button_short": "Deaktivieren",
         "retention_warning": "Gemäß HIPAA-Anforderungen werden alle Praxisdaten 7 Jahre nach der Deaktivierung aufbewahrt. Benutzer können sich nicht anmelden, aber die Daten bleiben für Compliance-Zwecke zugänglich.",
-        "tabs_compliance": "Compliance-Details",
+        "tabs_compliance": "Compliance & Audit",
         "tabs_usage": "Nutzung & Akzeptanz",
         "tabs_subscription": "Abonnement",
         "tabs_phi_log": "PHI-Zugriffsprotokoll",
-        "tabs_users": "Benutzer",
+        "tabs_users": "Benutzer & Zugriff",
         "tabs_settings": "Einstellungen",
         "label_legal_name": "Offizieller Name",
         "label_baa_status": "BAA-Status",
@@ -4378,7 +4378,8 @@
         "storage_partial_note": "Teilergebnis: Einige Dateien konnten nicht gemessen werden.",
         "storage_unmeasured": "{count} Datei(en) konnten nicht gemessen werden und sind aus den Summen ausgeschlossen.",
         "storage_last_error": "Die letzte Aktualisierung ist fehlgeschlagen; das vorherige Ergebnis wird angezeigt.",
-        "storage_scope_note": "Enthält Fallanhänge, Kommentarbilder, Scanner-Inbox-Dateien, aufbewahrte Scan-Revisionen und das Praxislogo. Archivierte Fälle werden gezählt, solange ihre Dateien gespeichert bleiben. Temporäre, nicht verknüpfte Uploads sind ausgeschlossen."
+        "storage_scope_note": "Enthält Fallanhänge, Kommentarbilder, Scanner-Inbox-Dateien, aufbewahrte Scan-Revisionen und das Praxislogo. Archivierte Fälle werden gezählt, solange ihre Dateien gespeichert bleiben. Temporäre, nicht verknüpfte Uploads sind ausgeschlossen.",
+        "search_placeholder": "Praxen suchen…"
     },
     "marketing": {
         "navigation": {
@@ -7222,7 +7223,10 @@
         "storage_coverage": "Teilweise — Speicher für {measured} von {total} Praxen gemessen",
         "storage_link_title": "Speicherdetails in der Praxisverwaltung öffnen",
         "subtitle": "Fallzahlen und zwischengespeicherte Speichermesswerte aller Praxen.",
-        "title": "Praxis-Nutzungsbericht"
+        "title": "Praxis-Nutzungsbericht",
+        "include_hidden": "Ausgeblendete Praxen einbeziehen",
+        "scope_visible": "{count} sichtbare Praxen werden angezeigt",
+        "scope_all": "Alle {count} Praxen werden angezeigt"
     },
     "admin_nav": {
         "brand": "Verwaltung",
@@ -7240,8 +7244,8 @@
     "admin_overview": {
         "subtitle": "Plattformweite Verwaltungsübersicht",
         "dev_notice": "Entwicklungsumgebung: Verwaltungsseiten sind lokal für jeden angemeldeten Benutzer geöffnet. In Produktion nur für Super-User.",
-        "m_practices": "Praxen gesamt",
-        "m_practices_note": "Alle Praxen, einschließlich ausgeblendeter, inaktiver und Demo-/Testpraxen.",
+        "m_practices": "Praxen",
+        "m_practices_note": "Praxen im aktuellen Berichtsbereich.",
         "m_active_practices": "Aktive Praxen",
         "m_active_practices_note": "Praxen mit is_active = 1.",
         "m_inactive": "Inaktive Praxen",
@@ -7266,7 +7270,22 @@
         "storage_coverage": "Gemessen oder teilweise gemessen für {measured} von {total} Praxen",
         "storage_complete": "Alle Praxen gemessen",
         "alert_storage": "{count} Praxis(en) haben einen Speicher-Messfehler — siehe Nutzung & Speicher.",
-        "alert_trials": "{count} Abonnement(s) haben Testphasen, die in 14 Tagen enden."
+        "alert_trials": "{count} Abonnement(s) haben Testphasen, die in 14 Tagen enden.",
+        "scope_loading": "Wird geladen…",
+        "scope_visible": "{count} sichtbare Praxen werden angezeigt",
+        "scope_all": "Alle {count} Praxen werden angezeigt",
+        "include_hidden": "Ausgeblendete Praxen einbeziehen",
+        "group_practices": "Praxen",
+        "group_subscriptions": "Abonnements",
+        "group_usage": "Nutzung",
+        "attention_title": "Erfordert Aufmerksamkeit",
+        "attention_sub": "Einträge, die möglicherweise eine administrative Aktion erfordern.",
+        "attention_loading": "Wird geprüft…",
+        "attention_empty": "Derzeit ist nichts zu beachten.",
+        "attention_trials": "{count} Abonnement(s) mit Testphase, die in 14 Tagen endet",
+        "attention_storage": "{count} Praxis/Praxen mit Speicher-Messfehler",
+        "m_trials_ending": "Testphasen enden ≤14 Tage",
+        "m_trials_ending_note": "Testphasen, die in den nächsten 14 Tagen enden."
     },
     "admin_testdiag": {
         "subtitle": "Testfalldatenerzeugung und destruktive Werkzeuge — beschränkt",

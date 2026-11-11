@@ -3410,7 +3410,7 @@
         "stats_active": "Studi attivi",
         "stats_inactive": "Studi inattivi",
         "stats_deletion_eligible": "Idonei all'eliminazione",
-        "view_all": "Tutti gli studi",
+        "view_all": "Studi visibili",
         "view_hidden": "Studi nascosti",
         "refresh": "Aggiorna",
         "loading": "Caricamento degli studi...",
@@ -3445,11 +3445,11 @@
         "reactivate_button": "Riattiva",
         "deactivate_button_short": "Disattiva",
         "retention_warning": "Per i requisiti HIPAA, tutti i dati dello studio saranno conservati per 7 anni dopo la disattivazione. Gli utenti non potranno accedere, ma i dati resteranno accessibili a fini di conformità.",
-        "tabs_compliance": "Dettagli di conformità",
+        "tabs_compliance": "Conformità e audit",
         "tabs_usage": "Utilizzo e adozione",
         "tabs_subscription": "Abbonamento",
         "tabs_phi_log": "Registro degli accessi PHI",
-        "tabs_users": "Utenti",
+        "tabs_users": "Utenti e accessi",
         "tabs_settings": "Impostazioni",
         "label_legal_name": "Ragione sociale",
         "label_baa_status": "Stato BAA",
@@ -3600,7 +3600,8 @@
         "storage_partial_note": "Risultato parziale: alcuni file non sono stati misurabili.",
         "storage_unmeasured": "{count} file non sono stati misurabili e sono esclusi dai totali.",
         "storage_last_error": "L’ultimo aggiornamento non è riuscito; viene mostrato il risultato precedente.",
-        "storage_scope_note": "Include allegati dei casi, immagini dei commenti, file della posta in arrivo dello scanner, revisioni di scansione conservate e il logo dello studio. I casi archiviati sono conteggiati finché i loro file restano archiviati. I caricamenti temporanei non collegati sono esclusi."
+        "storage_scope_note": "Include allegati dei casi, immagini dei commenti, file della posta in arrivo dello scanner, revisioni di scansione conservate e il logo dello studio. I casi archiviati sono conteggiati finché i loro file restano archiviati. I caricamenti temporanei non collegati sono esclusi.",
+        "search_placeholder": "Cerca studi…"
     },
     "case_types": {
         "crown": "Corona",
@@ -7222,7 +7223,10 @@
         "storage_coverage": "Parziale — archiviazione misurata per {measured} di {total} studi",
         "storage_link_title": "Apri i dettagli di archiviazione in Amministrazione studi",
         "subtitle": "Numero di casi e misurazioni di archiviazione in cache di tutti gli studi.",
-        "title": "Report di utilizzo per studio"
+        "title": "Report di utilizzo per studio",
+        "include_hidden": "Includi studi nascosti",
+        "scope_visible": "{count} studi visibili mostrati",
+        "scope_all": "Tutti i {count} studi mostrati"
     },
     "admin_nav": {
         "brand": "Amministrazione",
@@ -7240,8 +7244,8 @@
     "admin_overview": {
         "subtitle": "Istantanea amministrativa dell’intera piattaforma",
         "dev_notice": "Ambiente di sviluppo: le pagine di amministrazione sono aperte a qualsiasi utente autenticato per i test locali. In produzione solo superutenti.",
-        "m_practices": "Studi totali",
-        "m_practices_note": "Tutti gli studi, inclusi nascosti, inattivi e demo/test.",
+        "m_practices": "Studi",
+        "m_practices_note": "Studi nell’ambito di reportistica attuale.",
         "m_active_practices": "Studi attivi",
         "m_active_practices_note": "Studi con is_active = 1.",
         "m_inactive": "Studi inattivi",
@@ -7266,7 +7270,22 @@
         "storage_coverage": "Misurato o parzialmente misurato per {measured} studi su {total}",
         "storage_complete": "Tutti gli studi misurati",
         "alert_storage": "{count} studio/i presentano un errore di misurazione dell’archiviazione — vedi Utilizzo e archiviazione.",
-        "alert_trials": "{count} abbonamento/i hanno prove in scadenza entro 14 giorni."
+        "alert_trials": "{count} abbonamento/i hanno prove in scadenza entro 14 giorni.",
+        "scope_loading": "Caricamento…",
+        "scope_visible": "{count} studi visibili mostrati",
+        "scope_all": "Tutti i {count} studi mostrati",
+        "include_hidden": "Includi studi nascosti",
+        "group_practices": "Studi",
+        "group_subscriptions": "Abbonamenti",
+        "group_usage": "Utilizzo",
+        "attention_title": "Richiede attenzione",
+        "attention_sub": "Elementi che potrebbero richiedere un’azione amministrativa.",
+        "attention_loading": "Verifica…",
+        "attention_empty": "Al momento non c’è nulla che richieda attenzione.",
+        "attention_trials": "{count} abbonamento/i con prova in scadenza entro 14 giorni",
+        "attention_storage": "{count} studio/i con errore di misurazione dello storage",
+        "m_trials_ending": "Prove in scadenza ≤14 giorni",
+        "m_trials_ending_note": "Prove in scadenza nei prossimi 14 giorni."
     },
     "admin_testdiag": {
         "subtitle": "Generazione di casi di test e utility distruttive — riservato",

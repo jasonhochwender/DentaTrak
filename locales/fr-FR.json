@@ -3410,7 +3410,7 @@
         "stats_active": "Cabinets actifs",
         "stats_inactive": "Cabinets inactifs",
         "stats_deletion_eligible": "Admissibles à la suppression",
-        "view_all": "Tous les cabinets",
+        "view_all": "Cabinets visibles",
         "view_hidden": "Cabinets masqués",
         "refresh": "Actualiser",
         "loading": "Chargement des cabinets...",
@@ -3445,11 +3445,11 @@
         "reactivate_button": "Réactiver",
         "deactivate_button_short": "Désactiver",
         "retention_warning": "Conformément aux exigences HIPAA, toutes les données du cabinet seront conservées 7 ans après la désactivation. Les utilisateurs ne pourront plus se connecter, mais les données resteront accessibles à des fins de conformité.",
-        "tabs_compliance": "Détails de conformité",
+        "tabs_compliance": "Conformité et audit",
         "tabs_usage": "Utilisation et adoption",
         "tabs_subscription": "Abonnement",
         "tabs_phi_log": "Journal d'accès aux PHI",
-        "tabs_users": "Utilisateurs",
+        "tabs_users": "Utilisateurs et accès",
         "tabs_settings": "Paramètres",
         "label_legal_name": "Nom légal",
         "label_baa_status": "Statut du BAA",
@@ -3600,7 +3600,8 @@
         "storage_partial_note": "Résultat partiel : certains fichiers n’ont pas pu être mesurés.",
         "storage_unmeasured": "{count} fichier(s) n’ont pas pu être mesurés et sont exclus des totaux.",
         "storage_last_error": "La dernière actualisation a échoué ; le résultat précédent est affiché.",
-        "storage_scope_note": "Comprend les pièces jointes des cas, les images de commentaires, les fichiers de la boîte de réception du scanner, les révisions de numérisation conservées et le logo du cabinet. Les cas archivés sont comptés tant que leurs fichiers restent stockés. Les téléversements temporaires non liés sont exclus."
+        "storage_scope_note": "Comprend les pièces jointes des cas, les images de commentaires, les fichiers de la boîte de réception du scanner, les révisions de numérisation conservées et le logo du cabinet. Les cas archivés sont comptés tant que leurs fichiers restent stockés. Les téléversements temporaires non liés sont exclus.",
+        "search_placeholder": "Rechercher des cabinets…"
     },
     "case_types": {
         "crown": "Couronne",
@@ -7222,7 +7223,10 @@
         "storage_coverage": "Partiel — stockage mesuré pour {measured} cabinets sur {total}",
         "storage_link_title": "Ouvrir les détails du stockage dans l'administration des cabinets",
         "subtitle": "Nombre de dossiers et mesures de stockage en cache de tous les cabinets.",
-        "title": "Rapport d'utilisation des cabinets"
+        "title": "Rapport d'utilisation des cabinets",
+        "include_hidden": "Inclure les cabinets masqués",
+        "scope_visible": "{count} cabinets visibles affichés",
+        "scope_all": "Les {count} cabinets affichés"
     },
     "admin_nav": {
         "brand": "Administration",
@@ -7240,8 +7244,8 @@
     "admin_overview": {
         "subtitle": "Vue d’ensemble de l’administration de la plateforme",
         "dev_notice": "Environnement de développement : les pages d’administration sont ouvertes à tout utilisateur authentifié pour les tests locaux. En production, super-utilisateurs uniquement.",
-        "m_practices": "Cabinets au total",
-        "m_practices_note": "Tous les cabinets, y compris masqués, inactifs et de démonstration/test.",
+        "m_practices": "Cabinets",
+        "m_practices_note": "Cabinets du périmètre de rapport actuel.",
         "m_active_practices": "Cabinets actifs",
         "m_active_practices_note": "Cabinets avec is_active = 1.",
         "m_inactive": "Cabinets inactifs",
@@ -7266,7 +7270,22 @@
         "storage_coverage": "Mesuré ou partiellement mesuré pour {measured} cabinets sur {total}",
         "storage_complete": "Tous les cabinets mesurés",
         "alert_storage": "{count} cabinet(s) ont une erreur de mesure de stockage — voir Utilisation et stockage.",
-        "alert_trials": "{count} abonnement(s) ont des essais se terminant sous 14 jours."
+        "alert_trials": "{count} abonnement(s) ont des essais se terminant sous 14 jours.",
+        "scope_loading": "Chargement…",
+        "scope_visible": "{count} cabinets visibles affichés",
+        "scope_all": "Les {count} cabinets affichés",
+        "include_hidden": "Inclure les cabinets masqués",
+        "group_practices": "Cabinets",
+        "group_subscriptions": "Abonnements",
+        "group_usage": "Utilisation",
+        "attention_title": "Nécessite attention",
+        "attention_sub": "Éléments pouvant nécessiter une action administrative.",
+        "attention_loading": "Vérification…",
+        "attention_empty": "Rien ne nécessite d’attention pour le moment.",
+        "attention_trials": "{count} abonnement(s) avec essai se terminant sous 14 jours",
+        "attention_storage": "{count} cabinet(s) avec erreur de mesure de stockage",
+        "m_trials_ending": "Essais se terminant ≤14 jours",
+        "m_trials_ending_note": "Essais se terminant dans les 14 prochains jours."
     },
     "admin_testdiag": {
         "subtitle": "Génération de cas de test et utilitaires destructeurs — restreint",
