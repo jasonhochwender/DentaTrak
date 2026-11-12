@@ -21,6 +21,7 @@ require_once __DIR__ . '/workflow-stages.php';
 require_once __DIR__ . '/attachment-display.php';
 require_once __DIR__ . '/email-sender.php';
 require_once __DIR__ . '/encryption.php';
+require_once __DIR__ . '/export-artifacts.php';
 
 header('Content-Type: application/json');
 setApiSecurityHeaders();
@@ -376,23 +377,31 @@ function processExport(int $exportId, int $userId, int $practiceId, string $user
         // ============================================
         // GENERATE EXPORT FILE
         // ============================================
-        $exportDir = __DIR__ . '/../exports';
-        if (!is_dir($exportDir)) {
-            mkdir($exportDir, 0755, true);
-        }
-        
         // Generate secure download token
         $downloadToken = bin2hex(random_bytes(32));
-        
+
         // Create export filename
         $filename = "dentatrak_export_{$exportId}_{$downloadToken}.json";
-        $filePath = $exportDir . '/' . $filename;
-        
-        // Write export data
+
+        // Write export data. On Cloud Run the local filesystem is ephemeral
+        // and per-instance, so production artifacts go to the private GCS
+        // prefix shared with v2 exports (8-day lifecycle backstop vs the
+        // 7-day expiry below). Local development keeps exports/.
         $jsonContent = json_encode($exportData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-        file_put_contents($filePath, $jsonContent);
-        
-        $fileSize = filesize($filePath);
+        if (exportArtifactDriver() === 'gcs') {
+            $put = exportArtifactPut($practiceId, $exportId, $filename, $jsonContent);
+            $storedPath = 'gcs:' . $put['ref'];
+            $fileSize = $put['size'];
+        } else {
+            $exportDir = __DIR__ . '/../exports';
+            if (!is_dir($exportDir)) {
+                mkdir($exportDir, 0755, true);
+            }
+            $filePath = $exportDir . '/' . $filename;
+            file_put_contents($filePath, $jsonContent);
+            $storedPath = $filename;
+            $fileSize = filesize($filePath);
+        }
         
         // Set expiration (7 days)
         $expiresAt = date('Y-m-d H:i:s', strtotime('+7 days'));
@@ -410,7 +419,7 @@ function processExport(int $exportId, int $userId, int $practiceId, string $user
         ");
         $stmt->execute([
             'token' => $downloadToken,
-            'file_path' => $filename,
+            'file_path' => $storedPath,
             'file_size' => $fileSize,
             'expires_at' => $expiresAt,
             'id' => $exportId
@@ -438,10 +447,21 @@ function processExport(int $exportId, int $userId, int $practiceId, string $user
         
     } catch (Exception $e) {
         error_log('[data-export] Export processing failed: ' . $e->getMessage());
-        
+
+        // Remove any artifact committed before the failure (e.g. GCS upload
+        // succeeded but the record update did not). Namespaced to this
+        // export only; original practice data is never touched.
+        try {
+            if (function_exists('exportArtifactCleanupFailedExport')) {
+                exportArtifactCleanupFailedExport($exportId);
+            }
+        } catch (Throwable $cleanupError) {
+            error_log('[data-export] artifact cleanup failed: ' . $cleanupError->getMessage());
+        }
+
         // Update status to failed
         $stmt = $pdo->prepare("
-            UPDATE data_exports 
+            UPDATE data_exports
             SET status = 'failed', error_message = :error
             WHERE id = :id
         ");
@@ -617,12 +637,27 @@ function handleExportDownload(int $userId): void {
         return;
     }
     
-    // Check file exists
-    $filePath = __DIR__ . '/../exports/' . $export['file_path'];
-    if (!file_exists($filePath)) {
-        http_response_code(404);
-        echo json_encode(['success' => false, 'message' => t('export.file_not_found')]);
-        return;
+    // Check file exists. file_path is either a local filename under
+    // exports/ (dev) or 'gcs:<object>' pointing into the private export
+    // prefix (production).
+    $gcsObjectPath = null;
+    $gcsBucket = null;
+    if (str_starts_with((string)$export['file_path'], 'gcs:')) {
+        require_once __DIR__ . '/gcs-storage.php';
+        $gcsObjectPath = substr($export['file_path'], 4);
+        $gcsBucket = getGcsBucket();
+        if (!$gcsBucket->object($gcsObjectPath)->exists()) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => t('export.file_not_found')]);
+            return;
+        }
+    } else {
+        $filePath = __DIR__ . '/../exports/' . $export['file_path'];
+        if (!file_exists($filePath)) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => t('export.file_not_found')]);
+            return;
+        }
     }
     
     // Audit: the export payload actually leaves the server. Distinct from the
@@ -638,7 +673,14 @@ function handleExportDownload(int $userId): void {
     header('Content-Disposition: attachment; filename="dentatrak_export.json"');
     header('Content-Length: ' . $export['file_size']);
     header('Cache-Control: no-cache, must-revalidate');
-    
-    readfile($filePath);
+
+    if ($gcsObjectPath !== null) {
+        $stream = $gcsBucket->object($gcsObjectPath)->downloadAsStream();
+        while (!$stream->eof()) {
+            echo $stream->read(8192);
+        }
+    } else {
+        readfile($filePath);
+    }
     exit;
 }
