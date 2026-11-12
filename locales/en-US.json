@@ -1328,7 +1328,11 @@
                 "status_expired": "Expired",
                 "status_pending": "Pending",
                 "status_cancelled": "Cancelled",
-                "status_unknown": "Unknown"
+                "status_unknown": "Unknown",
+                "archive_button": "Complete archive (ZIP)",
+                "archive_note": "Full practice archive: all cases, files, comments, settings, members, scanner records, and audit history in one ZIP. Requires unrestricted admin or owner access.",
+                "archive_confirm": "Create a complete practice archive? This includes all practice data and files and may take several minutes.",
+                "expires": "expires"
             }
         },
         "dev_tools": {

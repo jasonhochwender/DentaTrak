@@ -15553,10 +15553,15 @@ document.addEventListener('DOMContentLoaded', function () {
           dl = '<button type="button" class="btn-secondary btn-sm export-v2-download" data-id="' + e.id + '" style="margin-left:8px;">' +
                t('settings.data_privacy.export_v2.download') + '</button>';
         }
+        var type = e.export_type === 'practice_archive' ? 'archive' : (e.format || '').toUpperCase();
+        var warn = (parseInt(e.archive_warnings, 10) || 0) > 0
+          ? ' <span style="color:#b45309;">&#9888; ' + e.archive_warnings + '</span>' : '';
         return '<div class="export-v2-row" style="font-size:0.82rem;padding:6px 0;border-top:1px solid #eee;">' +
-          '<span>#' + e.id + ' · ' + (e.format || '').toUpperCase() + ' · ' +
+          '<span>#' + e.id + ' · ' + type + ' · ' +
           '<strong>' + exportV2StatusText(e.status) + '</strong>' +
-          (e.file_size ? ' · ' + Math.round(e.file_size / 1024) + ' KB' : '') + dl + '</div>';
+          (e.file_size ? ' · ' + Math.round(e.file_size / 1024) + ' KB' : '') +
+          (e.expires_at ? ' · ' + t('settings.data_privacy.export_v2.expires') + ' ' + String(e.expires_at).substring(0, 10) : '') +
+          warn + dl + '</div>';
       }).join('');
       exportV2List.querySelectorAll('.export-v2-download').forEach(function(btn) {
         btn.addEventListener('click', function() {
@@ -15583,33 +15588,47 @@ document.addEventListener('DOMContentLoaded', function () {
         .catch(function() {});
     }
 
+    function exportV2Request(type, format, btn) {
+      btn.disabled = true;
+      var fd = new FormData();
+      fd.append('type', type);
+      fd.append('format', format);
+      fd.append('csrf_token', csrfToken);
+      fetch('api/data-export-v2.php?action=request', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'X-CSRF-Token': csrfToken }, body: fd
+      }).then(function(r) { return r.json(); }).then(function(d) {
+        if (exportV2Status) {
+          exportV2Status.textContent = d.success
+            ? t('settings.data_privacy.export_v2.queued')
+            : (d.message || t('settings.data_privacy.export_v2.error'));
+          exportV2Status.className = 'export-status ' + (d.success ? 'success' : 'error');
+          exportV2Status.style.display = 'block';
+        }
+        setTimeout(loadExportV2Status, 1500);
+        setTimeout(loadExportV2Status, 5000);
+        setTimeout(loadExportV2Status, 15000);
+      }).catch(function() {
+        if (exportV2Status) {
+          exportV2Status.textContent = t('settings.data_privacy.export_v2.error');
+          exportV2Status.className = 'export-status error';
+          exportV2Status.style.display = 'block';
+        }
+      }).finally(function() { btn.disabled = false; });
+    }
+
+    var exportV2ArchiveBtn = document.getElementById('exportV2ArchiveBtn');
     if (exportV2Btn) {
       loadExportV2Status();
       exportV2Btn.addEventListener('click', function() {
-        exportV2Btn.disabled = true;
-        var fd = new FormData();
-        fd.append('format', exportV2Format ? exportV2Format.value : 'csv');
-        fd.append('csrf_token', csrfToken);
-        fetch('api/data-export-v2.php?action=request', {
-          method: 'POST', credentials: 'same-origin',
-          headers: { 'X-CSRF-Token': csrfToken }, body: fd
-        }).then(function(r) { return r.json(); }).then(function(d) {
-          if (exportV2Status) {
-            exportV2Status.textContent = d.success
-              ? t('settings.data_privacy.export_v2.queued')
-              : (d.message || t('settings.data_privacy.export_v2.error'));
-            exportV2Status.className = 'export-status ' + (d.success ? 'success' : 'error');
-            exportV2Status.style.display = 'block';
-          }
-          setTimeout(loadExportV2Status, 1500);
-          setTimeout(loadExportV2Status, 5000);
-        }).catch(function() {
-          if (exportV2Status) {
-            exportV2Status.textContent = t('settings.data_privacy.export_v2.error');
-            exportV2Status.className = 'export-status error';
-            exportV2Status.style.display = 'block';
-          }
-        }).finally(function() { exportV2Btn.disabled = false; });
+        exportV2Request('case_data', exportV2Format ? exportV2Format.value : 'csv', exportV2Btn);
+      });
+    }
+    if (exportV2ArchiveBtn) {
+      exportV2ArchiveBtn.addEventListener('click', function() {
+        if (confirm(t('settings.data_privacy.export_v2.archive_confirm') || 'Create a complete practice archive? This may take several minutes.')) {
+          exportV2Request('practice_archive', 'zip', exportV2ArchiveBtn);
+        }
       });
     }
 

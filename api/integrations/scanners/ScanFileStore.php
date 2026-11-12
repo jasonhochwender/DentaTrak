@@ -256,6 +256,23 @@ class ScanFileStore {
      * is rejected (path-traversal guard - the same check the GCS endpoints
      * apply to the `..` substring).
      */
+    /**
+     * Public read-only resolver for the local dev mirror - returns the
+     * absolute path or null when the storage path is invalid or escapes
+     * the mirror root. Used by the practice-archive exporter.
+     */
+    public static function exportLocalPath(string $storagePath): ?string {
+        try {
+            $abs = self::localPath($storagePath);
+        } catch (Throwable $e) {
+            return null;
+        }
+        $root = rtrim(self::localRoot(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+        $norm = str_replace('/', DIRECTORY_SEPARATOR, $abs);
+        if (strpos($norm, $root) !== 0) return null;
+        return $abs;
+    }
+
     private static function localPath(string $storagePath): string {
         if (strpos($storagePath, '..') !== false
             || !preg_match('#^cases/\d+/[A-Za-z0-9_.\-/]+$#', $storagePath)) {

@@ -4533,7 +4533,11 @@ endif;
                             <button type="button" id="exportV2Btn" class="btn-secondary">
                               <span class="btn-icon">📥</span> <?php echo t('settings.data_privacy.export_v2.button'); ?>
                             </button>
+                            <button type="button" id="exportV2ArchiveBtn" class="btn-secondary">
+                              <span class="btn-icon">🗄️</span> <?php echo t('settings.data_privacy.export_v2.archive_button'); ?>
+                            </button>
                           </div>
+                          <p class="export-note"><?php echo t('settings.data_privacy.export_v2.archive_note'); ?></p>
                           <div id="exportV2Status" class="export-status" style="display:none;margin-top:8px;"></div>
                           <div id="exportV2List" style="margin-top:10px;"></div>
                         </div>

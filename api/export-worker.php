@@ -67,6 +67,7 @@ require_once __DIR__ . '/attachment-display.php';
 require_once __DIR__ . '/email-sender.php';
 require_once __DIR__ . '/encryption.php';
 require_once __DIR__ . '/export-artifacts.php';
+require_once __DIR__ . '/export-archive.php';
 require_once __DIR__ . '/../migrations/2026_11_13_data_exports_v2.php';
 require_once __DIR__ . '/../migrations/2026_11_20_data_exports_v2_attempts.php';
 
@@ -76,8 +77,12 @@ if (!isset($pdo) || !($pdo instanceof PDO)) {
 }
 
 if (!defined('EW_MAX_ATTEMPTS')) define('EW_MAX_ATTEMPTS', 3);
-if (!defined('EW_STALE_MINUTES')) define('EW_STALE_MINUTES', 20);
+// Stale threshold MUST exceed the Cloud Run Job task timeout (1800s) plus
+// margin - a live worker refreshes claimed_at via heartbeat, so only a
+// dead worker's claim ever reaches this age.
+if (!defined('EW_STALE_MINUTES')) define('EW_STALE_MINUTES', 45);
 if (!defined('EW_ABANDON_HOURS')) define('EW_ABANDON_HOURS', 24);
+if (!defined('EW_HEARTBEAT_SECONDS')) define('EW_HEARTBEAT_SECONDS', 20);
 
 $workerId = gethostname() . '-' . getmypid();
 $processed = 0;
@@ -86,12 +91,12 @@ $results = [];
 // Peek at the next claimable export id without claiming it.
 function ewNextId(PDO $pdo, int $exportId): ?int {
     if ($exportId > 0) {
-        $q = $pdo->prepare("SELECT id FROM data_exports WHERE id=:id AND status='queued' AND export_type='case_data'");
+        $q = $pdo->prepare("SELECT id FROM data_exports WHERE id=:id AND status='queued' AND export_type <> 'legacy_json'");
         $q->execute(['id' => $exportId]);
         $v = $q->fetchColumn();
         return $v ? (int)$v : null;
     }
-    $v = $pdo->query("SELECT id FROM data_exports WHERE status='queued' AND export_type='case_data'
+    $v = $pdo->query("SELECT id FROM data_exports WHERE status='queued' AND export_type <> 'legacy_json'
         ORDER BY created_at LIMIT 1")->fetchColumn();
     return $v ? (int)$v : null;
 }
@@ -109,12 +114,30 @@ function ewCsvRow(array $fields): string {
 function ewClaim(PDO $pdo, int $exportId, string $workerId): ?array {
     $stmt = $pdo->prepare("UPDATE data_exports SET status='processing', claimed_at=NOW(), claimed_by=:w,
         attempts=attempts+1
-        WHERE id=:id AND status='queued' AND export_type='case_data'");
+        WHERE id=:id AND status='queued' AND export_type <> 'legacy_json'");
     $stmt->execute(['w' => $workerId, 'id' => $exportId]);
     if ($stmt->rowCount() === 0) return null;
     $q = $pdo->prepare("SELECT * FROM data_exports WHERE id=:id");
     $q->execute(['id' => $exportId]);
     return $q->fetch(PDO::FETCH_ASSOC) ?: null;
+}
+
+/**
+ * Claim heartbeat / ownership check. Refreshes claimed_at while the
+ * worker still owns the export; returns false when another worker has
+ * taken over (claim stolen or row no longer processing under us), in
+ * which case the caller must abort without overwriting shared state.
+ */
+function ewHeartbeat(PDO $pdo, int $exportId, string $workerId): bool {
+    // Verify ownership first: UPDATE rowCount is unreliable here because
+    // MySQL reports CHANGED rows - a same-second heartbeat changes nothing
+    // and would look like a lost claim.
+    $own = $pdo->prepare("SELECT claimed_by FROM data_exports
+        WHERE id=:id AND status='processing' AND claimed_by=:w");
+    $own->execute(['id' => $exportId, 'w' => $workerId]);
+    if (!$own->fetchColumn()) return false;
+    $pdo->prepare("UPDATE data_exports SET claimed_at=NOW() WHERE id=:id")->execute(['id' => $exportId]);
+    return true;
 }
 
 /**
@@ -124,6 +147,18 @@ function exportWorkerProcessOne(PDO $pdo, int $exportId, string $workerId): arra
     $export = ewClaim($pdo, $exportId, $workerId);
     if (!$export) {
         return ['id' => $exportId, 'status' => 'not_claimed'];
+    }
+    if (($export['export_type'] ?? 'case_data') === 'practice_archive') {
+        $aTmp = sys_get_temp_dir() . '/export-' . $exportId . '-' . uniqid();
+        @mkdir($aTmp, 0700, true);
+        try {
+            return exportWorkerProcessArchive($pdo, $export, $workerId, $aTmp);
+        } finally {
+            foreach (glob($aTmp . '/*') ?: [] as $f) @unlink($f);
+            foreach (glob($aTmp . '/stage/*') ?: [] as $f) @unlink($f);
+            @rmdir($aTmp . '/stage');
+            @rmdir($aTmp);
+        }
     }
     $pid = (int)$export['practice_id'];
     $uid = (int)$export['user_id'];
@@ -303,18 +338,29 @@ function exportWorkerProcessOne(PDO $pdo, int $exportId, string $workerId): arra
         $expiresAt = $pdo->query("SELECT DATE_FORMAT(NOW() + INTERVAL 7 DAY, '%Y-%m-%d %H:%i:%s')")->fetchColumn();
         $manifest['artifact'] = ['name' => $artifactName, 'size' => $put['size'], 'sha256' => $put['sha256'],
                                   'driver' => $put['driver']];
-        $pdo->prepare("UPDATE data_exports SET status='completed', progress=100,
+        // Ownership-verified finalize: only the worker that still holds
+        // the claim may write the terminal state. If the claim was lost
+        // (stale-recovery requeue + another worker), do not overwrite.
+        if (!ewHeartbeat($pdo, $exportId, $workerId)) {
+            exportArtifactDelete($put['driver'], $put['bucket'] ?? null, $put['ref']);
+            return ['id' => $exportId, 'status' => 'claim_lost'];
+        }
+        $fin = $pdo->prepare("UPDATE data_exports SET status='completed', progress=100,
             sections_done=:sd, manifest_json=:mj,
             file_size=:fs, file_path=:fp, gcs_bucket=:gb, gcs_object=:go, sha256=:sh,
             expires_at=:ex, completed_at=NOW()
-            WHERE id=:id")
-            ->execute([
-                'sd' => json_encode($sectionsDone), 'mj' => json_encode($manifest),
-                'fs' => $put['size'],
-                'fp' => $put['driver'] === 'local' ? $put['ref'] : null,
-                'gb' => $put['bucket'], 'go' => $put['driver'] === 'gcs' ? $put['ref'] : null,
-                'sh' => $put['sha256'], 'ex' => $expiresAt, 'id' => $exportId,
-            ]);
+            WHERE id=:id AND claimed_by=:w AND status='processing'");
+        $fin->execute([
+            'sd' => json_encode($sectionsDone), 'mj' => json_encode($manifest),
+            'fs' => $put['size'],
+            'fp' => $put['driver'] === 'local' ? $put['ref'] : null,
+            'gb' => $put['bucket'], 'go' => $put['driver'] === 'gcs' ? $put['ref'] : null,
+            'sh' => $put['sha256'], 'ex' => $expiresAt, 'id' => $exportId, 'w' => $workerId,
+        ]);
+        if ($fin->rowCount() === 0) {
+            exportArtifactDelete($put['driver'], $put['bucket'] ?? null, $put['ref']);
+            return ['id' => $exportId, 'status' => 'claim_lost'];
+        }
 
         logPHIAccess(PHI_ACTION_DATA_EXPORT, null,
             ['export_id' => $exportId, 'format' => $format, 'file_size' => $put['size']],
@@ -334,15 +380,18 @@ function exportWorkerProcessOne(PDO $pdo, int $exportId, string $workerId): arra
         error_log('[export-worker] export ' . $exportId . ' failed: ' . $e->getMessage());
         // Bounded retry: transient failures go back to 'queued' until the
         // attempt budget is exhausted, then the export is marked failed.
+        // All writes are claim-scoped so a worker that lost its claim
+        // cannot clobber the new owner's state.
         $attempts = (int)($export['attempts'] ?? 0);
         if ($attempts < EW_MAX_ATTEMPTS) {
             $pdo->prepare("UPDATE data_exports SET status='queued', claimed_at=NULL, claimed_by=NULL,
-                error_message=:em, progress=0 WHERE id=:id")
-                ->execute(['em' => 'Export processing failed (will retry)', 'id' => $exportId]);
+                error_message=:em, progress=0 WHERE id=:id AND claimed_by=:w")
+                ->execute(['em' => 'Export processing failed (will retry)', 'id' => $exportId, 'w' => $workerId]);
             return ['id' => $exportId, 'status' => 'queued', 'error' => $e->getMessage(), 'retry' => true];
         }
-        $pdo->prepare("UPDATE data_exports SET status='failed', error_message=:em, progress=0 WHERE id=:id")
-            ->execute(['em' => 'Export processing failed', 'id' => $exportId]);
+        $pdo->prepare("UPDATE data_exports SET status='failed', error_message=:em, progress=0
+            WHERE id=:id AND claimed_by=:w")
+            ->execute(['em' => 'Export processing failed', 'id' => $exportId, 'w' => $workerId]);
         return ['id' => $exportId, 'status' => 'failed', 'error' => $e->getMessage()];
     } finally {
         foreach (glob($tmpDir . '/*') ?: [] as $f) @unlink($f);

@@ -119,21 +119,23 @@ function de2HandleRequest(PDO $pdo, int $userId, int $practiceId, string $userEm
                      'exportId' => (int)$existing['id'], 'status' => $existing['status']]);
     }
 
-    // Daily cap on completed v2 exports per practice (cost guard).
+    // Daily cap on v2 exports per practice (cost guard).
     $cap = (int)(getEnvVar('DATA_EXPORT_DAILY_CAP') ?? 10);
     $stmt = $pdo->prepare("SELECT COUNT(*) FROM data_exports
-        WHERE practice_id = :p AND export_type = 'case_data'
+        WHERE practice_id = :p AND export_type <> 'legacy_json'
           AND created_at >= CURDATE()");
     $stmt->execute(['p' => $practiceId]);
     if ((int)$stmt->fetchColumn() >= $cap) {
         de2Out(429, ['success' => false, 'message' => 'Daily export limit reached']);
     }
 
-    $format = ($_POST['format'] ?? 'csv') === 'json' ? 'json' : 'csv';
+    $type = ($_POST['type'] ?? 'case_data') === 'practice_archive' ? 'practice_archive' : 'case_data';
+    $format = $type === 'practice_archive' ? 'zip'
+        : (($_POST['format'] ?? 'csv') === 'json' ? 'json' : 'csv');
     $stmt = $pdo->prepare("INSERT INTO data_exports
         (user_id, practice_id, export_type, format, status, created_at)
-        VALUES (:u, :p, 'case_data', :f, 'queued', NOW())");
-    $stmt->execute(['u' => $userId, 'p' => $practiceId, 'f' => $format]);
+        VALUES (:u, :p, :t, :f, 'queued', NOW())");
+    $stmt->execute(['u' => $userId, 'p' => $practiceId, 't' => $type, 'f' => $format]);
     $exportId = (int)$pdo->lastInsertId();
 
     if (function_exists('logUserActivity')) {
@@ -161,7 +163,8 @@ function de2HandleRequest(PDO $pdo, int $userId, int $practiceId, string $userEm
 function de2HandleStatus(PDO $pdo, int $userId): void {
     de2EnsureSchema();
     $stmt = $pdo->prepare("SELECT id, export_type, format, status, progress,
-        file_size, gcs_object, expires_at, created_at, completed_at, error_message
+        file_size, gcs_object, expires_at, created_at, completed_at, error_message,
+        COALESCE(JSON_LENGTH(JSON_EXTRACT(manifest_json, '$.warnings')), 0) AS archive_warnings
         FROM data_exports WHERE user_id = :u ORDER BY created_at DESC LIMIT 10");
     $stmt->execute(['u' => $userId]);
     echo json_encode(['success' => true, 'exports' => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
@@ -185,11 +188,13 @@ function de2HandleDownloadUrl(PDO $pdo, int $userId, int $practiceId): void {
     }
 
     // Resolve artifact location (new gcs_object column or legacy file_path).
+    $ext = ['csv' => 'csv', 'json' => 'json', 'zip' => 'zip'][$export['format'] ?? 'csv'] ?? 'csv';
     $artifact = [
         'id' => $exportId,
         'driver' => $export['gcs_object'] ? 'gcs' : 'local',
         'ref' => $export['gcs_object'] ?: $export['file_path'],
-        'filename' => 'dentatrak-case-export-' . $exportId . ($export['format'] === 'json' ? '.json' : '.csv'),
+        'filename' => 'dentatrak-' . (($export['export_type'] ?? '') === 'practice_archive' ? 'practice-archive' : 'case-export')
+            . '-' . $exportId . '.' . $ext,
     ];
     if ($artifact['driver'] === 'gcs') {
         $artifact['bucket'] = $export['gcs_bucket'];
@@ -232,7 +237,8 @@ function de2HandleDownloadFile(PDO $pdo, int $userId, int $practiceId): void {
     }
     logPHIAccess(PHI_ACTION_DATA_EXPORT_DOWNLOAD, null, ['export_id' => $exportId],
         'practice_export', (string)$exportId, $practiceId);
-    header('Content-Type: ' . ($export['format'] === 'json' ? 'application/json' : 'text/csv'));
+    $mime = ['csv' => 'text/csv', 'json' => 'application/json', 'zip' => 'application/zip'][$export['format'] ?? ''] ?? 'application/octet-stream';
+    header('Content-Type: ' . $mime);
     header('Content-Disposition: attachment; filename="dentatrak-case-export-' . $exportId . '.' . $export['format'] . '"');
     header('Content-Length: ' . filesize($path));
     readfile($path);

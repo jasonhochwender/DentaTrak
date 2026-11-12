@@ -18,8 +18,20 @@
 #     whose dispatch failed. This is the guaranteed recovery path; the
 #     per-request jobs:run kick is only a latency optimization.
 #
+# Minimum IAM required:
+#   - Job service account (compute SA today): roles/cloudsql.client,
+#     storage read/write on the app bucket (objects under
+#     practice-exports/), secretAccessor on every secret mounted via
+#     --set-secrets.
+#   - App service account: roles/run.invoker on dtk-export-worker only
+#     (granted below) so api/data-export-v2.php can call jobs:run.
+#   - Cloud Scheduler service agent: roles/iam.serviceAccountTokenCreator
+#     on the OAuth service account (best-effort grant below).
+# A dedicated service account for the job is recommended future
+# hardening; the compute SA is used today to match dtk-app-prod.
+#
 # Usage: ./scripts/provision-export-worker.sh
-# Requires: gcloud authenticated, project dtk-prod-core, python3.
+# Requires: gcloud authenticated, project dtk-prod-core, python3, gsutil.
 # ===========================================
 
 set -e
@@ -149,6 +161,53 @@ else
         --attempt-deadline 60s \
         --max-retry-attempts 1 \
         --quiet
+fi
+
+# ---------- GCS lifecycle: expire practice-exports/ artifacts ----------
+# Backstop for the worker sweeper: delete export artifacts 8 days after
+# upload (exports expire at 7 days). Existing bucket rules are preserved -
+# we read the current lifecycle config, append our rule if absent, and
+# write the merged result back.
+BUCKET_NAME=$(SERVICE_JSON="$SERVICE_JSON" python3 -c '
+import json, os
+env = json.loads(os.environ["SERVICE_JSON"])["spec"]["template"]["spec"]["containers"][0].get("env", [])
+print(next((e.get("value", "") for e in env if e.get("name") == "GCS_BUCKET_NAME"), ""))
+')
+if [ -n "$BUCKET_NAME" ]; then
+    LIFECYCLE_FILE=$(mktemp /tmp/export-lifecycle.XXXXXX.json)
+    chmod 600 "$LIFECYCLE_FILE"
+    trap 'rm -f "$ENV_FILE" "$LIFECYCLE_FILE"' EXIT
+    gsutil lifecycle get "gs://${BUCKET_NAME}" > "$LIFECYCLE_FILE" 2>/dev/null \
+        || printf '{"lifecycle":{"rule":[]}}\n' > "$LIFECYCLE_FILE"
+    if BUCKET_LC="$LIFECYCLE_FILE" python3 - <<'PY'
+import json, os, sys
+path = os.environ["BUCKET_LC"]
+try:
+    cfg = json.load(open(path))
+except Exception:
+    cfg = {"lifecycle": {"rule": []}}
+rules = cfg.setdefault("lifecycle", {}).setdefault("rule", [])
+new_rule = {"action": {"type": "Delete"},
+            "condition": {"age": 8, "matchesPrefix": ["practice-exports/"]}}
+for r in rules:
+    c = r.get("condition", {})
+    if r.get("action", {}).get("type") == "Delete" and c.get("matchesPrefix") == ["practice-exports/"]:
+        sys.exit(0)  # already present
+rules.append(new_rule)
+json.dump(cfg, open(path, "w"))
+PY
+    then
+        if gsutil lifecycle set "$LIFECYCLE_FILE" "gs://${BUCKET_NAME}" 2>/dev/null; then
+            echo "GCS lifecycle rule ensured for gs://${BUCKET_NAME} (practice-exports/, 8d)."
+        else
+            echo "WARN: could not set GCS lifecycle rule on gs://${BUCKET_NAME}; sweeper remains the cleanup path."
+        fi
+    else
+        echo "WARN: could not merge GCS lifecycle config for gs://${BUCKET_NAME}."
+    fi
+    rm -f "$LIFECYCLE_FILE"
+else
+    echo "WARN: GCS_BUCKET_NAME not found on ${SERVICE}; skipping lifecycle rule."
 fi
 
 echo "Done. Verify with:"

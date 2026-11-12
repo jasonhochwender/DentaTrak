@@ -64,6 +64,46 @@ if (!function_exists('exportArtifactPut')) {
     }
 }
 
+if (!function_exists('exportArtifactPutFile')) {
+    /**
+     * Store an artifact from an on-disk file WITHOUT loading it into
+     * memory (archives can be large). Local driver moves the file into
+     * exports-v2/; GCS driver streams the upload.
+     */
+    function exportArtifactPutFile(int $practiceId, int $exportId, string $filename, string $absPath): array {
+        $size = filesize($absPath);
+        $sha = hash_file('sha256', $absPath);
+        if ($size === false || $sha === false) {
+            throw new RuntimeException('artifact stat failed');
+        }
+
+        if (exportArtifactDriver() === 'gcs') {
+            require_once __DIR__ . '/gcs-storage.php';
+            $objectPath = exportArtifactPrefix($practiceId, $exportId) . $filename;
+            $bucket = getGcsBucket();
+            $stream = fopen($absPath, 'rb');
+            if ($stream === false) throw new RuntimeException('artifact open failed');
+            try {
+                $bucket->upload($stream, ['name' => $objectPath]);
+            } finally {
+                fclose($stream);
+            }
+            return ['driver' => 'gcs', 'bucket' => $GLOBALS['appConfig']['gcs']['bucket_name'],
+                    'ref' => $objectPath, 'size' => $size, 'sha256' => $sha];
+        }
+
+        $dir = __DIR__ . '/../exports-v2';
+        if (!is_dir($dir)) mkdir($dir, 0700, true);
+        $rel = "{$practiceId}_{$exportId}_" . preg_replace('/[^A-Za-z0-9._-]/', '_', $filename);
+        if (!@rename($absPath, $dir . '/' . $rel)) {
+            if (!@copy($absPath, $dir . '/' . $rel)) throw new RuntimeException('artifact store failed');
+            @unlink($absPath);
+        }
+        chmod($dir . '/' . $rel, 0600);
+        return ['driver' => 'local', 'bucket' => null, 'ref' => $rel, 'size' => $size, 'sha256' => $sha];
+    }
+}
+
 if (!function_exists('exportArtifactDelete')) {
     function exportArtifactDelete(?string $driver, ?string $bucket, ?string $ref): void {
         if (!$ref) return;

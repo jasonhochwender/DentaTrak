@@ -130,7 +130,27 @@ if ($sh !== false) {
     ok('bash syntax valid', trim((string)$lint) === '');
 }
 
-// ---------- 8. End-to-end retry: forced failure requeues ----------
+// ---------- 8. Heartbeat lease + overlapping-worker protection ----------
+$eHb = mkRow($pdo, $uid, $pid, 'queued');
+$claimedHb = ewClaim($pdo, $eHb, 'worker-A');
+ok('claim A succeeds', $claimedHb !== null);
+ok('heartbeat owner A true', ewHeartbeat($pdo, $eHb, 'worker-A') === true);
+ok('heartbeat non-owner B false', ewHeartbeat($pdo, $eHb, 'worker-B') === false);
+// same-second repeat must still report ownership (rowCount bug guard)
+ok('heartbeat repeat same-second true', ewHeartbeat($pdo, $eHb, 'worker-A') === true);
+// a second worker cannot claim while A holds it
+ok('overlapping claim rejected', ewClaim($pdo, $eHb, 'worker-B') === null);
+// ownership-verified finalize: worker B cannot write terminal state
+$finB = $pdo->prepare("UPDATE data_exports SET status='completed' WHERE id=:id AND claimed_by='worker-B' AND status='processing'");
+$finB->execute(['id' => $eHb]);
+ok('non-owner finalize writes nothing', $finB->rowCount() === 0
+    && $pdo->query("SELECT status FROM data_exports WHERE id={$eHb}")->fetchColumn() === 'processing');
+$finA = $pdo->prepare("UPDATE data_exports SET status='completed' WHERE id=:id AND claimed_by='worker-A' AND status='processing'");
+$finA->execute(['id' => $eHb]);
+ok('owner finalize succeeds', $finA->rowCount() === 1
+    && $pdo->query("SELECT status FROM data_exports WHERE id={$eHb}")->fetchColumn() === 'completed');
+
+// ---------- 9. End-to-end retry: forced failure requeues ----------
 // Claim then simulate crash: status stays processing w/ old claimed_at is
 // covered above. Verify retry SQL path by checking a failed attempt count.
 $eRetry = mkRow($pdo, $uid, $pid, 'queued');
