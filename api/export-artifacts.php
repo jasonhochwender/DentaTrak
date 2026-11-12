@@ -81,6 +81,73 @@ if (!function_exists('exportArtifactDelete')) {
     }
 }
 
+if (!function_exists('exportWorkerMetadataToken')) {
+    /**
+     * Access token from the Cloud Run metadata server. Returns '' outside
+     * GCP (local dev), which makes the job kick a no-op.
+     */
+    function exportWorkerMetadataToken(): string {
+        $json = @file_get_contents(
+            'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token',
+            false,
+            stream_context_create(['http' => ['header' => "Metadata-Flavor: Google\r\n", 'timeout' => 5]])
+        );
+        $d = $json ? json_decode($json, true) : null;
+        return is_array($d) ? (string)($d['access_token'] ?? '') : '';
+    }
+}
+
+if (!function_exists('exportWorkerKickJob')) {
+    /**
+     * Best-effort wake of the dedicated Cloud Run Job for one export.
+     * Returns true when the Jobs API accepted the run request. Failure is
+     * non-fatal: the export row stays 'queued' and the scheduled worker
+     * sweep will pick it up on its next run.
+     *
+     * Requires env EXPORT_RUN_JOB (e.g. projects/.../jobs/dtk-export-worker
+     * or the short job id) plus GOOGLE_CLOUD_PROJECT/REGION. The container
+     * override sets EXPORT_ID, which the worker honors when --id is absent.
+     */
+    function exportWorkerKickJob(int $exportId): bool {
+        $job = getEnvVar('EXPORT_RUN_JOB') ?? '';
+        $project = getEnvVar('GOOGLE_CLOUD_PROJECT') ?? getEnvVar('GCP_PROJECT') ?? '';
+        $region = getEnvVar('GOOGLE_CLOUD_REGION') ?? 'us-east1';
+        if ($job === '' || $project === '') return false;
+
+        // Accept either a full resource name or a bare job id.
+        if (strpos($job, 'jobs/') === false) {
+            $job = "projects/{$project}/locations/{$region}/jobs/" . ltrim($job, '/');
+        }
+        if (strpos($job, 'projects/') !== 0) {
+            $job = 'projects/' . $project . '/' . ltrim($job, '/');
+        }
+        $url = "https://run.googleapis.com/v2/{$job}:run";
+
+        $token = exportWorkerMetadataToken();
+        if ($token === '') return false;
+
+        $ctx = stream_context_create(['http' => [
+            'method' => 'POST',
+            'header' => "Authorization: Bearer {$token}\r\nContent-Type: application/json",
+            'content' => json_encode(['overrides' => ['containerOverrides' => [[
+                'env' => [['name' => 'EXPORT_ID', 'value' => (string)$exportId]],
+            ]]]]),
+            'timeout' => 10,
+            'ignore_errors' => true,
+        ]]);
+        $body = @file_get_contents($url, false, $ctx);
+        $status = 0;
+        foreach (($http_response_header ?? []) as $h) {
+            if (preg_match('#^HTTP/\S+\s+(\d+)#', $h, $m)) { $status = (int)$m[1]; break; }
+        }
+        if ($status < 200 || $status >= 300) {
+            error_log('[export-dispatch] jobs.run returned HTTP ' . $status . ' for export ' . $exportId);
+            return false;
+        }
+        return true;
+    }
+}
+
 if (!function_exists('exportArtifactSignedUrl')) {
     /**
      * Short-lived download URL. GCS: V4 signed URL (15 min). Local dev:

@@ -75,7 +75,9 @@ function de2IsUnrestrictedAdminOrOwner(PDO $pdo, int $practiceId, int $userId): 
 function de2EnsureSchema(): void {
     global $pdo;
     require_once __DIR__ . '/../migrations/2026_11_13_data_exports_v2.php';
+    require_once __DIR__ . '/../migrations/2026_11_20_data_exports_v2_attempts.php';
     runDataExportsV2Migration($pdo);
+    runDataExportsV2AttemptsMigration($pdo);
 }
 
 $method = $_SERVER['REQUEST_METHOD'];

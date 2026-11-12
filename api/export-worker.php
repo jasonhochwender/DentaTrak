@@ -16,7 +16,15 @@
  * missing/changed objects are reported explicitly, never silently.
  */
 
-if (php_sapi_name() !== 'cli') {
+// Bootstrap (auth/opts) only runs when this file is the directly-invoked
+// script. When included as a library (tests, the dev inline path in
+// data-export-v2.php) we skip straight to the shared requires and function
+// definitions; the driver at the bottom is guarded the same way.
+$__ewDirect = realpath($_SERVER['SCRIPT_FILENAME'] ?? '') === realpath(__FILE__);
+
+if (!$__ewDirect) {
+    $opts = ['id' => 0, 'limit' => 5, 'sweep_only' => false];
+} elseif (php_sapi_name() !== 'cli') {
     require_once __DIR__ . '/appConfig.php';
     require_once __DIR__ . '/feature-flags.php';
     require_once __DIR__ . '/queue-worker-auth.php';
@@ -32,12 +40,18 @@ if (php_sapi_name() !== 'cli') {
         echo json_encode(['success' => false, 'message' => 'disabled']);
         exit;
     }
-    $opts = ['id' => (int)($_GET['id'] ?? $_POST['id'] ?? 0), 'limit' => 1];
+    $opts = ['id' => (int)($_GET['id'] ?? $_POST['id'] ?? 0), 'limit' => 1, 'sweep_only' => !empty($_POST['sweep_only'])];
 } else {
-    $opts = ['id' => 0, 'limit' => 5];
+    $opts = ['id' => 0, 'limit' => 5, 'sweep_only' => false];
     foreach ($argv ?? [] as $a) {
         if (preg_match('/^--id=(\d+)$/', $a, $m)) $opts['id'] = (int)$m[1];
         if (preg_match('/^--limit=(\d+)$/', $a, $m)) $opts['limit'] = max(1, min(20, (int)$m[1]));
+        if ($a === '--sweep-only') $opts['sweep_only'] = true;
+    }
+    // Cloud Run Job dispatch passes the target export via EXPORT_ID env.
+    if ($opts['id'] === 0) {
+        $envId = (int)getenv('EXPORT_ID');
+        if ($envId > 0) $opts['id'] = $envId;
     }
 }
 
@@ -54,11 +68,16 @@ require_once __DIR__ . '/email-sender.php';
 require_once __DIR__ . '/encryption.php';
 require_once __DIR__ . '/export-artifacts.php';
 require_once __DIR__ . '/../migrations/2026_11_13_data_exports_v2.php';
+require_once __DIR__ . '/../migrations/2026_11_20_data_exports_v2_attempts.php';
 
 if (!isset($pdo) || !($pdo instanceof PDO)) {
     if (php_sapi_name() !== 'cli') { http_response_code(500); echo json_encode(['success' => false]); exit; }
     fwrite(STDERR, "no db\n"); exit(1);
 }
+
+if (!defined('EW_MAX_ATTEMPTS')) define('EW_MAX_ATTEMPTS', 3);
+if (!defined('EW_STALE_MINUTES')) define('EW_STALE_MINUTES', 20);
+if (!defined('EW_ABANDON_HOURS')) define('EW_ABANDON_HOURS', 24);
 
 $workerId = gethostname() . '-' . getmypid();
 $processed = 0;
@@ -77,33 +96,6 @@ function ewNextId(PDO $pdo, int $exportId): ?int {
     return $v ? (int)$v : null;
 }
 
-// Best-effort Cloud Run Job kick (production only). The job is also
-// scheduled/drained independently, so failure here is non-fatal.
-function exportWorkerKickJob(int $exportId): void {
-    $job = getEnvVar('EXPORT_RUN_JOB') ?? '';
-    if ($job === '') return;
-    $project = getEnvVar('GOOGLE_CLOUD_PROJECT') ?? getEnvVar('GCP_PROJECT') ?? '';
-    $region = getEnvVar('GOOGLE_CLOUD_REGION') ?? 'us-east1';
-    if ($project === '') return;
-    $url = "https://run.googleapis.com/v2/projects/{$project}/locations/{$region}/jobs/{$job}:run";
-    $ctx = stream_context_create(['http' => [
-        'method' => 'POST',
-        'header' => "Authorization: Bearer " . ewMetadataToken() . "\r\nContent-Type: application/json",
-        'content' => json_encode(['overrides' => ['containerOverrides' => [['env' => [['name' => 'EXPORT_ID', 'value' => (string)$exportId]]]]]]),
-        'timeout' => 10,
-        'ignore_errors' => true,
-    ]]);
-    @file_get_contents($url, false, $ctx);
-}
-
-function ewMetadataToken(): string {
-    $ctx = stream_context_create(['http' => ['timeout' => 5]]);
-    $json = @file_get_contents('http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token', false,
-        stream_context_create(['http' => ['header' => "Metadata-Flavor: Google\r\n", 'timeout' => 5]]));
-    $d = $json ? json_decode($json, true) : null;
-    return $d['access_token'] ?? '';
-}
-
 function ewCsvRow(array $fields): string {
     $out = fopen('php://temp', 'r+');
     fputcsv($out, $fields);
@@ -115,7 +107,8 @@ function ewCsvRow(array $fields): string {
 
 // Claim one queued export atomically and return its row.
 function ewClaim(PDO $pdo, int $exportId, string $workerId): ?array {
-    $stmt = $pdo->prepare("UPDATE data_exports SET status='processing', claimed_at=NOW(), claimed_by=:w
+    $stmt = $pdo->prepare("UPDATE data_exports SET status='processing', claimed_at=NOW(), claimed_by=:w,
+        attempts=attempts+1
         WHERE id=:id AND status='queued' AND export_type='case_data'");
     $stmt->execute(['w' => $workerId, 'id' => $exportId]);
     if ($stmt->rowCount() === 0) return null;
@@ -140,6 +133,7 @@ function exportWorkerProcessOne(PDO $pdo, int $exportId, string $workerId): arra
 
     try {
         runDataExportsV2Migration($pdo);
+        runDataExportsV2AttemptsMigration($pdo);
 
         // ---------- Phase A: consistent-snapshot DB read ----------
         // Everything the artifact needs is read inside ONE transaction and
@@ -304,7 +298,9 @@ function exportWorkerProcessOne(PDO $pdo, int $exportId, string $workerId): arra
         $sectionsDone = array_keys($manifest['sections']);
 
         // ---------- Phase C: finalize ----------
-        $expiresAt = date('Y-m-d H:i:s', strtotime('+7 days'));
+        // Expiry is computed on the DB clock so it can't drift from the
+        // server's NOW() used by the sweeper and download checks.
+        $expiresAt = $pdo->query("SELECT DATE_FORMAT(NOW() + INTERVAL 7 DAY, '%Y-%m-%d %H:%i:%s')")->fetchColumn();
         $manifest['artifact'] = ['name' => $artifactName, 'size' => $put['size'], 'sha256' => $put['sha256'],
                                   'driver' => $put['driver']];
         $pdo->prepare("UPDATE data_exports SET status='completed', progress=100,
@@ -336,6 +332,15 @@ function exportWorkerProcessOne(PDO $pdo, int $exportId, string $workerId): arra
         return ['id' => $exportId, 'status' => 'completed', 'size' => $put['size']];
     } catch (Throwable $e) {
         error_log('[export-worker] export ' . $exportId . ' failed: ' . $e->getMessage());
+        // Bounded retry: transient failures go back to 'queued' until the
+        // attempt budget is exhausted, then the export is marked failed.
+        $attempts = (int)($export['attempts'] ?? 0);
+        if ($attempts < EW_MAX_ATTEMPTS) {
+            $pdo->prepare("UPDATE data_exports SET status='queued', claimed_at=NULL, claimed_by=NULL,
+                error_message=:em, progress=0 WHERE id=:id")
+                ->execute(['em' => 'Export processing failed (will retry)', 'id' => $exportId]);
+            return ['id' => $exportId, 'status' => 'queued', 'error' => $e->getMessage(), 'retry' => true];
+        }
         $pdo->prepare("UPDATE data_exports SET status='failed', error_message=:em, progress=0 WHERE id=:id")
             ->execute(['em' => 'Export processing failed', 'id' => $exportId]);
         return ['id' => $exportId, 'status' => 'failed', 'error' => $e->getMessage()];
@@ -343,6 +348,67 @@ function exportWorkerProcessOne(PDO $pdo, int $exportId, string $workerId): arra
         foreach (glob($tmpDir . '/*') ?: [] as $f) @unlink($f);
         @rmdir($tmpDir);
     }
+}
+
+/**
+ * Maintenance sweep run at the start of every worker invocation:
+ *  1. Expired v2 artifacts - delete the stored object/file and mark the
+ *     row 'expired' so it can never be downloaded again, even if object
+ *     deletion is delayed or fails (status gate blocks downloads).
+ *  2. Stale 'processing' claims (worker died mid-export) - requeue while
+ *     attempts remain, otherwise fail permanently.
+ *  3. Abandoned 'queued' rows older than EW_ABANDON_HOURS - fail them so
+ *     they cannot sit forever if dispatch never happened.
+ *
+ * Legacy export rows (export_type='legacy_json') are never touched.
+ */
+function exportWorkerSweep(PDO $pdo): array {
+    runDataExportsV2Migration($pdo);
+    runDataExportsV2AttemptsMigration($pdo);
+    $out = ['expired' => 0, 'requeued' => 0, 'failed_stale' => 0, 'abandoned' => 0];
+
+    // 1. Expired artifacts (v2 only).
+    $exp = $pdo->query("SELECT id, gcs_object, gcs_bucket, file_path FROM data_exports
+        WHERE export_type <> 'legacy_json' AND status IN ('completed','failed','processing','queued','pending')
+          AND expires_at IS NOT NULL AND expires_at < NOW()")->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($exp as $row) {
+        $id = (int)$row['id'];
+        if (!empty($row['gcs_object'])) {
+            exportArtifactDelete('gcs', $row['gcs_bucket'], $row['gcs_object']);
+        } elseif (!empty($row['file_path'])) {
+            exportArtifactDelete('local', null, $row['file_path']);
+        }
+        $pdo->prepare("UPDATE data_exports SET status='expired' WHERE id=:id")->execute(['id' => $id]);
+        $out['expired']++;
+    }
+
+    // 2. Stale processing claims.
+    $stale = $pdo->query("SELECT id, attempts FROM data_exports
+        WHERE export_type <> 'legacy_json' AND status='processing'
+          AND claimed_at IS NOT NULL AND claimed_at < NOW() - INTERVAL " . (int)EW_STALE_MINUTES . " MINUTE")
+        ->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($stale as $row) {
+        $id = (int)$row['id'];
+        $attempts = (int)$row['attempts'];
+        if ($attempts >= EW_MAX_ATTEMPTS) {
+            $pdo->prepare("UPDATE data_exports SET status='failed', claimed_at=NULL, claimed_by=NULL,
+                error_message='Worker claim expired' WHERE id=:id")->execute(['id' => $id]);
+            $out['failed_stale']++;
+        } else {
+            $pdo->prepare("UPDATE data_exports SET status='queued', claimed_at=NULL, claimed_by=NULL WHERE id=:id")
+                ->execute(['id' => $id]);
+            $out['requeued']++;
+        }
+    }
+
+    // 3. Abandoned queued rows (never claimed before expiry window).
+    $ab = $pdo->prepare("UPDATE data_exports SET status='failed', error_message='Abandoned before processing'
+        WHERE export_type <> 'legacy_json' AND status='queued'
+          AND created_at < NOW() - INTERVAL " . (int)EW_ABANDON_HOURS . " HOUR");
+    $ab->execute();
+    $out['abandoned'] = $ab->rowCount();
+
+    return $out;
 }
 
 function ewSendReadyEmail(string $email, int $exportId, int $size, string $expiresAt, string $format, ?int $userId): void {
@@ -365,8 +431,13 @@ if ($__ewSelf !== realpath(__FILE__)) {
 }
 unset($__ewSelf);
 
-$limit = $opts['limit'];
+// Maintenance first: expire artifacts, recover stale claims, fail
+// abandoned rows - on every run, including EXPORT_ID-targeted kicks.
+$sweep = exportWorkerSweep($pdo);
+
+$limit = $opts['sweep_only'] ? 0 : $opts['limit'];
 $processed = 0;
+$results = [];
 while ($processed < $limit) {
     $nextId = ewNextId($pdo, $opts['id']);
     if ($nextId === null) break;
@@ -376,7 +447,7 @@ while ($processed < $limit) {
     if ($opts['id'] > 0) break; // single explicit id
 }
 
-$out = ['success' => true, 'processed' => $processed, 'results' => $results];
+$out = ['success' => true, 'processed' => $processed, 'sweep' => $sweep, 'results' => $results];
 if (php_sapi_name() === 'cli') {
     echo json_encode($out, JSON_PRETTY_PRINT) . PHP_EOL;
 } else {

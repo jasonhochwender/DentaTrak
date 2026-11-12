@@ -102,6 +102,14 @@ steps:
         'scripts/provision-ask-usage-worker.sh'
       ]
 
+  # ---------- Ensure data-export Cloud Run Job + sweep schedule (idempotent) ----------
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: bash
+    args:
+      [
+        'scripts/provision-export-worker.sh'
+      ]
+
 # Authenticated smoke-test credentials for the synthetic test-practice
 # account (injected as env vars into the staged-auth-smoke step only).
 availableSecrets:
