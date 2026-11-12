@@ -26,9 +26,11 @@ $block = ($start !== false && $end !== false) ? substr($js, $start, $end - $star
 ok('export JS block located', $block !== '');
 
 // ---------- Markup ----------
-ok('legacy export button removed', strpos($main, 'id="exportDataBtn"') === false);
-ok('legacy export status div removed', strpos($main, 'id="exportStatus"') === false);
-ok('legacy section title key gone from markup', strpos($main, "settings.data_privacy.export.title") === false);
+ok('legacy export UI scoped to non-allowlisted practices',
+    strpos($main, 'id="exportDataBtn"') !== false
+    && strpos($main, 'dataExportV2PracticeAllowed') !== false);
+ok('legacy export status div present for fallback', strpos($main, 'id="exportStatus"') !== false);
+ok('legacy section title key present for fallback', strpos($main, "settings.data_privacy.export.title") !== false);
 ok('case data section present', strpos($main, 'export_v2.title') !== false);
 ok('archive section present', strpos($main, 'export_v2.archive_title') !== false);
 ok('history section present', strpos($main, 'exportV2List') !== false);
@@ -75,6 +77,15 @@ ok('missing export shows generic notice', strpos($block, 'export_not_found') !==
 ok('deep link self-invokes for deferred app.js',
     substr_count($block, 'processPendingExport') >= 2
     && strpos($block, 'window.processPendingExport();') !== false);
+ok('deep link falls back to scoped single-export lookup',
+    strpos($block, 'action=status&export_id=') !== false
+    && strpos($block, 'exportHistoryRowHtml(ex)') !== false
+    && strpos($block, 'bindExportV2Download(dl)') !== false);
+$v2Api = file_get_contents(__DIR__ . '/../api/data-export-v2.php');
+ok('status endpoint resolves single export by id',
+    strpos($v2Api, "\$_GET['export_id']") !== false
+    && strpos($v2Api, 'WHERE id = :id AND user_id = :u AND practice_id = :p') !== false
+    && strpos($v2Api, "case 'status'") !== false);
 $workerSrc = file_get_contents(__DIR__ . '/../api/export-worker.php');
 ok('ready email deep-links to export', strpos($workerSrc, "main.php?export_id=") !== false);
 ok('failed email deep-links to export', substr_count($workerSrc, "main.php?export_id=") >= 2);
@@ -108,6 +119,15 @@ $en = json_decode(file_get_contents(__DIR__ . '/../locales/en-US.json'), true)['
 ok('title has no (new) suffix', $en['title'] === 'Case Data Export');
 ok('button is Export Case Data', $en['button'] === 'Export Case Data');
 ok('archive button is Create Archive (ZIP)', $en['archive_button'] === 'Create Archive (ZIP)');
+
+// ---------- Non-allowlisted legacy fallback ----------
+ok('legacy export section retained for non-allowlisted practices',
+    strpos($main, 'exportDataBtn') !== false
+    && strpos($main, "settings.data_privacy.export.title") !== false
+    && strpos($main, 'dataExportV2PracticeAllowed') !== false);
+ok('legacy export JS listener restored',
+    strpos($block, "getElementById('exportDataBtn')") !== false
+    && strpos($block, 'api/data-export.php?action=request') !== false);
 
 echo "\n{$passed} passed, {$failed} failed\n";
 exit($failed > 0 ? 1 : 0);

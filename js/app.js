@@ -15472,8 +15472,67 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ============================================
-    // DATA EXPORT (v2 pipeline; legacy endpoint retained server-side)
+    // DATA EXPORT (v2 pipeline where allowlisted; legacy endpoint
+    // remains the export path for other practices)
     // ============================================
+    var exportDataBtn = document.getElementById('exportDataBtn');
+    var exportStatus = document.getElementById('exportStatus');
+
+    if (exportDataBtn) {
+      exportDataBtn.addEventListener('click', function() {
+        showConfirmModal(
+          t('settings.data_privacy.export.confirm_title'),
+          t('settings.data_privacy.export.confirm_message'),
+          function() {
+            exportDataBtn.disabled = true;
+            exportDataBtn.innerHTML = '<span class="btn-icon">⏳</span> ' + t('settings.data_privacy.export.preparing');
+
+            if (exportStatus) {
+              exportStatus.textContent = t('settings.data_privacy.export.preparing_status');
+              exportStatus.className = 'export-status';
+              exportStatus.style.display = 'block';
+            }
+
+            fetch('api/data-export.php?action=request', {
+              method: 'POST',
+              headers: { 'X-CSRF-Token': csrfToken },
+              credentials: 'same-origin'
+            })
+            .then(function(response) { return response.json(); })
+            .then(function(data) {
+              if (data.success) {
+                if (exportStatus) {
+                  exportStatus.textContent = t('settings.data_privacy.export.success_status');
+                  exportStatus.className = 'export-status success';
+                }
+                if (typeof Toast !== 'undefined') {
+                  Toast.success(t('settings.data_privacy.export.success_title'), t('settings.data_privacy.export.success_message'));
+                }
+              } else {
+                if (exportStatus) {
+                  exportStatus.textContent = data.message || t('settings.data_privacy.export.error');
+                  exportStatus.className = 'export-status error';
+                }
+              }
+            })
+            .catch(function() {
+              if (exportStatus) {
+                exportStatus.textContent = t('settings.data_privacy.export.unknown_error');
+                exportStatus.className = 'export-status error';
+              }
+            })
+            .finally(function() {
+              exportDataBtn.disabled = false;
+              exportDataBtn.innerHTML = '<span class="btn-icon">📥</span> ' + t('settings.data_privacy.export.button');
+            });
+          },
+          null,
+          false,
+          exportDataBtn
+        );
+      });
+    }
+
     var exportV2Btn = document.getElementById('exportV2Btn');
     var exportV2Status = document.getElementById('exportV2Status');
     var exportV2List = document.getElementById('exportV2List');
@@ -15527,6 +15586,56 @@ document.addEventListener('DOMContentLoaded', function () {
       return exportV2T('status_' + (s || 'unknown')) || s || '';
     }
 
+    function exportHistoryRowHtml(e) {
+      var badgeCls = exportStatusBadgeClass[e.status] || 'muted';
+      var dl = '';
+      if (e.status === 'completed') {
+        dl = '<button type="button" class="btn-secondary btn-sm export-v2-download" data-id="' + e.id + '">' +
+             exportV2T('download') + '</button>';
+      }
+      var warn = (parseInt(e.archive_warnings, 10) || 0) > 0
+        ? ' <span class="export-warn-flag" title="' + e.archive_warnings + '">&#9888;</span>' : '';
+      var meta = [];
+      meta.push('#' + e.id + ' · ' + exportV2TypeLabel(e));
+      meta.push(exportV2T('history_created') + ' ' + exportFmtDateTime(e.created_at));
+      if (e.file_size) meta.push(Math.round(e.file_size / 1024) + ' KB');
+      if (e.expires_at) meta.push(exportV2T('expires') + ' ' + exportFmtDateTime(e.expires_at));
+      if (e.error_message && e.status === 'failed') {
+        meta.push(String(e.error_message).replace(/[&<>"']/g, function(c) {
+          return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+        }));
+      }
+      return '<div class="export-history-row" data-export-id="' + e.id + '">' +
+        '<span class="export-status-badge ' + badgeCls + '">' + exportV2StatusText(e.status) + '</span>' +
+        '<span class="export-history-meta">' + meta.join(' · ') + '</span>' + warn + dl + '</div>';
+    }
+
+    function bindExportV2Download(btn) {
+      btn.addEventListener('click', function() {
+        btn.disabled = true;
+        var fd = new FormData();
+        fd.append('export_id', btn.dataset.id);
+        fd.append('csrf_token', csrfToken);
+        fetch('api/data-export-v2.php?action=download_url', {
+          method: 'POST', credentials: 'same-origin',
+          headers: { 'X-CSRF-Token': csrfToken }, body: fd
+        }).then(function(r) { return r.json().then(function(d) { return { ok: r.ok, d: d }; }); })
+          .then(function(res) {
+            var d = res.d || {};
+            if (d.success && d.url) { window.location.href = d.url; }
+            else {
+              btn.disabled = false;
+              showToast(d.message || exportV2T('download_error'), 'error');
+              loadExportV2Status();
+            }
+          })
+          .catch(function() {
+            btn.disabled = false;
+            showToast(exportV2T('download_error'), 'error');
+          });
+      });
+    }
+
     function renderExportV2List(exports) {
       if (!exportV2List) return;
       if (!exports || !exports.length) {
@@ -15534,55 +15643,9 @@ document.addEventListener('DOMContentLoaded', function () {
         highlightPendingExport();
         return;
       }
-      exportV2List.innerHTML = exports.map(function(e) {
-        var badgeCls = exportStatusBadgeClass[e.status] || 'muted';
-        var dl = '';
-        if (e.status === 'completed') {
-          dl = '<button type="button" class="btn-secondary btn-sm export-v2-download" data-id="' + e.id + '">' +
-               exportV2T('download') + '</button>';
-        }
-        var warn = (parseInt(e.archive_warnings, 10) || 0) > 0
-          ? ' <span class="export-warn-flag" title="' + e.archive_warnings + '">&#9888;</span>' : '';
-        var meta = [];
-        meta.push('#' + e.id + ' · ' + exportV2TypeLabel(e));
-        meta.push(exportV2T('history_created') + ' ' + exportFmtDateTime(e.created_at));
-        if (e.file_size) meta.push(Math.round(e.file_size / 1024) + ' KB');
-        if (e.expires_at) meta.push(exportV2T('expires') + ' ' + exportFmtDateTime(e.expires_at));
-        if (e.error_message && e.status === 'failed') {
-          meta.push(String(e.error_message).replace(/[&<>"']/g, function(c) {
-            return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
-          }));
-        }
-        return '<div class="export-history-row" data-export-id="' + e.id + '">' +
-          '<span class="export-status-badge ' + badgeCls + '">' + exportV2StatusText(e.status) + '</span>' +
-          '<span class="export-history-meta">' + meta.join(' · ') + '</span>' + warn + dl + '</div>';
-      }).join('');
+      exportV2List.innerHTML = exports.map(exportHistoryRowHtml).join('');
       highlightPendingExport();
-      exportV2List.querySelectorAll('.export-v2-download').forEach(function(btn) {
-        btn.addEventListener('click', function() {
-          btn.disabled = true;
-          var fd = new FormData();
-          fd.append('export_id', btn.dataset.id);
-          fd.append('csrf_token', csrfToken);
-          fetch('api/data-export-v2.php?action=download_url', {
-            method: 'POST', credentials: 'same-origin',
-            headers: { 'X-CSRF-Token': csrfToken }, body: fd
-          }).then(function(r) { return r.json().then(function(d) { return { ok: r.ok, d: d }; }); })
-            .then(function(res) {
-              var d = res.d || {};
-              if (d.success && d.url) { window.location.href = d.url; }
-              else {
-                btn.disabled = false;
-                showToast(d.message || exportV2T('download_error'), 'error');
-                loadExportV2Status();
-              }
-            })
-            .catch(function() {
-              btn.disabled = false;
-              showToast(exportV2T('download_error'), 'error');
-            });
-        });
-      });
+      exportV2List.querySelectorAll('.export-v2-download').forEach(bindExportV2Download);
     }
 
     function loadExportV2Status() {
@@ -15660,7 +15723,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // the referenced row. The id is only a navigation hint - every data
     // access still goes through the authenticated, practice-scoped APIs.
     var pendingExportHighlight = null;
-    var exportDeepLinkResolved = false;
+    var exportDeepLinkLookupAttempted = false;
 
     function stripExportIdParam() {
       try {
@@ -15696,23 +15759,58 @@ document.addEventListener('DOMContentLoaded', function () {
       return id;
     }
 
+    function highlightExportRow(row) {
+      row.classList.add('export-history-highlight');
+      row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+
+    function exportDeepLinkNotFound() {
+      // Older than the history window, another practice, denied, or
+      // nonexistent - say so generically without revealing which.
+      showToast(exportV2T('export_not_found'), 'info');
+    }
+
     function highlightPendingExport() {
       if (pendingExportHighlight === null || !exportV2List) return;
+      var id = pendingExportHighlight;
       var row = exportV2List.querySelector(
-        '.export-history-row[data-export-id="' + pendingExportHighlight + '"]');
+        '.export-history-row[data-export-id="' + id + '"]');
       if (row) {
         pendingExportHighlight = null;
-        exportDeepLinkResolved = true;
-        row.classList.add('export-history-highlight');
-        row.scrollIntoView({ block: 'center', behavior: 'smooth' });
-      } else {
-        // List fully rendered and the id is absent: older than the 10-row
-        // window, another practice, denied, or nonexistent - say so
-        // generically without revealing which.
-        pendingExportHighlight = null;
-        exportDeepLinkResolved = true;
-        showToast(exportV2T('export_not_found'), 'info');
+        highlightExportRow(row);
+        return;
       }
+      // Not in the recent list - resolve it directly once via the
+      // practice+caller-scoped status lookup (covers exports older than
+      // the 10-row window). The endpoint returns 404 for foreign or
+      // nonexistent ids, which maps to the same generic notice.
+      if (exportDeepLinkLookupAttempted) {
+        pendingExportHighlight = null;
+        exportDeepLinkNotFound();
+        return;
+      }
+      exportDeepLinkLookupAttempted = true;
+      pendingExportHighlight = null;
+      fetch('api/data-export-v2.php?action=status&export_id=' + encodeURIComponent(id),
+        { credentials: 'same-origin' })
+        .then(function(r) { return r.json().then(function(d) { return { ok: r.ok, d: d }; }); })
+        .then(function(res) {
+          var ex = res.d && res.d.exports && res.d.exports[0];
+          if (!ex) { exportDeepLinkNotFound(); return; }
+          // Render the resolved row at the top of history so the user
+          // sees it in context; Download wiring matches list rows.
+          var empty = exportV2List.querySelector('.export-history-empty');
+          if (empty) empty.remove();
+          exportV2List.insertAdjacentHTML('afterbegin', exportHistoryRowHtml(ex));
+          var nr = exportV2List.querySelector(
+            '.export-history-row[data-export-id="' + ex.id + '"]');
+          if (nr) {
+            highlightExportRow(nr);
+            var dl = nr.querySelector('.export-v2-download');
+            if (dl) bindExportV2Download(dl);
+          }
+        })
+        .catch(function() { exportDeepLinkNotFound(); });
     }
 
     function openExportDeepLinkSettings(attempt) {

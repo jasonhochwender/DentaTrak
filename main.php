@@ -4546,6 +4546,19 @@ endif;
                           <h4 class="subsection-title"><?php echo t('settings.data_privacy.export_v2.history_title'); ?></h4>
                           <div id="exportV2List" class="export-history-list"></div>
                         </div>
+                        <?php else: ?>
+                        <!-- Legacy export remains the export path for practices
+                             outside the DATA_EXPORT_V2 allowlist until V2 is
+                             enabled for them. -->
+                        <div class="data-export-section">
+                          <h4 class="subsection-title"><?php echo t('settings.data_privacy.export.title'); ?></h4>
+                          <p class="section-description"><?php echo t('settings.data_privacy.export.description'); ?></p>
+                          <div id="exportStatus" class="export-status" style="display: none;"></div>
+                          <button type="button" id="exportDataBtn" class="btn-secondary">
+                            <span class="btn-icon">📥</span> <?php echo t('settings.data_privacy.export.button'); ?>
+                          </button>
+                          <p class="export-note"><?php echo t('settings.data_privacy.export.note'); ?></p>
+                        </div>
                         <?php endif; ?>
                         <?php if ($isCurrentUserPracticeAdmin): ?>
                         <div class="phi-audit-section">

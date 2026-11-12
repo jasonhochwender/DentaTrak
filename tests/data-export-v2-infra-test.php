@@ -256,6 +256,13 @@ ok('legacy download enforces expires_at',
     && strpos($legacySrc, "strtotime(\$export['expires_at']) < time()") !== false);
 ok('sweep expires legacy rows',
     strpos($workerSrc, 'legacy_json') !== false && strpos($workerSrc, 'gcs:') !== false);
+ok('status endpoint resolves single export by id (deep link)',
+    strpos($v2Src, "\$_GET['export_id']") !== false
+    && strpos($v2Src, 'WHERE id = :id AND user_id = :u AND practice_id = :p') !== false);
+ok('signed URL TTL clamped to export expiry',
+    strpos($v2Src, 'expires_at') !== false
+    && strpos($v2Src, 'strtotime($export[') !== false
+    && strpos($v2Src, 'exportArtifactSignedUrl($artifact, $ttl)') !== false);
 
 // ---------- Cleanup ----------
 foreach ($made as $id) { $pdo->exec("DELETE FROM data_exports WHERE id=" . (int)$id); }

@@ -165,9 +165,30 @@ function de2HandleRequest(PDO $pdo, int $userId, int $practiceId, string $userEm
 
 function de2HandleStatus(PDO $pdo, int $userId, int $practiceId): void {
     de2EnsureSchema();
-    $stmt = $pdo->prepare("SELECT id, export_type, format, status, progress,
+    $cols = "id, export_type, format, status, progress,
         file_size, gcs_object, expires_at, created_at, completed_at, error_message,
-        COALESCE(JSON_LENGTH(JSON_EXTRACT(manifest_json, '$.warnings')), 0) AS archive_warnings
+        COALESCE(JSON_LENGTH(JSON_EXTRACT(manifest_json, '$.warnings')), 0) AS archive_warnings";
+    // Deep-link lookup: ?export_id=N resolves a single export for the
+    // Settings > Data & Privacy highlight flow, including exports older
+    // than the 10-row history window. Same caller+practice scope as the
+    // list, so a foreign or nonexistent id is indistinguishable.
+    $exportId = (int)($_GET['export_id'] ?? 0);
+    if ($exportId > 0) {
+        $stmt = $pdo->prepare("SELECT {$cols} FROM data_exports
+            WHERE id = :id AND user_id = :u AND practice_id = :p LIMIT 1");
+        $stmt->execute(['id' => $exportId, 'u' => $userId, 'p' => $practiceId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$row) {
+            de2Out(404, ['success' => false, 'message' => t('export.not_found_or_expired')]);
+        }
+        if ($row['status'] === 'completed' && !empty($row['expires_at'])
+            && strtotime($row['expires_at']) < time()) {
+            $row['status'] = 'expired';
+        }
+        echo json_encode(['success' => true, 'exports' => [$row]]);
+        return;
+    }
+    $stmt = $pdo->prepare("SELECT {$cols}
         FROM data_exports WHERE user_id = :u AND practice_id = :p ORDER BY created_at DESC LIMIT 10");
     $stmt->execute(['u' => $userId, 'p' => $practiceId]);
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -225,7 +246,15 @@ function de2HandleDownloadUrl(PDO $pdo, int $userId, int $practiceId): void {
         $artifact['bucket'] = $export['gcs_bucket'];
     }
 
-    $url = exportArtifactSignedUrl($artifact, 900);
+    // The signed URL must not outlive the export's own expiry: clamp the
+    // TTL to the remaining lifetime (expires_at was already verified
+    // future-dated above, so remaining is always >= 1 second here).
+    $ttl = 900;
+    if (!empty($export['expires_at'])) {
+        $remaining = strtotime($export['expires_at']) - time();
+        if ($remaining < $ttl) $ttl = max(1, (int)$remaining);
+    }
+    $url = exportArtifactSignedUrl($artifact, $ttl);
     if (!$url) {
         de2Out(500, ['success' => false, 'message' => 'Could not issue download URL']);
     }
@@ -237,7 +266,7 @@ function de2HandleDownloadUrl(PDO $pdo, int $userId, int $practiceId): void {
     logPHIAccess(PHI_ACTION_EXPORT_URL_ISSUED, null, ['export_id' => $exportId, 'format' => $export['format']],
         'practice_export', (string)$exportId, $practiceId);
 
-    echo json_encode(['success' => true, 'url' => $url, 'expires_in' => 900]);
+    echo json_encode(['success' => true, 'url' => $url, 'expires_in' => $ttl]);
 }
 
 function de2HandleDownloadFile(PDO $pdo, int $userId, int $practiceId): void {
