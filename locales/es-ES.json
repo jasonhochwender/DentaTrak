@@ -1311,6 +1311,28 @@
                 "success_message": "Su exportación de datos se está preparando. Recibirá un correo electrónico cuando esté lista.",
                 "error": "No se pudo iniciar la exportación.",
                 "unknown_error": "Ocurrió un error. Inténtelo de nuevo."
+            },
+            "export_v2": {
+                "title": "Exportación de datos de casos (nuevo)",
+                "description": "Exportación asíncrona de los datos de casos de su consulta en CSV (compatible con Excel) o JSON. Se procesa en segundo plano; el enlace de descarga caduca a los 7 días.",
+                "format_csv": "CSV (Excel)",
+                "format_json": "JSON",
+                "button": "Exportar datos de casos",
+                "queued": "Exportación en cola; recibirá una notificación por correo electrónico cuando esté lista.",
+                "error": "La solicitud de exportación falló.",
+                "download": "Descargar",
+                "status_queued": "En cola",
+                "status_processing": "Procesando",
+                "status_completed": "Lista",
+                "status_failed": "Fallida",
+                "status_expired": "Caducada",
+                "status_pending": "Pendiente",
+                "status_cancelled": "Cancelada",
+                "status_unknown": "Desconocido",
+                "archive_button": "Archivo completo (ZIP)",
+                "archive_note": "Archivo completo de la consulta: todos los casos, archivos, comentarios, ajustes, miembros, registros de escáner e historial de auditoría en un solo ZIP. Requiere acceso de administrador u propietario sin restricciones.",
+                "archive_confirm": "¿Crear un archivo completo de la consulta? Incluye todos los datos y archivos de la consulta y puede tardar varios minutos.",
+                "expires": "caduca"
             }
         },
         "dev_tools": {
@@ -1338,14 +1360,6 @@
             "cannot_archive_protected": "La primera y la última columna no se pueden archivar.",
             "cannot_move_protected": "La primera y la última columna no se pueden mover.",
             "min_active_required": "Se requieren al menos {min} columnas activas.",
-            "scale_used_one": "{used} de {included} consultorio incluido en uso",
-            "scale_used_other": "{used} de {included} consultorios incluidos en uso",
-            "scale_used_few": "{used} de {included} consultorios incluidos en uso",
-            "scale_used_many": "{used} de {included} consultorios incluidos en uso",
-            "additional_one": "{count} consultorio adicional facturado por separado",
-            "additional_other": "{count} consultorios adicionales facturados por separado",
-            "additional_few": "{count} consultorios adicionales facturados por separado",
-            "additional_many": "{count} consultorios adicionales facturados por separado",
             "max_reached": "Un flujo de trabajo puede tener como máximo {max} columnas.",
             "placeholder": "Nombre de la nueva columna",
             "name_required": "El nombre de la columna es obligatorio.",
@@ -1961,7 +1975,9 @@
             "detail_significance": "Importancia operativa",
             "detail_action": "Acción sugerida",
             "fact_overdue_by_status": "Casos vencidos concentrados en: {breakdown}",
-            "fact_overdue_by_type": "Casos vencidos por tipo de caso: {breakdown}"
+            "fact_overdue_by_type": "Casos vencidos por tipo de caso: {breakdown}",
+            "summary_active_few": "{count} hallazgos activos por revisar",
+            "summary_active_many": "{count} hallazgos activos por revisar"
         },
         "metrics": {
             "new_this_month": "Nuevos este mes",
@@ -1988,7 +2004,11 @@
             "hours_other": "{count} horas",
             "completed_cases_base_one": "Basado en {count} caso completado",
             "completed_cases_base_other": "Basado en {count} casos completados",
-            "no_completed_cases": "No hay casos completados disponibles para este período."
+            "no_completed_cases": "No hay casos completados disponibles para este período.",
+            "hours_few": "{count} horas",
+            "hours_many": "{count} horas",
+            "completed_cases_base_few": "Basado en {count} casos completados",
+            "completed_cases_base_many": "Basado en {count} casos completados"
         },
         "labkpi": {
             "active_cases": "Casos de laboratorio activos",
@@ -2143,7 +2163,11 @@
             "backlog_trend_description": "Casos activos estimados al final de cada período (reconstruido del historial)",
             "dataset_backlog": "Pendientes activos",
             "backlog_count": "{count} casos activos",
-            "case_volume_year": "Volumen de casos {year}"
+            "case_volume_year": "Volumen de casos {year}",
+            "volume_net_growth_few": "La cartera creció en {count} casos",
+            "volume_net_growth_many": "La cartera creció en {count} casos",
+            "volume_net_decline_few": "La cartera disminuyó en {count} casos",
+            "volume_net_decline_many": "La cartera disminuyó en {count} casos"
         },
         "filters": {
             "active_cases": "Casos activos",
@@ -2724,7 +2748,15 @@
             "used_other": "{used} de {max} consultorios utilizados",
             "used_few": "{used} de {max} consultorios utilizados",
             "used_many": "{used} de {max} consultorios utilizados",
-            "max_reached": "Límite de consultorios alcanzado"
+            "max_reached": "Límite de consultorios alcanzado",
+            "scale_used_one": "{used} de {included} consultorio incluido en uso",
+            "scale_used_other": "{used} de {included} consultorios incluidos en uso",
+            "scale_used_few": "{used} de {included} consultorios incluidos en uso",
+            "scale_used_many": "{used} de {included} consultorios incluidos en uso",
+            "additional_one": "{count} consultorio adicional facturado por separado",
+            "additional_other": "{count} consultorios adicionales facturados por separado",
+            "additional_few": "{count} consultorios adicionales facturados por separado",
+            "additional_many": "{count} consultorios adicionales facturados por separado"
         },
         "upgrade": {
             "more_practices": "Actualice para agregar más consultorios",
@@ -3601,7 +3633,9 @@
         "storage_unmeasured": "{count} archivo(s) no pudieron medirse y se excluyen de los totales.",
         "storage_last_error": "La última actualización falló; se muestra el resultado anterior.",
         "storage_scope_note": "Incluye adjuntos de casos, imágenes de comentarios, archivos de la bandeja del escáner, revisiones de escaneo retenidas y el logotipo de la consulta. Los casos archivados se cuentan mientras sus archivos sigan almacenados. Se excluyen las subidas temporales no vinculadas.",
-        "search_placeholder": "Buscar clínicas…"
+        "search_placeholder": "Buscar clínicas…",
+        "no_recorded_login": "Sin inicio de sesión registrado",
+        "last_login_member_hint": "Inicio de sesión más reciente entre los miembros de esta consulta (a nivel de cuenta, no de acceso específico a la consulta)"
     },
     "case_types": {
         "crown": "Corona",
@@ -4181,6 +4215,18 @@
             "footer": "Este correo fue enviado por {appName}. Por favor, no responda a este correo.",
             "text_intro": "Su exportación de datos de {appName} está lista para descargar.",
             "download_link": "Enlace de descarga:"
+        },
+        "data_export_v2": {
+            "subject_ready": "Tu exportación de datos de {appName} está lista",
+            "subject_failed": "Tu exportación de datos de {appName} falló",
+            "intro_ready": "Tu exportación {type} (ID {exportId}) está lista.",
+            "intro_failed": "Tu exportación {type} (ID {exportId}) no se pudo completar. Puedes solicitar una nueva exportación desde Configuración > Privacidad de datos.",
+            "cta": "Abrir {appName}",
+            "nav_hint": "Inicia sesión en {appName} y ve a Configuración > Privacidad de datos para descargar tu exportación.",
+            "available_until": "Disponible hasta:",
+            "format_csv": "CSV",
+            "format_json": "JSON",
+            "format_archive": "Archivo completo de la consulta (ZIP)"
         }
     },
     "options": {

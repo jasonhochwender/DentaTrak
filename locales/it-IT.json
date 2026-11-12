@@ -1311,6 +1311,28 @@
                 "success_message": "La tua esportazione dati è in preparazione. Riceverai un'email quando sarà pronta.",
                 "error": "Avvio dell'esportazione non riuscito.",
                 "unknown_error": "Si è verificato un errore. Riprova."
+            },
+            "export_v2": {
+                "title": "Esportazione dati casi (nuova)",
+                "description": "Esportazione asincrona dei dati dei casi del tuo studio in CSV (compatibile con Excel) o JSON. Elaborazione in background; il link di download scade dopo 7 giorni.",
+                "format_csv": "CSV (Excel)",
+                "format_json": "JSON",
+                "button": "Esporta dati dei casi",
+                "queued": "Esportazione in coda - riceverai una notifica via email quando sarà pronta.",
+                "error": "Richiesta di esportazione non riuscita.",
+                "download": "Scarica",
+                "status_queued": "In coda",
+                "status_processing": "In elaborazione",
+                "status_completed": "Pronta",
+                "status_failed": "Non riuscita",
+                "status_expired": "Scaduta",
+                "status_pending": "In attesa",
+                "status_cancelled": "Annullata",
+                "status_unknown": "Sconosciuto",
+                "archive_button": "Archivio completo (ZIP)",
+                "archive_note": "Archivio completo dello studio: tutti i casi, i file, i commenti, le impostazioni, i membri, i record dello scanner e la cronologia di audit in un unico ZIP. Richiede accesso di amministratore o titolare senza restrizioni.",
+                "archive_confirm": "Creare un archivio completo dello studio? Include tutti i dati e i file dello studio e può richiedere diversi minuti.",
+                "expires": "scade"
             }
         },
         "dev_tools": {
@@ -1953,7 +1975,9 @@
             "detail_significance": "Rilevanza operativa",
             "detail_action": "Azione suggerita",
             "fact_overdue_by_status": "Casi scaduti concentrati in: {breakdown}",
-            "fact_overdue_by_type": "Casi scaduti per tipo di caso: {breakdown}"
+            "fact_overdue_by_type": "Casi scaduti per tipo di caso: {breakdown}",
+            "summary_active_few": "{count} insight attivi da esaminare",
+            "summary_active_many": "{count} insight attivi da esaminare"
         },
         "metrics": {
             "new_this_month": "Nuovi questo mese",
@@ -1980,7 +2004,11 @@
             "hours_other": "{count} ore",
             "completed_cases_base_one": "Basato su {count} caso completato",
             "completed_cases_base_other": "Basato su {count} casi completati",
-            "no_completed_cases": "Nessun caso completato disponibile per questo periodo."
+            "no_completed_cases": "Nessun caso completato disponibile per questo periodo.",
+            "hours_few": "{count} ore",
+            "hours_many": "{count} ore",
+            "completed_cases_base_few": "Basato su {count} casi completati",
+            "completed_cases_base_many": "Basato su {count} casi completati"
         },
         "labkpi": {
             "active_cases": "Casi di laboratorio attivi",
@@ -2135,7 +2163,11 @@
             "backlog_trend_description": "Casi attivi stimati alla fine di ogni periodo (ricostruito dalla cronologia)",
             "dataset_backlog": "Casi in sospeso",
             "backlog_count": "{count} casi attivi",
-            "case_volume_year": "Volume casi {year}"
+            "case_volume_year": "Volume casi {year}",
+            "volume_net_growth_few": "Il carico è aumentato di {count} casi",
+            "volume_net_growth_many": "Il carico è aumentato di {count} casi",
+            "volume_net_decline_few": "Il carico è diminuito di {count} casi",
+            "volume_net_decline_many": "Il carico è diminuito di {count} casi"
         },
         "filters": {
             "active_cases": "Casi attivi",
@@ -3601,7 +3633,9 @@
         "storage_unmeasured": "{count} file non sono stati misurabili e sono esclusi dai totali.",
         "storage_last_error": "L’ultimo aggiornamento non è riuscito; viene mostrato il risultato precedente.",
         "storage_scope_note": "Include allegati dei casi, immagini dei commenti, file della posta in arrivo dello scanner, revisioni di scansione conservate e il logo dello studio. I casi archiviati sono conteggiati finché i loro file restano archiviati. I caricamenti temporanei non collegati sono esclusi.",
-        "search_placeholder": "Cerca studi…"
+        "search_placeholder": "Cerca studi…",
+        "no_recorded_login": "Nessun accesso registrato",
+        "last_login_member_hint": "Accesso più recente tra i membri di questo studio (a livello di account, non di accesso specifico allo studio)"
     },
     "case_types": {
         "crown": "Corona",
@@ -4181,6 +4215,18 @@
             "footer": "Questa email è stata inviata da {appName}. Non rispondere a questa email.",
             "text_intro": "La tua esportazione dati da {appName} è pronta per il download.",
             "download_link": "Link di download:"
+        },
+        "data_export_v2": {
+            "subject_ready": "La tua esportazione dati {appName} è pronta",
+            "subject_failed": "La tua esportazione dati {appName} non è riuscita",
+            "intro_ready": "La tua esportazione {type} (ID {exportId}) è pronta.",
+            "intro_failed": "La tua esportazione {type} (ID {exportId}) non ha potuto essere completata. Puoi richiedere una nuova esportazione da Impostazioni > Privacy dei dati.",
+            "cta": "Apri {appName}",
+            "nav_hint": "Accedi a {appName} e vai su Impostazioni > Privacy dei dati per scaricare la tua esportazione.",
+            "available_until": "Disponibile fino al:",
+            "format_csv": "CSV",
+            "format_json": "JSON",
+            "format_archive": "Archivio completo dello studio (ZIP)"
         }
     },
     "options": {

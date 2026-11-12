@@ -1311,6 +1311,28 @@
                 "success_message": "Votre export de données est en cours de préparation. Vous recevrez un e-mail lorsqu'il sera prêt.",
                 "error": "Échec du lancement de l'export.",
                 "unknown_error": "Une erreur s'est produite. Veuillez réessayer."
+            },
+            "export_v2": {
+                "title": "Exportation des données de cas (nouveau)",
+                "description": "Exportation asynchrone des données de cas de votre cabinet au format CSV (compatible Excel) ou JSON. Traitement en arrière-plan; le lien de téléchargement expire après 7 jours.",
+                "format_csv": "CSV (Excel)",
+                "format_json": "JSON",
+                "button": "Exporter les données de cas",
+                "queued": "Exportation en file d'attente - vous serez avisé par courriel lorsqu'elle sera prête.",
+                "error": "La demande d'exportation a échoué.",
+                "download": "Télécharger",
+                "status_queued": "En file d'attente",
+                "status_processing": "En cours de traitement",
+                "status_completed": "Prête",
+                "status_failed": "Échec",
+                "status_expired": "Expirée",
+                "status_pending": "En attente",
+                "status_cancelled": "Annulée",
+                "status_unknown": "Inconnu",
+                "archive_button": "Archive complète (ZIP)",
+                "archive_note": "Archive complète du cabinet : tous les cas, fichiers, commentaires, paramètres, membres, dossiers de numérisation et historique d'audit dans un seul ZIP. Nécessite un accès administrateur ou propriétaire sans restriction.",
+                "archive_confirm": "Créer une archive complète du cabinet? Elle comprend toutes les données et tous les fichiers du cabinet et peut prendre plusieurs minutes.",
+                "expires": "expire"
             }
         },
         "dev_tools": {
@@ -1953,7 +1975,9 @@
             "detail_significance": "Portée opérationnelle",
             "detail_action": "Action suggérée",
             "fact_overdue_by_status": "Cas en retard concentrés dans : {breakdown}",
-            "fact_overdue_by_type": "Cas en retard par type de cas : {breakdown}"
+            "fact_overdue_by_type": "Cas en retard par type de cas : {breakdown}",
+            "summary_active_few": "{count} constatations actives à examiner",
+            "summary_active_many": "{count} constatations actives à examiner"
         },
         "metrics": {
             "new_this_month": "Nouveaux ce mois",
@@ -1980,7 +2004,11 @@
             "hours_other": "{count} heures",
             "completed_cases_base_one": "Basé sur {count} cas terminé",
             "completed_cases_base_other": "Basé sur {count} cas terminés",
-            "no_completed_cases": "Aucun cas terminé disponible pour cette période."
+            "no_completed_cases": "Aucun cas terminé disponible pour cette période.",
+            "hours_few": "{count} heures",
+            "hours_many": "{count} heures",
+            "completed_cases_base_few": "Basé sur {count} cas terminés",
+            "completed_cases_base_many": "Basé sur {count} cas terminés"
         },
         "labkpi": {
             "active_cases": "Cas de laboratoire actifs",
@@ -2135,7 +2163,11 @@
             "backlog_trend_description": "Cas actifs estimés à la fin de chaque période (reconstruit à partir de l'historique)",
             "dataset_backlog": "Dossiers en attente",
             "backlog_count": "{count} cas actifs",
-            "case_volume_year": "Volume de cas {year}"
+            "case_volume_year": "Volume de cas {year}",
+            "volume_net_growth_few": "Le retard a augmenté de {count} cas",
+            "volume_net_growth_many": "Le retard a augmenté de {count} cas",
+            "volume_net_decline_few": "Le retard a diminué de {count} cas",
+            "volume_net_decline_many": "Le retard a diminué de {count} cas"
         },
         "filters": {
             "active_cases": "Cas actifs",
@@ -3601,7 +3633,9 @@
         "storage_unmeasured": "{count} fichier(s) n’ont pas pu être mesurés et sont exclus des totaux.",
         "storage_last_error": "La dernière actualisation a échoué ; le résultat précédent est affiché.",
         "storage_scope_note": "Comprend les pièces jointes des cas, les images de commentaires, les fichiers de la boîte de réception du scanner, les révisions de numérisation conservées et le logo du cabinet. Les cas archivés sont comptés tant que leurs fichiers restent stockés. Les téléversements temporaires non liés sont exclus.",
-        "search_placeholder": "Rechercher des cabinets…"
+        "search_placeholder": "Rechercher des cabinets…",
+        "no_recorded_login": "Aucune connexion enregistrée",
+        "last_login_member_hint": "Connexion la plus récente parmi les membres de ce cabinet (au niveau du compte, et non un accès propre au cabinet)"
     },
     "case_types": {
         "crown": "Couronne",
@@ -4181,6 +4215,18 @@
             "footer": "Cet e-mail a été envoyé par {appName}. Veuillez ne pas répondre à cet e-mail.",
             "text_intro": "Votre export de données {appName} est prêt à être téléchargé.",
             "download_link": "Lien de téléchargement :"
+        },
+        "data_export_v2": {
+            "subject_ready": "Votre exportation de données {appName} est prête",
+            "subject_failed": "Votre exportation de données {appName} a échoué",
+            "intro_ready": "Votre exportation {type} (ID {exportId}) est prête.",
+            "intro_failed": "Votre exportation {type} (ID {exportId}) n'a pas pu être terminée. Vous pouvez demander une nouvelle exportation dans Paramètres > Confidentialité des données.",
+            "cta": "Ouvrir {appName}",
+            "nav_hint": "Connectez-vous à {appName} et accédez à Paramètres > Confidentialité des données pour télécharger votre exportation.",
+            "available_until": "Disponible jusqu'au :",
+            "format_csv": "CSV",
+            "format_json": "JSON",
+            "format_archive": "Archive complète du cabinet (ZIP)"
         }
     },
     "options": {

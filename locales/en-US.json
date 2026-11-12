@@ -4215,6 +4215,18 @@
             "footer": "This email was sent by {appName}. Please do not reply to this email.",
             "text_intro": "Your data export from {appName} is ready for download.",
             "download_link": "Download Link:"
+        },
+        "data_export_v2": {
+            "subject_ready": "Your {appName} data export is ready",
+            "subject_failed": "Your {appName} data export failed",
+            "intro_ready": "Your {type} export (ID {exportId}) is ready.",
+            "intro_failed": "Your {type} export (ID {exportId}) could not be completed. You can request a new export from Settings > Data & Privacy.",
+            "cta": "Open {appName}",
+            "nav_hint": "Sign in to {appName} and go to Settings > Data & Privacy to download your export.",
+            "available_until": "Available until:",
+            "format_csv": "CSV",
+            "format_json": "JSON",
+            "format_archive": "Complete practice archive (ZIP)"
         }
     },
     "options": {

@@ -411,6 +411,8 @@ function exportWorkerProcessOne(PDO $pdo, int $exportId, string $workerId): arra
         // attempts keep their artifact - the next attempt overwrites
         // the same deterministic object name.
         exportArtifactCleanupFailedExport($exportId);
+        ewNotifyExportFailed($pdo, $exportId, (int)($export['user_id'] ?? 0) ?: null,
+            ($export['export_type'] ?? 'case_data') === 'practice_archive' ? 'archive' : ($export['format'] ?? 'csv'));
         return ['id' => $exportId, 'status' => 'failed', 'error' => $e->getMessage()];
     } finally {
         foreach (glob($tmpDir . '/*') ?: [] as $f) @unlink($f);
@@ -480,14 +482,102 @@ function exportWorkerSweep(PDO $pdo): array {
 }
 
 function ewSendReadyEmail(string $email, int $exportId, int $size, string $expiresAt, string $format, ?int $userId): void {
-    global $appConfig;
+    global $appConfig, $pdo;
     $base = rtrim($appConfig['baseUrl'] ?? '', '/');
-    $url = $base . '/main.php#settings';
+    $appUrl = $base . '/main.php';
     $locale = function_exists('resolveEmailLocale') ? resolveEmailLocale($userId, null, null) : 'en-US';
     $appName = $appConfig['appName'] ?? 'DentaTrak';
-    $subject = "Your DentaTrak data export is ready";
-    $body = "Your case data export (ID {$exportId}, format {$format}, " . number_format($size / 1024, 1) . " KB) is ready.\n\nDownload it from Settings > Data & Privacy. The link expires {$expiresAt}.\n\n- {$appName}";
-    sendAppEmail($email, $subject, nl2br(htmlspecialchars($body)), $body);
+
+    $typeKey = 'format_' . ($format === 'archive' ? 'archive' : $format);
+    $typeLabel = function_exists('tForLocale') ? tForLocale($locale, 'email.data_export_v2.' . $typeKey) : strtoupper($format);
+    if ($typeLabel === 'email.data_export_v2.' . $typeKey) $typeLabel = strtoupper($format);
+
+    if (class_exists('IntlDateFormatter')) {
+        $expiresFmt = new IntlDateFormatter($locale, IntlDateFormatter::LONG, IntlDateFormatter::SHORT);
+        $expiresFormatted = $expiresFmt->format(strtotime($expiresAt));
+    } else {
+        $expiresFormatted = formatDateTime($expiresAt, 'long');
+    }
+
+    $greeting = tForLocale($locale, 'email.data_export.greeting');
+    $intro = tForLocale($locale, 'email.data_export_v2.intro_ready',
+        ['appName' => $appName, 'type' => $typeLabel, 'exportId' => $exportId]);
+    $cta = tForLocale($locale, 'email.data_export_v2.cta', ['appName' => $appName]);
+    $navHint = tForLocale($locale, 'email.data_export_v2.nav_hint',
+        ['appName' => $appName, 'type' => $typeLabel]);
+    $sizeLabel = tForLocale($locale, 'email.data_export.file_size');
+    $expiresLabel = tForLocale($locale, 'email.data_export_v2.available_until');
+    $securityNote = tForLocale($locale, 'email.data_export.security_note');
+    $footer = tForLocale($locale, 'email.data_export.footer', ['appName' => $appName]);
+    $subject = tForLocale($locale, 'email.data_export_v2.subject_ready', ['appName' => $appName]);
+
+    $safeUrl = htmlspecialchars($appUrl, ENT_QUOTES, 'UTF-8');
+    $sizeFormatted = number_format($size / 1024, 1) . ' KB';
+    $htmlBody = "<html><body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'>"
+        . "<div style='max-width: 600px; margin: 0 auto; padding: 20px;'>"
+        . "<h2 style='color: #2563eb;'>{$appName}</h2>"
+        . "<p>{$greeting}</p><p>" . htmlspecialchars($intro) . "</p>"
+        . "<p style='text-align: center; margin: 30px 0;'>"
+        . "<a href='{$safeUrl}' style='background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;'>{$cta}</a></p>"
+        . "<p>" . htmlspecialchars($navHint) . "</p>"
+        . "<div style='background-color: #f3f4f6; padding: 15px; border-radius: 6px; margin: 20px 0;'>"
+        . "<p style='margin: 5px 0;'><strong>{$sizeLabel}</strong> {$sizeFormatted}</p>"
+        . "<p style='margin: 5px 0;'><strong>{$expiresLabel}</strong> {$expiresFormatted}</p></div>"
+        . "<p>{$securityNote}</p>"
+        . "<hr style='border: none; border-top: 1px solid #eee; margin: 30px 0;'>"
+        . "<p style='color: #666; font-size: 12px;'>{$footer}</p>"
+        . "</div></body></html>";
+
+    $textBody = "{$greeting}\n\n{$intro}\n\n{$cta}: {$appUrl}\n\n{$navHint}\n\n{$sizeLabel} {$sizeFormatted}\n{$expiresLabel} {$expiresFormatted}\n\n{$securityNote}\n\n{$footer}";
+    sendAppEmail($email, $subject, $htmlBody, $textBody);
+}
+
+/**
+ * Notify the requester that an export failed terminally (retries exhausted).
+ * No export contents, tokens, or download links are ever included.
+ */
+function ewSendFailedEmail(string $email, int $exportId, string $format, ?int $userId): void {
+    global $appConfig;
+    $base = rtrim($appConfig['baseUrl'] ?? '', '/');
+    $appUrl = $base . '/main.php';
+    $locale = function_exists('resolveEmailLocale') ? resolveEmailLocale($userId, null, null) : 'en-US';
+    $appName = $appConfig['appName'] ?? 'DentaTrak';
+
+    $typeKey = 'format_' . ($format === 'archive' ? 'archive' : $format);
+    $typeLabel = function_exists('tForLocale') ? tForLocale($locale, 'email.data_export_v2.' . $typeKey) : strtoupper($format);
+    if ($typeLabel === 'email.data_export_v2.' . $typeKey) $typeLabel = strtoupper($format);
+
+    $greeting = tForLocale($locale, 'email.data_export.greeting');
+    $intro = tForLocale($locale, 'email.data_export_v2.intro_failed',
+        ['appName' => $appName, 'type' => $typeLabel, 'exportId' => $exportId]);
+    $cta = tForLocale($locale, 'email.data_export_v2.cta', ['appName' => $appName]);
+    $securityNote = tForLocale($locale, 'email.data_export.security_note');
+    $footer = tForLocale($locale, 'email.data_export.footer', ['appName' => $appName]);
+    $subject = tForLocale($locale, 'email.data_export_v2.subject_failed', ['appName' => $appName]);
+
+    $safeUrl = htmlspecialchars($appUrl, ENT_QUOTES, 'UTF-8');
+    $htmlBody = "<html><body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'>"
+        . "<div style='max-width: 600px; margin: 0 auto; padding: 20px;'>"
+        . "<h2 style='color: #2563eb;'>{$appName}</h2>"
+        . "<p>{$greeting}</p><p>" . htmlspecialchars($intro) . "</p>"
+        . "<p style='text-align: center; margin: 30px 0;'>"
+        . "<a href='{$safeUrl}' style='background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;'>{$cta}</a></p>"
+        . "<p>{$securityNote}</p>"
+        . "<hr style='border: none; border-top: 1px solid #eee; margin: 30px 0;'>"
+        . "<p style='color: #666; font-size: 12px;'>{$footer}</p>"
+        . "</div></body></html>";
+
+    $textBody = "{$greeting}\n\n{$intro}\n\n{$cta}: {$appUrl}\n\n{$securityNote}\n\n{$footer}";
+    sendAppEmail($email, $subject, $htmlBody, $textBody);
+}
+
+/** Look up the requester's email and send the terminal-failure notice. */
+function ewNotifyExportFailed(PDO $pdo, int $exportId, ?int $userId, string $format): void {
+    try {
+        if (!$userId) return;
+        $email = $pdo->query("SELECT email FROM users WHERE id = " . (int)$userId)->fetchColumn();
+        if ($email) ewSendFailedEmail((string)$email, $exportId, $format, $userId);
+    } catch (Throwable $e) { error_log('[export-worker] failure email failed: ' . $e->getMessage()); }
 }
 
 // ---------- Driver ----------

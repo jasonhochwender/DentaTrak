@@ -786,7 +786,7 @@ function exportWorkerProcessArchive(PDO $pdo, array $export, string $workerId, s
 
         try {
             $email = $pdo->query("SELECT email FROM users WHERE id = " . (int)$uid)->fetchColumn();
-            if ($email) ewSendReadyEmail((string)$email, $exportId, $put['size'], $expiresAt, 'zip', $uid);
+            if ($email) ewSendReadyEmail((string)$email, $exportId, $put['size'], $expiresAt, 'archive', $uid);
         } catch (Throwable $e) { error_log('[export-worker] archive email failed: ' . $e->getMessage()); }
 
         if (function_exists('logUserActivity')) {
@@ -810,6 +810,7 @@ function exportWorkerProcessArchive(PDO $pdo, array $export, string $workerId, s
             WHERE id=:id AND claimed_by=:w")
             ->execute(['em' => 'Archive processing failed', 'id' => $exportId, 'w' => $workerId]);
         exportArtifactCleanupFailedExport($exportId);
+        ewNotifyExportFailed($pdo, $exportId, (int)($export['user_id'] ?? 0) ?: null, 'archive');
         return ['id' => $exportId, 'status' => 'failed', 'error' => $e->getMessage()];
     }
 }

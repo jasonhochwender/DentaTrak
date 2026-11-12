@@ -1311,6 +1311,28 @@
                 "success_message": "데이터 보내기가 준비 중입니다. 준비되면 이메일을 보내드립니다.",
                 "error": "보내기를 시작하지 못했습니다.",
                 "unknown_error": "오류가 발생했습니다. 다시 시도해 주세요."
+            },
+            "export_v2": {
+                "title": "케이스 데이터 내보내기(신규)",
+                "description": "CSV(Excel 호환) 또는 JSON 형식으로 치과의원 케이스 데이터를 비동기식으로 내보냅니다. 백그라운드에서 처리되며 다운로드 링크는 7일 후 만료됩니다.",
+                "format_csv": "CSV(Excel)",
+                "format_json": "JSON",
+                "button": "케이스 데이터 내보내기",
+                "queued": "내보내기가 대기열에 추가되었습니다. 완료되면 이메일로 알려드립니다.",
+                "error": "내보내기 요청에 실패했습니다.",
+                "download": "다운로드",
+                "status_queued": "대기 중",
+                "status_processing": "처리 중",
+                "status_completed": "준비됨",
+                "status_failed": "실패",
+                "status_expired": "만료됨",
+                "status_pending": "보류 중",
+                "status_cancelled": "취소됨",
+                "status_unknown": "알 수 없음",
+                "archive_button": "전체 아카이브(ZIP)",
+                "archive_note": "전체 병원 아카이브: 모든 케이스, 파일, 댓글, 설정, 구성원, 스캐너 기록 및 감사 이력을 하나의 ZIP으로 제공합니다. 제한 없는 관리자 또는 소유자 권한이 필요합니다.",
+                "archive_confirm": "전체 병원 아카이브를 생성하시겠습니까? 모든 병원 데이터와 파일이 포함되며 몇 분 정도 걸릴 수 있습니다.",
+                "expires": "만료"
             }
         },
         "dev_tools": {
@@ -1338,14 +1360,6 @@
             "cannot_archive_protected": "첫 번째와 마지막 열은 보관할 수 없습니다.",
             "cannot_move_protected": "첫 번째와 마지막 열은 이동할 수 없습니다.",
             "min_active_required": "활성 열이 최소 {min}개 필요합니다.",
-            "scale_used_one": "포함된 치과 {included}곳 중 {used}곳 사용 중",
-            "scale_used_other": "포함된 치과 {included}곳 중 {used}곳 사용 중",
-            "scale_used_few": "포함된 치과 {included}곳 중 {used}곳 사용 중",
-            "scale_used_many": "포함된 치과 {included}곳 중 {used}곳 사용 중",
-            "additional_one": "추가 치과 {count}곳 별도 청구",
-            "additional_other": "추가 치과 {count}곳 별도 청구",
-            "additional_few": "추가 치과 {count}곳 별도 청구",
-            "additional_many": "추가 치과 {count}곳 별도 청구",
             "max_reached": "작업 흐름은 최대 {max}개 열까지 가능합니다.",
             "placeholder": "새 열 이름",
             "name_required": "열 이름이 필요합니다.",
@@ -1961,7 +1975,9 @@
             "detail_significance": "운영상 의미",
             "detail_action": "제안된 조치",
             "fact_overdue_by_status": "기한 초과 사례 집중 단계: {breakdown}",
-            "fact_overdue_by_type": "기한 초과 사례 집중 유형: {breakdown}"
+            "fact_overdue_by_type": "기한 초과 사례 집중 유형: {breakdown}",
+            "summary_active_few": "검토가 필요한 활성 인사이트 {count}개",
+            "summary_active_many": "검토가 필요한 활성 인사이트 {count}개"
         },
         "metrics": {
             "new_this_month": "이번 달 신규",
@@ -1988,7 +2004,11 @@
             "hours_other": "{count}시간",
             "completed_cases_base_one": "완료된 사례 {count}건 기준",
             "completed_cases_base_other": "완료된 사례 {count}건 기준",
-            "no_completed_cases": "이 기간에 완료된 사례가 없습니다."
+            "no_completed_cases": "이 기간에 완료된 사례가 없습니다.",
+            "hours_few": "{count}시간",
+            "hours_many": "{count}시간",
+            "completed_cases_base_few": "완료된 사례 {count}건 기준",
+            "completed_cases_base_many": "완료된 사례 {count}건 기준"
         },
         "labkpi": {
             "active_cases": "진행 중 기공소 케이스",
@@ -2728,7 +2748,15 @@
             "used_few": "{max}곳 중 {used}곳 사용",
             "used_many": "{max}곳 중 {used}곳 사용",
             "used_other": "{max}곳 중 {used}곳 사용",
-            "max_reached": "치과 한도에 도달했습니다"
+            "max_reached": "치과 한도에 도달했습니다",
+            "scale_used_one": "포함된 치과 {included}곳 중 {used}곳 사용 중",
+            "scale_used_other": "포함된 치과 {included}곳 중 {used}곳 사용 중",
+            "scale_used_few": "포함된 치과 {included}곳 중 {used}곳 사용 중",
+            "scale_used_many": "포함된 치과 {included}곳 중 {used}곳 사용 중",
+            "additional_one": "추가 치과 {count}곳 별도 청구",
+            "additional_other": "추가 치과 {count}곳 별도 청구",
+            "additional_few": "추가 치과 {count}곳 별도 청구",
+            "additional_many": "추가 치과 {count}곳 별도 청구"
         },
         "upgrade": {
             "more_practices": "업그레이드하여 치과를 더 추가하세요",
@@ -3605,7 +3633,9 @@
         "storage_unmeasured": "{count}개 파일을 측정할 수 없어 합계에서 제외되었습니다.",
         "storage_last_error": "마지막 새로 고침에 실패했습니다. 이전 성공 결과를 표시합니다.",
         "storage_scope_note": "케이스 첨부 파일, 댓글 이미지, 스캐너 수신함 파일, 보관된 스캔 리비전, 치과 로고가 포함됩니다. 보관된 케이스는 파일이 저장되어 있는 동안 계산됩니다. 임시 미연결 업로드는 제외됩니다.",
-        "search_placeholder": "치과 검색…"
+        "search_placeholder": "치과 검색…",
+        "no_recorded_login": "기록된 로그인 없음",
+        "last_login_member_hint": "이 치과의 구성원 중 가장 최근 로그인(계정 수준이며 치과별 접속이 아님)"
     },
     "case_types": {
         "crown": "크라운",
@@ -4185,6 +4215,18 @@
             "footer": "이 이메일은 {appName}에서 발송되었습니다. 이 이메일에 회신하지 마세요.",
             "text_intro": "{appName}의 데이터 보내기를 다운로드할 수 있습니다.",
             "download_link": "다운로드 링크:"
+        },
+        "data_export_v2": {
+            "subject_ready": "{appName} 데이터 내보내기가 준비되었습니다",
+            "subject_failed": "{appName} 데이터 내보내기에 실패했습니다",
+            "intro_ready": "{type} 내보내기(ID {exportId})가 준비되었습니다.",
+            "intro_failed": "{type} 내보내기(ID {exportId})를 완료하지 못했습니다. 설정 > 데이터 및 개인정보에서 새 내보내기를 요청할 수 있습니다.",
+            "cta": "{appName} 열기",
+            "nav_hint": "{appName}에 로그인하여 설정 > 데이터 및 개인정보에서 내보내기를 다운로드하세요.",
+            "available_until": "다운로드 가능 기한:",
+            "format_csv": "CSV",
+            "format_json": "JSON",
+            "format_archive": "전체 병원 아카이브(ZIP)"
         }
     },
     "options": {

@@ -4380,7 +4380,9 @@
         "storage_unmeasured": "{count} arquivo(s) não puderam ser medidos e foram excluídos dos totais.",
         "storage_last_error": "A última atualização falhou; o resultado anterior é exibido.",
         "storage_scope_note": "Inclui anexos de casos, imagens de comentários, arquivos da caixa de entrada do scanner, revisões de digitalização retidas e o logotipo da clínica. Casos arquivados são contados enquanto seus arquivos permanecerem armazenados. Uploads temporários não vinculados são excluídos.",
-        "search_placeholder": "Buscar consultórios…"
+        "search_placeholder": "Buscar consultórios…",
+        "no_recorded_login": "Nenhum login registrado",
+        "last_login_member_hint": "Login mais recente entre os membros desta clínica (no nível da conta, não de acesso específico à clínica)"
     },
     "tour": {
         "welcome_title": "Bem-vindo ao {appName}",
@@ -5278,6 +5280,28 @@
                 "success_message": "Sua exportação de dados está sendo preparada. Você receberá um e-mail quando estiver pronta.",
                 "error": "Falha ao iniciar a exportação.",
                 "unknown_error": "Ocorreu um erro. Tente novamente."
+            },
+            "export_v2": {
+                "title": "Exportação de dados de casos (novo)",
+                "description": "Exportação assíncrona dos dados de casos da sua clínica em CSV (compatível com Excel) ou JSON. Processada em segundo plano; o link de download expira após 7 dias.",
+                "format_csv": "CSV (Excel)",
+                "format_json": "JSON",
+                "button": "Exportar dados de casos",
+                "queued": "Exportação na fila - você será notificado por e-mail quando estiver pronta.",
+                "error": "A solicitação de exportação falhou.",
+                "download": "Baixar",
+                "status_queued": "Na fila",
+                "status_processing": "Processando",
+                "status_completed": "Pronta",
+                "status_failed": "Falhou",
+                "status_expired": "Expirada",
+                "status_pending": "Pendente",
+                "status_cancelled": "Cancelada",
+                "status_unknown": "Desconhecido",
+                "archive_button": "Arquivo completo (ZIP)",
+                "archive_note": "Arquivo completo da clínica: todos os casos, arquivos, comentários, configurações, membros, registros de scanner e histórico de auditoria em um único ZIP. Requer acesso de administrador ou proprietário sem restrições.",
+                "archive_confirm": "Criar um arquivo completo da clínica? Inclui todos os dados e arquivos da clínica e pode levar vários minutos.",
+                "expires": "expira"
             }
         },
         "dev_tools": {
@@ -5305,14 +5329,6 @@
             "cannot_archive_protected": "A primeira e a última colunas não podem ser arquivadas.",
             "cannot_move_protected": "A primeira e a última colunas não podem ser movidas.",
             "min_active_required": "São necessárias pelo menos {min} colunas ativas.",
-            "scale_used_one": "{used} de {included} clínica incluída em uso",
-            "scale_used_other": "{used} de {included} clínicas incluídas em uso",
-            "scale_used_few": "{used} de {included} clínicas incluídas em uso",
-            "scale_used_many": "{used} de {included} clínicas incluídas em uso",
-            "additional_one": "{count} clínica adicional faturada separadamente",
-            "additional_other": "{count} clínicas adicionais faturadas separadamente",
-            "additional_few": "{count} clínicas adicionais faturadas separadamente",
-            "additional_many": "{count} clínicas adicionais faturadas separadamente",
             "max_reached": "Um fluxo de trabalho pode ter no máximo {max} colunas.",
             "placeholder": "Nome da nova coluna",
             "name_required": "O nome da coluna é obrigatório.",
@@ -5928,7 +5944,9 @@
             "detail_significance": "Significado operacional",
             "detail_action": "Ação sugerida",
             "fact_overdue_by_status": "Casos vencidos concentrados em: {breakdown}",
-            "fact_overdue_by_type": "Casos vencidos por tipo de caso: {breakdown}"
+            "fact_overdue_by_type": "Casos vencidos por tipo de caso: {breakdown}",
+            "summary_active_few": "{count} insights ativos para revisar",
+            "summary_active_many": "{count} insights ativos para revisar"
         },
         "metrics": {
             "new_this_month": "Novos neste mês",
@@ -5955,7 +5973,11 @@
             "hours_other": "{count} horas",
             "completed_cases_base_one": "Com base em {count} caso concluído",
             "completed_cases_base_other": "Com base em {count} casos concluídos",
-            "no_completed_cases": "Nenhum caso concluído disponível para este período."
+            "no_completed_cases": "Nenhum caso concluído disponível para este período.",
+            "hours_few": "{count} horas",
+            "hours_many": "{count} horas",
+            "completed_cases_base_few": "Com base em {count} casos concluídos",
+            "completed_cases_base_many": "Com base em {count} casos concluídos"
         },
         "labkpi": {
             "active_cases": "Casos de laboratório ativos",
@@ -6110,7 +6132,11 @@
             "backlog_trend_description": "Casos ativos estimados ao final de cada período (reconstruído do histórico)",
             "dataset_backlog": "Backlog ativo",
             "backlog_count": "{count} casos ativos",
-            "case_volume_year": "Volume de casos {year}"
+            "case_volume_year": "Volume de casos {year}",
+            "volume_net_growth_few": "O backlog cresceu em {count} casos",
+            "volume_net_growth_many": "O backlog cresceu em {count} casos",
+            "volume_net_decline_few": "O backlog diminuiu em {count} casos",
+            "volume_net_decline_many": "O backlog diminuiu em {count} casos"
         },
         "filters": {
             "active_cases": "Casos ativos",
@@ -6683,7 +6709,15 @@
             "used_other": "{used} de {max} clínicas usadas",
             "used_few": "{used} de {max} clínicas usadas",
             "used_many": "{used} de {max} clínicas usadas",
-            "max_reached": "Limite de clínicas atingido"
+            "max_reached": "Limite de clínicas atingido",
+            "scale_used_one": "{used} de {included} clínica incluída em uso",
+            "scale_used_other": "{used} de {included} clínicas incluídas em uso",
+            "scale_used_few": "{used} de {included} clínicas incluídas em uso",
+            "scale_used_many": "{used} de {included} clínicas incluídas em uso",
+            "additional_one": "{count} clínica adicional faturada separadamente",
+            "additional_other": "{count} clínicas adicionais faturadas separadamente",
+            "additional_few": "{count} clínicas adicionais faturadas separadamente",
+            "additional_many": "{count} clínicas adicionais faturadas separadamente"
         },
         "upgrade": {
             "more_practices": "Faça upgrade para adicionar mais clínicas",
@@ -7009,6 +7043,18 @@
             "footer": "Este e-mail foi enviado pelo {appName}. Por favor, não responda a este e-mail.",
             "text_intro": "Sua exportação de dados do {appName} está pronta para download.",
             "download_link": "Link de download:"
+        },
+        "data_export_v2": {
+            "subject_ready": "Sua exportação de dados do {appName} está pronta",
+            "subject_failed": "Sua exportação de dados do {appName} falhou",
+            "intro_ready": "Sua exportação {type} (ID {exportId}) está pronta.",
+            "intro_failed": "Sua exportação {type} (ID {exportId}) não pôde ser concluída. Você pode solicitar uma nova exportação em Configurações > Privacidade de dados.",
+            "cta": "Abrir {appName}",
+            "nav_hint": "Faça login no {appName} e vá em Configurações > Privacidade de dados para baixar sua exportação.",
+            "available_until": "Disponível até:",
+            "format_csv": "CSV",
+            "format_json": "JSON",
+            "format_archive": "Arquivo completo da clínica (ZIP)"
         }
     },
     "shortcuts": {

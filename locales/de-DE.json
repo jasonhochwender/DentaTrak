@@ -2453,6 +2453,18 @@
             "footer": "Diese E-Mail wurde von {appName} gesendet. Bitte antworten Sie nicht auf diese E-Mail.",
             "text_intro": "Ihr Datenexport aus {appName} steht zum Download bereit.",
             "download_link": "Download-Link:"
+        },
+        "data_export_v2": {
+            "subject_ready": "Ihr {appName}-Datenexport ist bereit",
+            "subject_failed": "Ihr {appName}-Datenexport ist fehlgeschlagen",
+            "intro_ready": "Ihr {type}-Export (ID {exportId}) ist bereit.",
+            "intro_failed": "Ihr {type}-Export (ID {exportId}) konnte nicht abgeschlossen werden. Sie können einen neuen Export unter Einstellungen > Datenschutz anfordern.",
+            "cta": "{appName} öffnen",
+            "nav_hint": "Melden Sie sich bei {appName} an und gehen Sie zu Einstellungen > Datenschutz, um Ihren Export herunterzuladen.",
+            "available_until": "Verfügbar bis:",
+            "format_csv": "CSV",
+            "format_json": "JSON",
+            "format_archive": "Vollständiges Praxisarchiv (ZIP)"
         }
     },
     "common": {
@@ -2934,6 +2946,28 @@
                 "success_message": "Ihr Datenexport wird vorbereitet. Sie erhalten eine E-Mail, sobald er bereit ist.",
                 "error": "Export konnte nicht gestartet werden.",
                 "unknown_error": "Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut."
+            },
+            "export_v2": {
+                "title": "Falldatenexport (neu)",
+                "description": "Asynchroner Export der Falldaten Ihrer Praxis als CSV (Excel-kompatibel) oder JSON. Wird im Hintergrund verarbeitet; der Download-Link läuft nach 7 Tagen ab.",
+                "format_csv": "CSV (Excel)",
+                "format_json": "JSON",
+                "button": "Falldaten exportieren",
+                "queued": "Export in Warteschlange - Sie werden per E-Mail benachrichtigt, sobald er bereit ist.",
+                "error": "Exportanfrage fehlgeschlagen.",
+                "download": "Herunterladen",
+                "status_queued": "In Warteschlange",
+                "status_processing": "Wird verarbeitet",
+                "status_completed": "Bereit",
+                "status_failed": "Fehlgeschlagen",
+                "status_expired": "Abgelaufen",
+                "status_pending": "Ausstehend",
+                "status_cancelled": "Abgebrochen",
+                "status_unknown": "Unbekannt",
+                "archive_button": "Vollständiges Archiv (ZIP)",
+                "archive_note": "Vollständiges Praxisarchiv: alle Fälle, Dateien, Kommentare, Einstellungen, Mitglieder, Scannerdaten und der Audit-Verlauf in einem ZIP. Erfordert uneingeschränkte Admin- oder Inhaberrechte.",
+                "archive_confirm": "Vollständiges Praxisarchiv erstellen? Enthält alle Praxisdaten und -dateien und kann mehrere Minuten dauern.",
+                "expires": "läuft ab"
             }
         },
         "dev_tools": {
@@ -3576,7 +3610,9 @@
             "detail_significance": "Operative Bedeutung",
             "detail_action": "Empfohlene Maßnahme",
             "fact_overdue_by_status": "Überfällige Fälle konzentriert in: {breakdown}",
-            "fact_overdue_by_type": "Überfällige Fälle nach Falltyp: {breakdown}"
+            "fact_overdue_by_type": "Überfällige Fälle nach Falltyp: {breakdown}",
+            "summary_active_few": "{count} aktive Erkenntnisse zur Prüfung",
+            "summary_active_many": "{count} aktive Erkenntnisse zur Prüfung"
         },
         "metrics": {
             "new_this_month": "Neu in diesem Monat",
@@ -3603,7 +3639,11 @@
             "hours_other": "{count} Stunden",
             "completed_cases_base_one": "Basierend auf {count} abgeschlossenem Fall",
             "completed_cases_base_other": "Basierend auf {count} abgeschlossenen Fällen",
-            "no_completed_cases": "Keine abgeschlossenen Fälle für diesen Zeitraum verfügbar."
+            "no_completed_cases": "Keine abgeschlossenen Fälle für diesen Zeitraum verfügbar.",
+            "hours_few": "{count} Stunden",
+            "hours_many": "{count} Stunden",
+            "completed_cases_base_few": "Basierend auf {count} abgeschlossenen Fällen",
+            "completed_cases_base_many": "Basierend auf {count} abgeschlossenen Fällen"
         },
         "labkpi": {
             "active_cases": "Aktive Laborfälle",
@@ -3758,7 +3798,11 @@
             "backlog_trend_description": "Geschätzte aktive Fälle zum jeweiligen Periodenende (aus Fallhistorie rekonstruiert)",
             "dataset_backlog": "Aktiver Backlog",
             "backlog_count": "{count} aktive Fälle",
-            "case_volume_year": "Fallvolumen {year}"
+            "case_volume_year": "Fallvolumen {year}",
+            "volume_net_growth_few": "Rückstand um {count} Fälle gewachsen",
+            "volume_net_growth_many": "Rückstand um {count} Fälle gewachsen",
+            "volume_net_decline_few": "Rückstand um {count} Fälle gesunken",
+            "volume_net_decline_many": "Rückstand um {count} Fälle gesunken"
         },
         "filters": {
             "active_cases": "Aktive Fälle",
@@ -4379,7 +4423,9 @@
         "storage_unmeasured": "{count} Datei(en) konnten nicht gemessen werden und sind aus den Summen ausgeschlossen.",
         "storage_last_error": "Die letzte Aktualisierung ist fehlgeschlagen; das vorherige Ergebnis wird angezeigt.",
         "storage_scope_note": "Enthält Fallanhänge, Kommentarbilder, Scanner-Inbox-Dateien, aufbewahrte Scan-Revisionen und das Praxislogo. Archivierte Fälle werden gezählt, solange ihre Dateien gespeichert bleiben. Temporäre, nicht verknüpfte Uploads sind ausgeschlossen.",
-        "search_placeholder": "Praxen suchen…"
+        "search_placeholder": "Praxen suchen…",
+        "no_recorded_login": "Keine erfasste Anmeldung",
+        "last_login_member_hint": "Letzte Anmeldung unter den Mitgliedern dieser Praxis (kontobezogen, kein praxisspezifischer Zugriff)"
     },
     "marketing": {
         "navigation": {
