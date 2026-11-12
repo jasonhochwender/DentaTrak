@@ -11,12 +11,23 @@ for everyone else throughout.
   `scripts/provision-export-worker.sh` verified (job, custom IAM role
   `dtkExportJobRunner`, scheduler `dtk-prod-export-worker-sweep`, GCS
   lifecycle rule) — all before traffic promotion.
-- `DATA_EXPORT_V2=true` and `DATA_EXPORT_V2_PRACTICES=<test practice id>`
-  set as env vars on `dtk-app-prod` (job inherits the same env via the
-  provision script's env copy).
-- Synthetic practice contains ONLY fabricated data: cases with clearly
-  fake patient names, image/PDF attachments, an STL scanner file, a
-  comment image, an archived case, and a duplicate filename pair.
+- `DATA_EXPORT_V2=true` and `DATA_EXPORT_V2_PRACTICES=32` set as env
+  vars on `dtk-app-prod` (job inherits the same env via the
+  provision script's env copy; redeploy/restart the job after changing
+  service env so the worker sees the same values).
+- **Approved synthetic practice: id `32` — "Entitle Smoke Practice"**
+  (`practice_id` uuid `ent-smoke-e39f600f472e`). Sole member is the
+  automated-test account `entitle-smoke-33260dd2@dentatrak-test.invalid`
+  (admin + owner). Contains 3 cases and 3 linked scanner imports whose
+  files are real GCS objects (~137 MiB total) under
+  `gs://dtk-prod-case-files/cases/32/...`: `UpperJaw.stl`,
+  `LowerJaw.stl`, `Prince_base.stl.general.stl` — Medit sandbox
+  fixtures, no customer PHI.
+- Gaps to fill before the run (all synthetic, prepared at test time):
+  image + PDF case attachments, a comment image, an archived case, and
+  a duplicate-filename pair. None exist in practice 32 today; add them
+  via the app UI or a scoped fixture script — do NOT hand-edit
+  production rows.
 
 ## Test sequence
 
