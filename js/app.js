@@ -15472,96 +15472,89 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ============================================
-    // DATA EXPORT FUNCTIONALITY
+    // DATA EXPORT (v2 pipeline; legacy endpoint retained server-side)
     // ============================================
-    var exportDataBtn = document.getElementById('exportDataBtn');
-    var exportStatus = document.getElementById('exportStatus');
-
-    if (exportDataBtn) {
-      exportDataBtn.addEventListener('click', function() {
-        // Show styled confirmation modal instead of native confirm()
-        showConfirmModal(
-          t('settings.data_privacy.export.confirm_title'),
-          t('settings.data_privacy.export.confirm_message'),
-          function() {
-            // User confirmed - proceed with export
-            exportDataBtn.disabled = true;
-            exportDataBtn.innerHTML = '<span class="btn-icon">⏳</span> ' + t('settings.data_privacy.export.preparing');
-
-            if (exportStatus) {
-              exportStatus.textContent = t('settings.data_privacy.export.preparing_status');
-              exportStatus.className = 'export-status';
-              exportStatus.style.display = 'block';
-            }
-
-            fetch('api/data-export.php?action=request', {
-              method: 'POST',
-              headers: { 'X-CSRF-Token': csrfToken },
-              credentials: 'same-origin'
-            })
-            .then(function(response) { return response.json(); })
-            .then(function(data) {
-              if (data.success) {
-                if (exportStatus) {
-                  exportStatus.textContent = t('settings.data_privacy.export.success_status');
-                  exportStatus.className = 'export-status success';
-                }
-                if (typeof Toast !== 'undefined') {
-                  Toast.success(t('settings.data_privacy.export.success_title'), t('settings.data_privacy.export.success_message'));
-                }
-              } else {
-                if (exportStatus) {
-                  exportStatus.textContent = data.message || t('settings.data_privacy.export.error');
-                  exportStatus.className = 'export-status error';
-                }
-              }
-            })
-            .catch(function() {
-              if (exportStatus) {
-                exportStatus.textContent = t('settings.data_privacy.export.unknown_error');
-                exportStatus.className = 'export-status error';
-              }
-            })
-            .finally(function() {
-              exportDataBtn.disabled = false;
-              exportDataBtn.innerHTML = '<span class="btn-icon">📥</span> ' + t('settings.data_privacy.export.button');
-            });
-          },
-          null, // No action needed on cancel
-          false,
-          exportDataBtn
-        );
-      });
-    }
-
-    // ---- Data export v2 (async pipeline; feature-flagged) ----
     var exportV2Btn = document.getElementById('exportV2Btn');
     var exportV2Status = document.getElementById('exportV2Status');
     var exportV2List = document.getElementById('exportV2List');
-    var exportV2Format = document.getElementById('exportV2Format');
+    var exportV2FormatCsv = document.getElementById('exportV2FormatCsv');
+    var exportV2FormatJson = document.getElementById('exportV2FormatJson');
+    var exportV2SelectedFormat = 'csv';
+
+    function exportV2T(key) {
+      return t('settings.data_privacy.export_v2.' + key);
+    }
+
+    if (exportV2FormatCsv && exportV2FormatJson) {
+      function exportV2SyncFormat() {
+        exportV2FormatCsv.classList.toggle('active', exportV2SelectedFormat === 'csv');
+        exportV2FormatCsv.setAttribute('aria-pressed', exportV2SelectedFormat === 'csv' ? 'true' : 'false');
+        exportV2FormatJson.classList.toggle('active', exportV2SelectedFormat === 'json');
+        exportV2FormatJson.setAttribute('aria-pressed', exportV2SelectedFormat === 'json' ? 'true' : 'false');
+      }
+      exportV2FormatCsv.addEventListener('click', function() {
+        exportV2SelectedFormat = 'csv'; exportV2SyncFormat();
+      });
+      exportV2FormatJson.addEventListener('click', function() {
+        exportV2SelectedFormat = 'json'; exportV2SyncFormat();
+      });
+      exportV2SyncFormat();
+    }
+
+    var exportStatusBadgeClass = {
+      queued: 'info', processing: 'warn', completed: 'success',
+      failed: 'error', expired: 'muted', pending: 'muted'
+    };
+
+    // DB timestamps are UTC 'Y-m-d H:i:s'; render in the viewer's locale + timezone.
+    function exportFmtDateTime(s) {
+      if (!s) return '';
+      var d = new Date(String(s).replace(' ', 'T') + 'Z');
+      if (isNaN(d.getTime())) return String(s);
+      return d.toLocaleString((window.I18n && I18n.locale) || undefined, {
+        year: 'numeric', month: 'short', day: 'numeric',
+        hour: 'numeric', minute: '2-digit'
+      });
+    }
+
+    function exportV2TypeLabel(e) {
+      if (e.export_type === 'practice_archive') return exportV2T('type_archive');
+      if (e.export_type === 'legacy_json') return exportV2T('type_legacy');
+      return (e.format || '').toUpperCase();
+    }
 
     function exportV2StatusText(s) {
-      return t('settings.data_privacy.export_v2.status_' + (s || 'unknown')) || s;
+      return exportV2T('status_' + (s || 'unknown')) || s || '';
     }
 
     function renderExportV2List(exports) {
       if (!exportV2List) return;
-      if (!exports || !exports.length) { exportV2List.innerHTML = ''; return; }
+      if (!exports || !exports.length) {
+        exportV2List.innerHTML = '<div class="export-history-empty">' + exportV2T('history_empty') + '</div>';
+        return;
+      }
       exportV2List.innerHTML = exports.map(function(e) {
+        var badgeCls = exportStatusBadgeClass[e.status] || 'muted';
         var dl = '';
         if (e.status === 'completed') {
-          dl = '<button type="button" class="btn-secondary btn-sm export-v2-download" data-id="' + e.id + '" style="margin-left:8px;">' +
-               t('settings.data_privacy.export_v2.download') + '</button>';
+          dl = '<button type="button" class="btn-secondary btn-sm export-v2-download" data-id="' + e.id + '">' +
+               exportV2T('download') + '</button>';
         }
-        var type = e.export_type === 'practice_archive' ? 'archive' : (e.format || '').toUpperCase();
         var warn = (parseInt(e.archive_warnings, 10) || 0) > 0
-          ? ' <span style="color:#b45309;">&#9888; ' + e.archive_warnings + '</span>' : '';
-        return '<div class="export-v2-row" style="font-size:0.82rem;padding:6px 0;border-top:1px solid #eee;">' +
-          '<span>#' + e.id + ' · ' + type + ' · ' +
-          '<strong>' + exportV2StatusText(e.status) + '</strong>' +
-          (e.file_size ? ' · ' + Math.round(e.file_size / 1024) + ' KB' : '') +
-          (e.expires_at ? ' · ' + t('settings.data_privacy.export_v2.expires') + ' ' + String(e.expires_at).substring(0, 10) : '') +
-          warn + dl + '</div>';
+          ? ' <span class="export-warn-flag" title="' + e.archive_warnings + '">&#9888;</span>' : '';
+        var meta = [];
+        meta.push('#' + e.id + ' · ' + exportV2TypeLabel(e));
+        meta.push(exportV2T('history_created') + ' ' + exportFmtDateTime(e.created_at));
+        if (e.file_size) meta.push(Math.round(e.file_size / 1024) + ' KB');
+        if (e.expires_at) meta.push(exportV2T('expires') + ' ' + exportFmtDateTime(e.expires_at));
+        if (e.error_message && e.status === 'failed') {
+          meta.push(String(e.error_message).replace(/[&<>"']/g, function(c) {
+            return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+          }));
+        }
+        return '<div class="export-history-row">' +
+          '<span class="export-status-badge ' + badgeCls + '">' + exportV2StatusText(e.status) + '</span>' +
+          '<span class="export-history-meta">' + meta.join(' · ') + '</span>' + warn + dl + '</div>';
       }).join('');
       exportV2List.querySelectorAll('.export-v2-download').forEach(function(btn) {
         btn.addEventListener('click', function() {
@@ -15572,10 +15565,20 @@ document.addEventListener('DOMContentLoaded', function () {
           fetch('api/data-export-v2.php?action=download_url', {
             method: 'POST', credentials: 'same-origin',
             headers: { 'X-CSRF-Token': csrfToken }, body: fd
-          }).then(function(r) { return r.json(); }).then(function(d) {
-            if (d.success && d.url) { window.location.href = d.url; }
-            else { btn.disabled = false; }
-          }).catch(function() { btn.disabled = false; });
+          }).then(function(r) { return r.json().then(function(d) { return { ok: r.ok, d: d }; }); })
+            .then(function(res) {
+              var d = res.d || {};
+              if (d.success && d.url) { window.location.href = d.url; }
+              else {
+                btn.disabled = false;
+                showToast(d.message || exportV2T('download_error'), 'error');
+                loadExportV2Status();
+              }
+            })
+            .catch(function() {
+              btn.disabled = false;
+              showToast(exportV2T('download_error'), 'error');
+            });
         });
       });
     }
@@ -15584,8 +15587,17 @@ document.addEventListener('DOMContentLoaded', function () {
       if (!exportV2List) return;
       fetch('api/data-export-v2.php?action=status', { credentials: 'same-origin' })
         .then(function(r) { return r.json(); })
-        .then(function(d) { if (d.success) renderExportV2List(d.exports); })
-        .catch(function() {});
+        .then(function(d) {
+          if (d.success) { renderExportV2List(d.exports); }
+          else if (exportV2List) {
+            exportV2List.innerHTML = '<div class="export-history-empty">' + exportV2T('history_load_error') + '</div>';
+          }
+        })
+        .catch(function() {
+          if (exportV2List) {
+            exportV2List.innerHTML = '<div class="export-history-empty">' + exportV2T('history_load_error') + '</div>';
+          }
+        });
     }
 
     function exportV2Request(type, format, btn) {
@@ -15600,20 +15612,23 @@ document.addEventListener('DOMContentLoaded', function () {
       }).then(function(r) { return r.json(); }).then(function(d) {
         if (exportV2Status) {
           exportV2Status.textContent = d.success
-            ? t('settings.data_privacy.export_v2.queued')
-            : (d.message || t('settings.data_privacy.export_v2.error'));
+            ? exportV2T('queued')
+            : (d.message || exportV2T('error'));
           exportV2Status.className = 'export-status ' + (d.success ? 'success' : 'error');
           exportV2Status.style.display = 'block';
         }
+        if (d.success) showToast(exportV2T('queued'), 'success');
+        else showToast(d.message || exportV2T('error'), 'error');
         setTimeout(loadExportV2Status, 1500);
         setTimeout(loadExportV2Status, 5000);
         setTimeout(loadExportV2Status, 15000);
       }).catch(function() {
         if (exportV2Status) {
-          exportV2Status.textContent = t('settings.data_privacy.export_v2.error');
+          exportV2Status.textContent = exportV2T('error');
           exportV2Status.className = 'export-status error';
           exportV2Status.style.display = 'block';
         }
+        showToast(exportV2T('error'), 'error');
       }).finally(function() { btn.disabled = false; });
     }
 
@@ -15621,14 +15636,19 @@ document.addEventListener('DOMContentLoaded', function () {
     if (exportV2Btn) {
       loadExportV2Status();
       exportV2Btn.addEventListener('click', function() {
-        exportV2Request('case_data', exportV2Format ? exportV2Format.value : 'csv', exportV2Btn);
+        exportV2Request('case_data', exportV2SelectedFormat, exportV2Btn);
       });
     }
     if (exportV2ArchiveBtn) {
       exportV2ArchiveBtn.addEventListener('click', function() {
-        if (confirm(t('settings.data_privacy.export_v2.archive_confirm') || 'Create a complete practice archive? This may take several minutes.')) {
-          exportV2Request('practice_archive', 'zip', exportV2ArchiveBtn);
-        }
+        showConfirmModal(
+          exportV2T('archive_confirm_title'),
+          exportV2T('archive_confirm'),
+          function() { exportV2Request('practice_archive', 'zip', exportV2ArchiveBtn); },
+          null,
+          false,
+          exportV2ArchiveBtn
+        );
       });
     }
 

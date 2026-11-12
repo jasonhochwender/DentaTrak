@@ -5282,8 +5282,8 @@
                 "unknown_error": "Ocorreu um erro. Tente novamente."
             },
             "export_v2": {
-                "title": "Exportação de dados de casos (novo)",
-                "description": "Exportação assíncrona dos dados de casos da sua clínica em CSV (compatível com Excel) ou JSON. Processada em segundo plano; o link de download expira após 7 dias.",
+                "title": "Exportação de dados de casos",
+                "description": "Exporte os dados de casos do seu consultório em CSV (compatível com Excel) ou JSON para relatórios e análises. Processado em segundo plano; os links de download expiram após 7 dias.",
                 "format_csv": "CSV (Excel)",
                 "format_json": "JSON",
                 "button": "Exportar dados de casos",
@@ -5298,10 +5298,21 @@
                 "status_pending": "Pendente",
                 "status_cancelled": "Cancelada",
                 "status_unknown": "Desconhecido",
-                "archive_button": "Arquivo completo (ZIP)",
-                "archive_note": "Arquivo completo da clínica: todos os casos, arquivos, comentários, configurações, membros, registros de scanner e histórico de auditoria em um único ZIP. Requer acesso de administrador ou proprietário sem restrições.",
-                "archive_confirm": "Criar um arquivo completo da clínica? Inclui todos os dados e arquivos da clínica e pode levar vários minutos.",
-                "expires": "expira"
+                "archive_button": "Criar arquivo (ZIP)",
+                "archive_note": "Inclui todos os dados e arquivos do consultório e pode levar vários minutos. A seleção CSV/JSON acima não se aplica ao arquivo.",
+                "archive_confirm": "Isso compactará todos os dados e arquivos do consultório em um arquivo ZIP. Pode levar vários minutos. Continuar?",
+                "expires": "expira",
+                "format_group_aria": "Formato de exportação",
+                "archive_title": "Arquivo completo do consultório",
+                "archive_description": "Um arquivo ZIP com todos os dados do consultório: casos nos formatos CSV e JSON, anexos, comentários, histórico de atividades, configurações, membros, registros do scanner e registros de auditoria.",
+                "archive_confirm_title": "Criar arquivo do consultório?",
+                "history_title": "Histórico de exportações",
+                "history_empty": "Nenhuma exportação ainda.",
+                "history_load_error": "Não foi possível carregar o histórico de exportações.",
+                "history_created": "Criado",
+                "type_archive": "Arquivo (ZIP)",
+                "type_legacy": "JSON legado",
+                "download_error": "Falha no download. Tente novamente."
             }
         },
         "dev_tools": {

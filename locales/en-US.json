@@ -1313,11 +1313,11 @@
                 "unknown_error": "An error occurred. Please try again."
             },
             "export_v2": {
-                "title": "Case Data Export (new)",
-                "description": "Asynchronous export of your practice's case data as CSV (Excel-ready) or JSON. Processed in the background; download link expires after 7 days.",
+                "title": "Case Data Export",
+                "description": "Export your practice's case data as CSV (Excel-ready) or JSON for reporting and analysis. Processed in the background; download links expire after 7 days.",
                 "format_csv": "CSV (Excel)",
                 "format_json": "JSON",
-                "button": "Export case data",
+                "button": "Export Case Data",
                 "queued": "Export queued - you will be notified by email when ready.",
                 "error": "Export request failed.",
                 "download": "Download",
@@ -1329,10 +1329,21 @@
                 "status_pending": "Pending",
                 "status_cancelled": "Cancelled",
                 "status_unknown": "Unknown",
-                "archive_button": "Complete archive (ZIP)",
-                "archive_note": "Full practice archive: all cases, files, comments, settings, members, scanner records, and audit history in one ZIP. Requires unrestricted admin or owner access.",
-                "archive_confirm": "Create a complete practice archive? This includes all practice data and files and may take several minutes.",
-                "expires": "expires"
+                "archive_button": "Create Archive (ZIP)",
+                "archive_note": "Includes all practice data and files and may take several minutes. The CSV/JSON selection above does not apply to the archive.",
+                "archive_confirm": "This packages all practice data and files into a ZIP archive. It may take several minutes. Continue?",
+                "expires": "expires",
+                "format_group_aria": "Export format",
+                "archive_title": "Complete Practice Archive",
+                "archive_description": "A ZIP archive of all practice data: cases in both CSV and JSON formats, attachments, comments, activity history, settings, members, scanner records, and audit records.",
+                "archive_confirm_title": "Create practice archive?",
+                "history_title": "Export History",
+                "history_empty": "No exports yet.",
+                "history_load_error": "Could not load export history.",
+                "history_created": "Created",
+                "type_archive": "Archive (ZIP)",
+                "type_legacy": "Legacy JSON",
+                "download_error": "Download failed. Please try again."
             }
         },
         "dev_tools": {

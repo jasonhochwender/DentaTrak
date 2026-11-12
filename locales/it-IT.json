@@ -1313,8 +1313,8 @@
                 "unknown_error": "Si è verificato un errore. Riprova."
             },
             "export_v2": {
-                "title": "Esportazione dati casi (nuova)",
-                "description": "Esportazione asincrona dei dati dei casi del tuo studio in CSV (compatibile con Excel) o JSON. Elaborazione in background; il link di download scade dopo 7 giorni.",
+                "title": "Esportazione dati dei casi",
+                "description": "Esporta i dati dei casi del tuo studio in CSV (compatibile con Excel) o JSON per report e analisi. Elaborazione in background; i link di download scadono dopo 7 giorni.",
                 "format_csv": "CSV (Excel)",
                 "format_json": "JSON",
                 "button": "Esporta dati dei casi",
@@ -1329,10 +1329,21 @@
                 "status_pending": "In attesa",
                 "status_cancelled": "Annullata",
                 "status_unknown": "Sconosciuto",
-                "archive_button": "Archivio completo (ZIP)",
-                "archive_note": "Archivio completo dello studio: tutti i casi, i file, i commenti, le impostazioni, i membri, i record dello scanner e la cronologia di audit in un unico ZIP. Richiede accesso di amministratore o titolare senza restrizioni.",
-                "archive_confirm": "Creare un archivio completo dello studio? Include tutti i dati e i file dello studio e può richiedere diversi minuti.",
-                "expires": "scade"
+                "archive_button": "Crea archivio (ZIP)",
+                "archive_note": "Include tutti i dati e i file dello studio e può richiedere alcuni minuti. La selezione CSV/JSON sopra non si applica all'archivio.",
+                "archive_confirm": "Verranno inseriti tutti i dati e i file dello studio in un archivio ZIP. Potrebbe richiedere alcuni minuti. Continuare?",
+                "expires": "scade",
+                "format_group_aria": "Formato di esportazione",
+                "archive_title": "Archivio completo dello studio",
+                "archive_description": "Un archivio ZIP di tutti i dati dello studio: casi in formato CSV e JSON, allegati, commenti, cronologia attività, impostazioni, membri, record dello scanner e registri di audit.",
+                "archive_confirm_title": "Creare archivio dello studio?",
+                "history_title": "Cronologia esportazioni",
+                "history_empty": "Nessuna esportazione.",
+                "history_load_error": "Impossibile caricare la cronologia delle esportazioni.",
+                "history_created": "Creata",
+                "type_archive": "Archivio (ZIP)",
+                "type_legacy": "JSON legacy",
+                "download_error": "Download non riuscito. Riprova."
             }
         },
         "dev_tools": {

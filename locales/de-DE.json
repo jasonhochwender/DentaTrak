@@ -2948,8 +2948,8 @@
                 "unknown_error": "Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut."
             },
             "export_v2": {
-                "title": "Falldatenexport (neu)",
-                "description": "Asynchroner Export der Falldaten Ihrer Praxis als CSV (Excel-kompatibel) oder JSON. Wird im Hintergrund verarbeitet; der Download-Link läuft nach 7 Tagen ab.",
+                "title": "Falldatenexport",
+                "description": "Exportieren Sie die Falldaten Ihrer Praxis als CSV (Excel-kompatibel) oder JSON für Berichte und Analysen. Wird im Hintergrund verarbeitet; Download-Links laufen nach 7 Tagen ab.",
                 "format_csv": "CSV (Excel)",
                 "format_json": "JSON",
                 "button": "Falldaten exportieren",
@@ -2964,10 +2964,21 @@
                 "status_pending": "Ausstehend",
                 "status_cancelled": "Abgebrochen",
                 "status_unknown": "Unbekannt",
-                "archive_button": "Vollständiges Archiv (ZIP)",
-                "archive_note": "Vollständiges Praxisarchiv: alle Fälle, Dateien, Kommentare, Einstellungen, Mitglieder, Scannerdaten und der Audit-Verlauf in einem ZIP. Erfordert uneingeschränkte Admin- oder Inhaberrechte.",
-                "archive_confirm": "Vollständiges Praxisarchiv erstellen? Enthält alle Praxisdaten und -dateien und kann mehrere Minuten dauern.",
-                "expires": "läuft ab"
+                "archive_button": "Archiv erstellen (ZIP)",
+                "archive_note": "Enthält alle Praxisdaten und -dateien und kann mehrere Minuten dauern. Die CSV/JSON-Auswahl oben gilt nicht für das Archiv.",
+                "archive_confirm": "Dadurch werden alle Praxisdaten und -dateien in einem ZIP-Archiv zusammengefasst. Dies kann mehrere Minuten dauern. Fortfahren?",
+                "expires": "läuft ab",
+                "format_group_aria": "Exportformat",
+                "archive_title": "Vollständiges Praxisarchiv",
+                "archive_description": "Ein ZIP-Archiv aller Praxisdaten: Fälle in CSV- und JSON-Format, Anhänge, Kommentare, Aktivitätsverlauf, Einstellungen, Mitglieder, Scannerdaten und Audit-Aufzeichnungen.",
+                "archive_confirm_title": "Praxisarchiv erstellen?",
+                "history_title": "Exportverlauf",
+                "history_empty": "Noch keine Exporte.",
+                "history_load_error": "Der Exportverlauf konnte nicht geladen werden.",
+                "history_created": "Erstellt",
+                "type_archive": "Archiv (ZIP)",
+                "type_legacy": "Legacy-JSON",
+                "download_error": "Download fehlgeschlagen. Bitte versuchen Sie es erneut."
             }
         },
         "dev_tools": {

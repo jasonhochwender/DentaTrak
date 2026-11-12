@@ -4515,34 +4515,30 @@ endif;
                     </button>
                     <div class="settings-twisty-content">
                       <div class="settings-group">
-                        <div class="data-export-section">
-                          <h4 class="subsection-title"><?php echo t('settings.data_privacy.export.title'); ?></h4>
-                          <p class="section-description"><?php echo t('settings.data_privacy.export.description'); ?></p>
-                          <div id="exportStatus" class="export-status" style="display: none;"></div>
-                          <button type="button" id="exportDataBtn" class="btn-secondary">
-                            <span class="btn-icon">📥</span> <?php echo t('settings.data_privacy.export.button'); ?>
-                          </button>
-                          <p class="export-note"><?php echo t('settings.data_privacy.export.note'); ?></p>
-                        </div>
                         <?php if (function_exists('dataExportV2PracticeAllowed') && dataExportV2PracticeAllowed((int)$currentPracticeId)): ?>
-                        <div class="data-export-section" id="exportV2Section">
+                        <div class="data-export-section">
                           <h4 class="subsection-title"><?php echo t('settings.data_privacy.export_v2.title'); ?></h4>
                           <p class="section-description"><?php echo t('settings.data_privacy.export_v2.description'); ?></p>
-                          <div class="export-v2-controls" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-                            <select id="exportV2Format" class="form-input" style="max-width:140px;">
-                              <option value="csv"><?php echo t('settings.data_privacy.export_v2.format_csv'); ?></option>
-                              <option value="json"><?php echo t('settings.data_privacy.export_v2.format_json'); ?></option>
-                            </select>
-                            <button type="button" id="exportV2Btn" class="btn-secondary">
-                              <span class="btn-icon">📥</span> <?php echo t('settings.data_privacy.export_v2.button'); ?>
-                            </button>
-                            <button type="button" id="exportV2ArchiveBtn" class="btn-secondary">
-                              <span class="btn-icon">🗄️</span> <?php echo t('settings.data_privacy.export_v2.archive_button'); ?>
-                            </button>
+                          <div class="case-view-toggle export-format-toggle" role="group" aria-label="<?php echo t('settings.data_privacy.export_v2.format_group_aria'); ?>">
+                            <button type="button" id="exportV2FormatCsv" class="case-view-btn active" aria-pressed="true"><?php echo t('settings.data_privacy.export_v2.format_csv'); ?></button>
+                            <button type="button" id="exportV2FormatJson" class="case-view-btn" aria-pressed="false"><?php echo t('settings.data_privacy.export_v2.format_json'); ?></button>
                           </div>
+                          <button type="button" id="exportV2Btn" class="btn-secondary">
+                            <span class="btn-icon">📥</span> <?php echo t('settings.data_privacy.export_v2.button'); ?>
+                          </button>
+                          <div id="exportV2Status" class="export-status" style="display:none;margin-top:12px;"></div>
+                        </div>
+                        <div class="data-export-section">
+                          <h4 class="subsection-title"><?php echo t('settings.data_privacy.export_v2.archive_title'); ?></h4>
+                          <p class="section-description"><?php echo t('settings.data_privacy.export_v2.archive_description'); ?></p>
+                          <button type="button" id="exportV2ArchiveBtn" class="btn-secondary">
+                            <span class="btn-icon">🗄️</span> <?php echo t('settings.data_privacy.export_v2.archive_button'); ?>
+                          </button>
                           <p class="export-note"><?php echo t('settings.data_privacy.export_v2.archive_note'); ?></p>
-                          <div id="exportV2Status" class="export-status" style="display:none;margin-top:8px;"></div>
-                          <div id="exportV2List" style="margin-top:10px;"></div>
+                        </div>
+                        <div class="data-export-section">
+                          <h4 class="subsection-title"><?php echo t('settings.data_privacy.export_v2.history_title'); ?></h4>
+                          <div id="exportV2List" class="export-history-list"></div>
                         </div>
                         <?php endif; ?>
                         <?php if ($isCurrentUserPracticeAdmin): ?>

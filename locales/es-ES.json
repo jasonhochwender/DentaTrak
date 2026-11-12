@@ -1313,8 +1313,8 @@
                 "unknown_error": "Ocurrió un error. Inténtelo de nuevo."
             },
             "export_v2": {
-                "title": "Exportación de datos de casos (nuevo)",
-                "description": "Exportación asíncrona de los datos de casos de su consulta en CSV (compatible con Excel) o JSON. Se procesa en segundo plano; el enlace de descarga caduca a los 7 días.",
+                "title": "Exportación de datos de casos",
+                "description": "Exporte los datos de casos de su consulta en formato CSV (compatible con Excel) o JSON para informes y análisis. Se procesa en segundo plano; los enlaces de descarga caducan a los 7 días.",
                 "format_csv": "CSV (Excel)",
                 "format_json": "JSON",
                 "button": "Exportar datos de casos",
@@ -1329,10 +1329,21 @@
                 "status_pending": "Pendiente",
                 "status_cancelled": "Cancelada",
                 "status_unknown": "Desconocido",
-                "archive_button": "Archivo completo (ZIP)",
-                "archive_note": "Archivo completo de la consulta: todos los casos, archivos, comentarios, ajustes, miembros, registros de escáner e historial de auditoría en un solo ZIP. Requiere acceso de administrador u propietario sin restricciones.",
-                "archive_confirm": "¿Crear un archivo completo de la consulta? Incluye todos los datos y archivos de la consulta y puede tardar varios minutos.",
-                "expires": "caduca"
+                "archive_button": "Crear archivo (ZIP)",
+                "archive_note": "Incluye todos los datos y archivos de la consulta y puede tardar varios minutos. La selección CSV/JSON anterior no se aplica al archivo.",
+                "archive_confirm": "Esto empaquetará todos los datos y archivos de la consulta en un archivo ZIP. Puede tardar varios minutos. ¿Continuar?",
+                "expires": "caduca",
+                "format_group_aria": "Formato de exportación",
+                "archive_title": "Archivo completo de la consulta",
+                "archive_description": "Un archivo ZIP con todos los datos de la consulta: casos en formato CSV y JSON, archivos adjuntos, comentarios, historial de actividad, configuración, miembros, registros del escáner y registros de auditoría.",
+                "archive_confirm_title": "¿Crear archivo de la consulta?",
+                "history_title": "Historial de exportaciones",
+                "history_empty": "Aún no hay exportaciones.",
+                "history_load_error": "No se pudo cargar el historial de exportaciones.",
+                "history_created": "Creado",
+                "type_archive": "Archivo (ZIP)",
+                "type_legacy": "JSON heredado",
+                "download_error": "Error de descarga. Inténtelo de nuevo."
             }
         },
         "dev_tools": {

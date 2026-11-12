@@ -164,6 +164,7 @@ function eaSnapshot(PDO $pdo, int $pid, string $tmpDir): array {
 
     $pdo->beginTransaction();
     $snapshotAt = $pdo->query('SELECT NOW()')->fetchColumn();
+    $headers = [];
     try {
         foreach ($sections as $name => $sql) {
             $path = $tmpDir . '/sec_' . $name . '.jsonl';
@@ -173,6 +174,16 @@ function eaSnapshot(PDO $pdo, int $pid, string $tmpDir): array {
             try {
                 $q = $pdo->prepare($sql);
                 $q->execute(['p' => $pid]);
+                // Capture result column names so zero-row sections still
+                // produce meaningful CSV headers in the archive.
+                $hdrs = [];
+                if (method_exists($q, 'columnCount') && $q->columnCount() > 0) {
+                    for ($ci = 0; $ci < $q->columnCount(); $ci++) {
+                        $meta = $q->getColumnMeta($ci);
+                        $hdrs[] = (string)($meta['name'] ?? '');
+                    }
+                }
+                $headers[$name] = $hdrs;
                 while ($row = $q->fetch(PDO::FETCH_ASSOC)) {
                     fwrite($fp, json_encode($row, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\n");
                     $n++;
@@ -208,7 +219,8 @@ function eaSnapshot(PDO $pdo, int $pid, string $tmpDir): array {
         if ($pdo->inTransaction()) $pdo->commit();
     }
 
-    return ['files' => $files, 'counts' => $counts, 'notes' => $notes, 'snapshot_at' => $snapshotAt];
+    return ['files' => $files, 'counts' => $counts, 'notes' => $notes,
+            'headers' => $headers, 'snapshot_at' => $snapshotAt];
 }
 
 /** Strip sensitive keys from a practice settings row. */
@@ -610,14 +622,23 @@ function exportArchiveBuild(PDO $pdo, array $export, string $tmpDir, string $wor
     foreach ($csvSections as $sec => $hdr) {
         if (!isset($F[$sec])) continue;
         $deny = $columnDenylist[$sec] ?? [];
-        // Pass 1: header from the first row's keys (dynamic sections).
+        // Pass 1: header - prefer the snapshot's real column names (works
+        // for zero-row sections), else derive from the first row.
         if ($hdr === null) {
-            $first = null;
-            foreach (eaJsonlRows($F[$sec]) as $r) {
-                foreach ($deny as $d) unset($r[$d]);
-                $first = $r; break;
+            $stored = array_values(array_diff(
+                array_filter($snap['headers'][$sec] ?? [], function ($h) { return $h !== ''; }),
+                $deny
+            ));
+            if ($stored) {
+                $hdr = $stored;
+            } else {
+                $first = null;
+                foreach (eaJsonlRows($F[$sec]) as $r) {
+                    foreach ($deny as $d) unset($r[$d]);
+                    $first = $r; break;
+                }
+                $hdr = $first ? array_keys($first) : ['empty'];
             }
-            $hdr = $first ? array_keys($first) : ['empty'];
         }
         // Pass 2: stream rows to the zip entry as CSV.
         $rowsGen = (function () use ($F, $sec, $hdr, $deny) {

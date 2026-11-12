@@ -1313,8 +1313,8 @@
                 "unknown_error": "Une erreur s'est produite. Veuillez réessayer."
             },
             "export_v2": {
-                "title": "Exportation des données de cas (nouveau)",
-                "description": "Exportation asynchrone des données de cas de votre cabinet au format CSV (compatible Excel) ou JSON. Traitement en arrière-plan; le lien de téléchargement expire après 7 jours.",
+                "title": "Exportation des données de cas",
+                "description": "Exportez les données de cas de votre cabinet au format CSV (compatible Excel) ou JSON pour vos rapports et analyses. Traitement en arrière-plan ; les liens de téléchargement expirent après 7 jours.",
                 "format_csv": "CSV (Excel)",
                 "format_json": "JSON",
                 "button": "Exporter les données de cas",
@@ -1329,10 +1329,21 @@
                 "status_pending": "En attente",
                 "status_cancelled": "Annulée",
                 "status_unknown": "Inconnu",
-                "archive_button": "Archive complète (ZIP)",
-                "archive_note": "Archive complète du cabinet : tous les cas, fichiers, commentaires, paramètres, membres, dossiers de numérisation et historique d'audit dans un seul ZIP. Nécessite un accès administrateur ou propriétaire sans restriction.",
-                "archive_confirm": "Créer une archive complète du cabinet? Elle comprend toutes les données et tous les fichiers du cabinet et peut prendre plusieurs minutes.",
-                "expires": "expire"
+                "archive_button": "Créer l'archive (ZIP)",
+                "archive_note": "Comprend toutes les données et tous les fichiers du cabinet et peut prendre plusieurs minutes. La sélection CSV/JSON ci-dessus ne s'applique pas à l'archive.",
+                "archive_confirm": "Cela regroupe toutes les données et tous les fichiers du cabinet dans une archive ZIP. Cela peut prendre plusieurs minutes. Continuer ?",
+                "expires": "expire",
+                "format_group_aria": "Format d'exportation",
+                "archive_title": "Archive complète du cabinet",
+                "archive_description": "Une archive ZIP de toutes les données du cabinet : cas aux formats CSV et JSON, pièces jointes, commentaires, historique d'activité, paramètres, membres, dossiers du scanner et journaux d'audit.",
+                "archive_confirm_title": "Créer l'archive du cabinet ?",
+                "history_title": "Historique des exportations",
+                "history_empty": "Aucune exportation pour le moment.",
+                "history_load_error": "Impossible de charger l'historique des exportations.",
+                "history_created": "Créée",
+                "type_archive": "Archive (ZIP)",
+                "type_legacy": "JSON hérité",
+                "download_error": "Échec du téléchargement. Veuillez réessayer."
             }
         },
         "dev_tools": {

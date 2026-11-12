@@ -205,6 +205,22 @@ ok('user_settings scoped to practice members', $usCsv !== false && strpos($usCsv
 $rc = $m['exportInfo']['rowCounts'] ?? [];
 ok('manifest counts user_settings', array_key_exists('user_settings', $rc));
 
+// Zero-row sections must still emit real column headers, not the 'empty'
+// placeholder - legitimately empty data stays identifiable via rowCounts.
+$csvSections = ['comments','activity','assignments','lab_periods','lab_acks','remakes',
+    'labels','label_assignments','scanner_incoming','scanner_files','scanner_events',
+    'phi_access_log','integration_sync_runs','integration_entity_mappings','user_prefs','user_settings'];
+$emptyHdrFails = [];
+foreach ($csvSections as $sec) {
+    if (($rc[$sec] ?? -1) !== 0) continue;
+    $p = "data/{$sec}.csv";
+    if (!in_array($p, $names, true)) continue;
+    $content = $z->getFromName($p);
+    $firstLine = strtok((string)$content, "\n");
+    if (trim((string)$firstLine) === 'empty') $emptyHdrFails[] = $sec;
+}
+ok('zero-row sections have real CSV headers', $emptyHdrFails === [], implode(',', $emptyHdrFails));
+
 // ---------- Failed-export artifact cleanup ----------
 $expA = 900000 + random_int(0, 9999);
 $expB = $expA + 50000;
