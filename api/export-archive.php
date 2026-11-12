@@ -218,40 +218,68 @@ function eaMemberRow(array $r): array {
  * the zip with integrity checks. Missing/inaccessible objects are
  * recorded explicitly in the manifest - never silently skipped.
  */
-function eaAddBinaryFiles(ZipStream $zip, PDO $pdo, int $pid, array $snapFiles, array &$sums, array &$manifestFiles, callable $heartbeat): void {
+function eaAddBinaryFiles(ZipStream $zip, PDO $pdo, int $pid, array $snapFiles, array &$sums, array &$manifestFiles, callable $heartbeat, string $spoolDir): void {
     require_once __DIR__ . '/gcs-storage.php';
     $bucket = exportArtifactDriver() === 'gcs' ? getGcsBucket() : null;
     $usedNames = [];
+    $spoolN = 0;
 
-    $addOne = function (string $zipPath, string $driver, string $storagePath, ?int $declaredSize, ?string $declaredSha, array $source) use (&$manifestFiles, &$sums, &$usedNames, $zip, $bucket, $heartbeat) {
+    $addOne = function (string $zipPath, string $driver, string $storagePath, ?int $declaredSize, ?string $declaredSha, array $source) use (&$manifestFiles, &$sums, &$usedNames, &$spoolN, $zip, $bucket, $heartbeat, $spoolDir) {
         // Deduplicate zip paths: append _2, _3... on collision.
         $base = $zipPath; $i = 2;
         while (isset($usedNames[$zipPath])) { $zipPath = preg_replace('/(\.[^\/]*)?$/', '_' . $i . '$1', $base); $i++; }
         $usedNames[$zipPath] = true;
         $entry = ['zipPath' => $zipPath, 'source' => $source, 'status' => 'pending'];
+        $spool = null;
         try {
-            // Resolve + verify existence and observed metadata.
-            $gen = null; $size = $declaredSize;
+            // Pin object metadata BEFORE reading.
+            $gen = null; $size = null; $md5 = null;
             if ($driver === 'gcs') {
                 $object = $bucket->object($storagePath);
                 $info = $object->exists() ? $object->info() : null;
                 if (!$info) { $entry['status'] = 'missing'; $manifestFiles[] = $entry; return; }
                 $gen = isset($info['generation']) ? (string)$info['generation'] : null;
-                $size = isset($info['size']) ? (int)$info['size'] : $size;
+                $size = isset($info['size']) ? (int)$info['size'] : null;
+                $md5 = $info['md5Hash'] ?? null;
             } else {
-                // Local driver: existence is verified by eaOpenBinaryStream.
+                $abs = ScanFileStore::exportLocalPath($storagePath);
+                if ($abs === null || !is_file($abs)) { $entry['status'] = 'missing'; $manifestFiles[] = $entry; return; }
+                $size = filesize($abs);
             }
 
-            // Hash pass (stream #1) then zip pass (stream #2 for GCS).
-            $hash = hash_init('sha256');
-            $s1 = eaOpenBinaryStream($driver, $storagePath);
-            if (!$s1) { $entry['status'] = 'missing'; $manifestFiles[] = $entry; return; }
-            [$st1, , ] = $s1;
-            while (!feof($st1)) hash_update($hash, fread($st1, 1 << 20));
-            fclose($st1);
-            $sha = hash_final($hash);
+            // Spool bytes to a per-file temp path so the sha256 in the
+            // manifest/SHA256SUMS always describes the exact bytes added
+            // to the zip (single read, no stream-pair divergence).
+            if ($driver === 'local') {
+                $spool = ScanFileStore::exportLocalPath($storagePath);
+            } else {
+                $spool = $spoolDir . '/bin_' . (++$spoolN);
+                $src = eaOpenBinaryStream($driver, $storagePath);
+                if (!$src) { $entry['status'] = 'missing'; $manifestFiles[] = $entry; return; }
+                [$st] = $src;
+                $out = fopen($spool, 'wb');
+                if ($out === false) throw new RuntimeException('spool open failed');
+                while (!feof($st)) fwrite($out, fread($st, 1 << 20));
+                fclose($out); fclose($st);
+                $size = filesize($spool);
+            }
+            if ($spool === null || !is_file($spool)) { $entry['status'] = 'missing'; $manifestFiles[] = $entry; return; }
 
-            if ($declaredSha && hash_equals(strtolower($declaredSha), $sha)) {
+            // Post-read generation check: if the GCS object was replaced
+            // while we were reading it, flag explicitly (bytes are still
+            // self-consistent - we hash what we spooled).
+            if ($driver === 'gcs') {
+                try {
+                    $info2 = $bucket->object($storagePath)->info();
+                    $gen2 = isset($info2['generation']) ? (string)$info2['generation'] : null;
+                    if ($gen !== null && $gen2 !== null && $gen !== $gen2) {
+                        $entry['generation_changed'] = true;
+                    }
+                } catch (Throwable $e) { /* object may be gone now - already recorded */ }
+            }
+
+            $sha = hash_file('sha256', $spool);
+            if ($declaredSha && hash_equals(strtolower($declaredSha), (string)$sha)) {
                 $entry['checksum'] = 'match';
             } elseif ($declaredSha) {
                 $entry['checksum'] = 'mismatch';
@@ -259,28 +287,30 @@ function eaAddBinaryFiles(ZipStream $zip, PDO $pdo, int $pid, array $snapFiles, 
             } else {
                 $entry['checksum'] = 'computed';
             }
-            if ($declaredSize !== null && $size !== null && $declaredSize !== $size) {
+            if ($declaredSize !== null && $size !== null && (int)$declaredSize !== (int)$size) {
                 $entry['size_mismatch'] = true;
             }
 
-            $st2 = eaOpenBinaryStream($driver, $storagePath);
-            if (!$st2) { $entry['status'] = 'missing'; $manifestFiles[] = $entry; return; }
-            [$stream] = $st2;
+            $stream = fopen($spool, 'rb');
             $psr = Utils::streamFor($stream);
             $zip->addFileFromPsr7Stream($zipPath, $psr,
                 compressionMethod: CompressionMethod::STORE,
-                exactSize: $size !== null ? $size : null, enableZeroHeader: true);
+                exactSize: $size !== null ? (int)$size : null, enableZeroHeader: true);
+            fclose($stream);
             $sums[] = [$sha, $zipPath];
             $entry['status'] = 'included';
             $entry['size'] = $size;
             $entry['sha256'] = $sha;
             if ($gen !== null) $entry['generation'] = $gen;
+            if ($md5 !== null) $entry['gcs_md5'] = $md5;
             $manifestFiles[] = $entry;
             $heartbeat();
         } catch (Throwable $e) {
             $entry['status'] = 'error';
             $entry['error'] = 'read failed'; // never leak paths/PHI
             $manifestFiles[] = $entry;
+        } finally {
+            if ($spool !== null && $driver === 'gcs') @unlink($spool);
         }
     };
 
@@ -490,12 +520,21 @@ function exportArchiveBuild(PDO $pdo, array $export, string $tmpDir, string $wor
         'integration_entity_mappings' => null,
         'user_prefs' => null,
     ];
+    // Columns that may carry raw payloads/metadata are stripped per section.
+    $columnDenylist = [
+        'integration_entity_mappings' => ['metadata_json'],
+        'integration_sync_runs' => [],
+    ];
     foreach ($csvSections as $sec => $hdr) {
         if (!isset($F[$sec])) continue;
+        $deny = $columnDenylist[$sec] ?? [];
         // Pass 1: header from the first row's keys (dynamic sections).
         if ($hdr === null) {
             $first = null;
-            foreach (eaJsonlRows($F[$sec]) as $r) { $first = $r; break; }
+            foreach (eaJsonlRows($F[$sec]) as $r) {
+                foreach ($deny as $d) unset($r[$d]);
+                $first = $r; break;
+            }
             $hdr = $first ? array_keys($first) : ['empty'];
         }
         // Pass 2: stream rows to CSV.
@@ -504,6 +543,7 @@ function exportArchiveBuild(PDO $pdo, array $export, string $tmpDir, string $wor
         fwrite($fp, "\xEF\xBB\xBF");
         fputcsv($fp, $hdr);
         foreach (eaJsonlRows($F[$sec]) as $r) {
+            foreach ($deny as $d) unset($r[$d]);
             if ($sec === 'comments') {
                 $r['comment_text'] = eaDec($r['comment_text'] ?? '');
                 $r['attachments'] = json_decode($r['attachments_json'] ?? '[]', true) ?: [];
@@ -555,12 +595,20 @@ function exportArchiveBuild(PDO $pdo, array $export, string $tmpDir, string $wor
     }
 
     // ---- Binary files with integrity checks ----
-    eaAddBinaryFiles($zip, $pdo, $pid, $F, $sums, $manifestFiles, $heartbeat);
+    eaAddBinaryFiles($zip, $pdo, $pid, $F, $sums, $manifestFiles, $heartbeat, $tmpDir);
 
-    $bad = array_filter($manifestFiles, function ($f) { return in_array($f['status'], ['missing','error','checksum_mismatch'], true); });
-    $missing = count($bad);
+    $bad = array_filter($manifestFiles, function ($f) {
+        return in_array($f['status'] ?? '', ['missing','error','checksum_mismatch'], true)
+            || !empty($f['generation_changed']) || !empty($f['size_mismatch']);
+    });
+    $missing = count(array_filter($manifestFiles, function ($f) {
+        return in_array($f['status'] ?? '', ['missing','error','checksum_mismatch'], true);
+    }));
     foreach ($bad as $b) {
-        $warnings[] = "file {$b['zipPath']}: {$b['status']}";
+        $why = $b['status'];
+        if (!empty($b['generation_changed'])) $why .= '+generation_changed';
+        if (!empty($b['size_mismatch'])) $why .= '+size_mismatch';
+        $warnings[] = "file {$b['zipPath']}: {$why}";
     }
 
     // ---- manifest.json + SHA256SUMS + README ----

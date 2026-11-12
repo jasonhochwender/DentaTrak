@@ -113,6 +113,14 @@ fi
 
 gcloud "${DEPLOY_ARGS[@]}"
 
+# ---------- App service: job name for best-effort dispatch kicks ----------
+# EXPORT_RUN_JOB lets api/data-export-v2.php wake the job via jobs:run.
+# Without it requests still queue safely - the 15-min scheduler sweep is
+# the guaranteed drain. This is an env-only service update.
+gcloud run services update "$SERVICE" \
+    --region "$REGION" --project "$PROJECT" \
+    --update-env-vars "EXPORT_RUN_JOB=${JOB_NAME}" --quiet
+
 # ---------- IAM: let the app service account run the job ----------
 gcloud run jobs add-iam-policy-binding "$JOB_NAME" \
     --region "$REGION" --project "$PROJECT" \

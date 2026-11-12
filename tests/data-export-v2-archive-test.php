@@ -54,9 +54,26 @@ $stlAbs = __DIR__ . '/../uploads/scan-objects/' . $stlRel;
 file_put_contents($stlAbs, $stlContent);
 $cleanup['files'][] = $stlAbs;
 
+$bigContent = random_bytes(4 * 1024 * 1024); // 4 MiB large-file fixture
+$bigSha = hash('sha256', $bigContent);
+$bigRel = "cases/{$pid}/{$caseId}/photos/big-scan.bin";
+$bigAbs = __DIR__ . '/../uploads/scan-objects/' . $bigRel;
+@mkdir(dirname($bigAbs), 0755, true);
+file_put_contents($bigAbs, $bigContent);
+$cleanup['files'][] = $bigAbs;
+$dupContent = 'DUP-' . $uniq;
+$dupRel = "cases/{$pid}/{$caseId}/otherDocuments/dup.pdf";
+$dupAbs = __DIR__ . '/../uploads/scan-objects/' . $dupRel;
+@mkdir(dirname($dupAbs), 0755, true);
+file_put_contents($dupAbs, $dupContent);
+$cleanup['files'][] = $dupAbs;
+
 $atts = json_encode([
     ['name' => 'pic.jpg', 'type' => 'photos', 'storagePath' => $attRel, 'storageType' => 'local', 'size' => strlen($attContent)],
     ['name' => 'ghost.pdf', 'type' => 'photos', 'storagePath' => "cases/{$pid}/{$caseId}/photos/ghost.pdf", 'storageType' => 'local', 'size' => 1],
+    ['name' => 'big-scan.bin', 'type' => 'photos', 'storagePath' => $bigRel, 'storageType' => 'local', 'size' => strlen($bigContent)],
+    ['name' => 'dup.pdf', 'type' => 'otherDocuments', 'storagePath' => $dupRel, 'storageType' => 'local', 'size' => strlen($dupContent)],
+    ['name' => 'dup.pdf', 'type' => 'otherDocuments', 'storagePath' => $dupRel . '2', 'storageType' => 'local', 'size' => strlen($dupContent)],
 ]);
 $pdo->prepare("INSERT INTO cases_cache (case_id, practice_id, patient_first_name, patient_last_name, patient_dob, status, archived, attachments_json, creation_date, last_update_date)
     VALUES (?,?,?,?,?,'originated',0,?,NOW(),NOW())")
@@ -96,7 +113,7 @@ $tmp = sys_get_temp_dir() . '/archtest-' . uniqid();
 @mkdir($tmp, 0700, true);
 $res = exportWorkerProcessArchive($pdo, $claimed, 'archive-test', $tmp);
 ok('archive completes', ($res['status'] ?? '') === 'completed', json_encode($res));
-ok('one missing-file warning', ($res['warnings'] ?? -1) === 1, json_encode($res['warnings'] ?? null));
+ok('two missing-file warnings', ($res['warnings'] ?? -1) === 2, json_encode($res['warnings'] ?? null));
 
 $row = $pdo->query("SELECT * FROM data_exports WHERE id={$exportId}")->fetch(PDO::FETCH_ASSOC);
 ok('db status completed', $row['status'] === 'completed');
@@ -136,6 +153,10 @@ ok("all {$n} SHA256SUMS verify", $bad === 0);
 // File bytes + checksum status
 $attInZip = $z->getFromName("files/cases/{$caseId}/photos/pic.jpg");
 ok('attachment bytes identical', $attInZip !== false && hash('sha256', $attInZip) === $attSha);
+$bigInZip = $z->getFromName("files/cases/{$caseId}/photos/big-scan.bin");
+ok('4MiB attachment bytes identical', $bigInZip !== false && hash('sha256', $bigInZip) === $bigSha && strlen($bigInZip) === strlen($bigContent));
+$dupEntries = array_filter($names, function($n) use ($caseId) { return strpos($n, "files/cases/{$caseId}/otherDocuments/dup") === 0; });
+ok('duplicate filenames deduplicated', count($dupEntries) >= 1); // second ref is missing path -> only first included
 $stlEntry = null;
 foreach ($names as $nm) if (strpos($nm, 'files/scanner/') === 0) $stlEntry = $nm;
 $stlInZip = $stlEntry ? $z->getFromName($stlEntry) : false;
@@ -143,8 +164,8 @@ ok('scanner bytes identical + checksum match', $stlInZip !== false && hash('sha2
 
 // Manifest
 $m = json_decode($z->getFromName('manifest.json'), true);
-ok('manifest complete=false (missing file)', $m['complete'] === false);
-ok('manifest records missing', $m['missingOrFailedCount'] === 1);
+ok('manifest complete=false (missing files)', $m['complete'] === false);
+ok('manifest records missing', $m['missingOrFailedCount'] === 2);
 $statuses = array_column($m['files'], 'status', 'zipPath');
 ok('missing file explicit', ($statuses["files/cases/{$caseId}/photos/ghost.pdf"] ?? '') === 'missing');
 ok('cases count includes fixtures', ($m['exportInfo']['rowCounts']['cases'] ?? 0) >= 2);
@@ -157,6 +178,8 @@ $settings = $z->getFromName('practice/settings.json');
 ok('settings excludes secret-ish keys', !preg_match('/"(secret|token|password|private_key)[^"]*"\s*:/i', $settings));
 $conn = $z->getFromName('integrations/connections.json');
 ok('connections exclude config_json', strpos($conn, 'config_json') === false && strpos($conn, 'access_token') === false);
+$mapsCsv = $z->getFromName('data/integration_entity_mappings.csv');
+ok('entity mappings exclude metadata_json', strpos($mapsCsv, 'metadata_json') === false);
 $casesJson = $z->getFromName('cases/cases.json');
 ok('cases.json has decrypted PII', strpos($casesJson, 'Arch') !== false);
 ok('cases.json excludes other practice', strpos($casesJson, 'archtest_other_' . $uniq) === false);

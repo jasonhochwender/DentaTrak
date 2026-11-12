@@ -152,6 +152,16 @@ if (!function_exists('exportWorkerKickJob')) {
         $job = getEnvVar('EXPORT_RUN_JOB') ?? '';
         $project = getEnvVar('GOOGLE_CLOUD_PROJECT') ?? getEnvVar('GCP_PROJECT') ?? '';
         $region = getEnvVar('GOOGLE_CLOUD_REGION') ?? 'us-east1';
+        if ($project === '') {
+            // Cloud Run does not set GOOGLE_CLOUD_PROJECT by default; read
+            // it from the metadata server (same channel as the token).
+            $pj = @file_get_contents(
+                'http://metadata.google.internal/computeMetadata/v1/project/project-id',
+                false,
+                stream_context_create(['http' => ['header' => "Metadata-Flavor: Google\r\n", 'timeout' => 3]])
+            );
+            $project = $pj ? trim($pj) : '';
+        }
         if ($job === '' || $project === '') return false;
 
         // Accept either a full resource name or a bare job id.
