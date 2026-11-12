@@ -10,23 +10,32 @@
 # references via --set-secrets.
 #
 # Also provisions:
-#   - IAM: roles/run.invoker on the job for the app service account so
-#     api/data-export-v2.php can wake the job via the Run jobs:run API.
+#   - IAM: custom role dtkExportJobRunner (run.jobs.run +
+#     run.jobs.runWithOverrides - overrides are REQUIRED because
+#     api/data-export-v2.php dispatches with an EXPORT_ID container
+#     override; roles/run.invoker alone cannot do that) bound to the
+#     app service account on dtk-export-worker only.
 #   - Cloud Scheduler `dtk-prod-export-worker-sweep` (every 15 min) that
-#     executes the job in --sweep-only mode: expires artifacts, recovers
-#     stale claims, fails abandoned rows, and drains any queued exports
-#     whose dispatch failed. This is the guaranteed recovery path; the
-#     per-request jobs:run kick is only a latency optimization.
+#     executes the job with EMPTY overrides (sweep + drain). Its OAuth
+#     identity is the same compute SA, so the custom role's run.jobs.run
+#     covers it; the scheduler service agent additionally needs
+#     iam.serviceAccountTokenCreator on that SA - granted below and
+#     treated as FATAL if it cannot be applied, because without it the
+#     guaranteed cleanup/drain path silently never runs.
+#
+# This script must run BEFORE the new app revision receives traffic
+# (cloudbuild orders it that way): every step is set -e fatal, so a
+# provisioning failure aborts the build before promotion.
 #
 # Minimum IAM required:
 #   - Job service account (compute SA today): roles/cloudsql.client,
 #     storage read/write on the app bucket (objects under
 #     practice-exports/), secretAccessor on every secret mounted via
 #     --set-secrets.
-#   - App service account: roles/run.invoker on dtk-export-worker only
-#     (granted below) so api/data-export-v2.php can call jobs:run.
+#   - App service account: dtkExportJobRunner on dtk-export-worker only
+#     (granted below) for jobs:run incl. EXPORT_ID overrides.
 #   - Cloud Scheduler service agent: roles/iam.serviceAccountTokenCreator
-#     on the OAuth service account (best-effort grant below).
+#     on the OAuth service account (required grant below).
 # A dedicated service account for the job is recommended future
 # hardening; the compute SA is used today to match dtk-app-prod.
 #
@@ -113,19 +122,34 @@ fi
 
 gcloud "${DEPLOY_ARGS[@]}"
 
-# ---------- App service: job name for best-effort dispatch kicks ----------
-# EXPORT_RUN_JOB lets api/data-export-v2.php wake the job via jobs:run.
-# Without it requests still queue safely - the 15-min scheduler sweep is
-# the guaranteed drain. This is an env-only service update.
-gcloud run services update "$SERVICE" \
-    --region "$REGION" --project "$PROJECT" \
-    --update-env-vars "EXPORT_RUN_JOB=${JOB_NAME}" --quiet
+# ---------- IAM: job runner role with override permission ----------
+# jobs:run WITH container overrides (EXPORT_ID) requires
+# run.jobs.runWithOverrides. No predefined role grants that narrowly,
+# so we maintain a purpose-built custom role and bind it to the job
+# resource only. run.jobs.run (no overrides) is included so the same
+# binding also authorizes the scheduler's plain jobs:run calls - the
+# scheduler authenticates as this same service account.
+CUSTOM_ROLE_ID="dtkExportJobRunner"
+CUSTOM_ROLE="projects/${PROJECT}/roles/${CUSTOM_ROLE_ID}"
+if ! gcloud iam roles describe "$CUSTOM_ROLE_ID" --project "$PROJECT" >/dev/null 2>&1; then
+    echo "Creating custom role ${CUSTOM_ROLE_ID}."
+    gcloud iam roles create "$CUSTOM_ROLE_ID" \
+        --project "$PROJECT" \
+        --title "DentaTrak Export Job Runner" \
+        --description "Allows jobs:run on dtk-export-worker including EXPORT_ID container overrides" \
+        --permissions "run.jobs.run,run.jobs.runWithOverrides" \
+        --stage GA --quiet
+fi
 
-# ---------- IAM: let the app service account run the job ----------
 gcloud run jobs add-iam-policy-binding "$JOB_NAME" \
     --region "$REGION" --project "$PROJECT" \
     --member "serviceAccount:${SERVICE_ACCOUNT}" \
-    --role "roles/run.invoker" --quiet
+    --role "$CUSTOM_ROLE" --quiet
+
+# NOTE: EXPORT_RUN_JOB is set on the app service at deploy time by
+# cloudbuild.yaml (--update-env-vars on the staged revision), NOT here -
+# a `gcloud run services update` would create and promote a new
+# revision outside the staged-verify-promote flow.
 
 # ---------- Scheduler: periodic sweep + queue drain ----------
 RUN_URI="https://run.googleapis.com/v2/projects/${PROJECT}/locations/${REGION}/jobs/${JOB_NAME}:run"
@@ -135,12 +159,17 @@ RUN_URI="https://run.googleapis.com/v2/projects/${PROJECT}/locations/${REGION}/j
 SCHED_BODY='{}'
 PROJECT_NUMBER=$(gcloud projects describe "$PROJECT" --format='value(projectNumber)')
 SCHED_SA="service-${PROJECT_NUMBER}@gcp-sa-cloudscheduler.iam.gserviceaccount.com"
-# Best-effort: scheduler service agent needs token-creator on the OAuth SA.
-gcloud iam service-accounts add-iam-policy-binding "$SERVICE_ACCOUNT" \
+# REQUIRED: without token-creator on the OAuth SA the scheduler cannot
+# mint tokens and the sweep/drain path silently never executes. Fail
+# the build loudly rather than warn.
+if ! gcloud iam service-accounts add-iam-policy-binding "$SERVICE_ACCOUNT" \
     --project "$PROJECT" \
     --member "serviceAccount:${SCHED_SA}" \
-    --role "roles/iam.serviceAccountTokenCreator" --quiet 2>/dev/null \
-    || echo "WARN: could not grant token-creator to ${SCHED_SA}; scheduler OAuth may fail until granted manually."
+    --role "roles/iam.serviceAccountTokenCreator" --quiet; then
+    echo "FATAL: could not grant iam.serviceAccountTokenCreator on ${SERVICE_ACCOUNT} to ${SCHED_SA}." >&2
+    echo "The export sweep scheduler would be unable to authenticate; aborting before traffic promotion." >&2
+    exit 1
+fi
 
 if gcloud scheduler jobs describe "$SCHEDULER_NAME" \
     --location "$REGION" --project "$PROJECT" >/dev/null 2>&1; then
@@ -181,13 +210,18 @@ import json, os
 env = json.loads(os.environ["SERVICE_JSON"])["spec"]["template"]["spec"]["containers"][0].get("env", [])
 print(next((e.get("value", "") for e in env if e.get("name") == "GCS_BUCKET_NAME"), ""))
 ')
-if [ -n "$BUCKET_NAME" ]; then
-    LIFECYCLE_FILE=$(mktemp /tmp/export-lifecycle.XXXXXX.json)
-    chmod 600 "$LIFECYCLE_FILE"
-    trap 'rm -f "$ENV_FILE" "$LIFECYCLE_FILE"' EXIT
-    gsutil lifecycle get "gs://${BUCKET_NAME}" > "$LIFECYCLE_FILE" 2>/dev/null \
-        || printf '{"lifecycle":{"rule":[]}}\n' > "$LIFECYCLE_FILE"
-    if BUCKET_LC="$LIFECYCLE_FILE" python3 - <<'PY'
+if [ -z "$BUCKET_NAME" ]; then
+    echo "FATAL: GCS_BUCKET_NAME not found on ${SERVICE}; export artifacts have nowhere to live." >&2
+    exit 1
+fi
+
+LIFECYCLE_FILE=$(mktemp /tmp/export-lifecycle.XXXXXX.json)
+chmod 600 "$LIFECYCLE_FILE"
+trap 'rm -f "$ENV_FILE" "$LIFECYCLE_FILE"' EXIT
+if ! gsutil lifecycle get "gs://${BUCKET_NAME}" > "$LIFECYCLE_FILE" 2>/dev/null; then
+    printf '{"lifecycle":{"rule":[]}}\n' > "$LIFECYCLE_FILE"
+fi
+if BUCKET_LC="$LIFECYCLE_FILE" python3 - <<'PY'
 import json, os, sys
 path = os.environ["BUCKET_LC"]
 try:
@@ -205,19 +239,28 @@ rules.append(new_rule)
 json.dump(cfg, open(path, "w"))
 PY
     then
-        if gsutil lifecycle set "$LIFECYCLE_FILE" "gs://${BUCKET_NAME}" 2>/dev/null; then
-            echo "GCS lifecycle rule ensured for gs://${BUCKET_NAME} (practice-exports/, 8d)."
-        else
-            echo "WARN: could not set GCS lifecycle rule on gs://${BUCKET_NAME}; sweeper remains the cleanup path."
+        # The lifecycle backstop is part of the export contract (8-day
+        # artifact deletion). If it cannot be applied the release is
+        # operationally incomplete - fail before traffic promotion.
+        if ! gsutil lifecycle set "$LIFECYCLE_FILE" "gs://${BUCKET_NAME}"; then
+            echo "FATAL: could not set GCS lifecycle rule on gs://${BUCKET_NAME}." >&2
+            exit 1
         fi
+        echo "GCS lifecycle rule ensured for gs://${BUCKET_NAME} (practice-exports/, 8d)."
     else
-        echo "WARN: could not merge GCS lifecycle config for gs://${BUCKET_NAME}."
+        echo "FATAL: could not merge GCS lifecycle config for gs://${BUCKET_NAME}." >&2
+        exit 1
     fi
-    rm -f "$LIFECYCLE_FILE"
-else
-    echo "WARN: GCS_BUCKET_NAME not found on ${SERVICE}; skipping lifecycle rule."
-fi
+rm -f "$LIFECYCLE_FILE"
 
-echo "Done. Verify with:"
-echo "  gcloud run jobs describe ${JOB_NAME} --region ${REGION} --project ${PROJECT}"
-echo "  gcloud scheduler jobs describe ${SCHEDULER_NAME} --location ${REGION} --project ${PROJECT}"
+# ---------- Post-provision verification (must succeed pre-promotion) ----------
+gcloud run jobs describe "$JOB_NAME" \
+    --region "$REGION" --project "$PROJECT" --format='value(name)' >/dev/null
+gcloud scheduler jobs describe "$SCHEDULER_NAME" \
+    --location "$REGION" --project "$PROJECT" --format='value(name)' >/dev/null
+gcloud run jobs get-iam-policy "$JOB_NAME" \
+    --region "$REGION" --project "$PROJECT" --format=json | \
+    python3 -c 'import json,sys; p=json.load(sys.stdin); print("job IAM bindings:", len(p.get("bindings",[])))'
+echo "Export worker provisioning verified: job, IAM, scheduler, lifecycle."
+
+echo "Done. The app revision may now be promoted."

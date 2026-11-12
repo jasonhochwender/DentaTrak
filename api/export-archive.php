@@ -49,35 +49,64 @@ function eaJsonlRows(string $path): Generator {
     fclose($fp);
 }
 
-/** Write a CSV temp file (UTF-8 BOM) from a header + row iterator. */
-function eaWriteCsv(string $path, array $header, iterable $rows): void {
-    $fp = fopen($path, 'wb');
-    fwrite($fp, "\xEF\xBB\xBF");
-    fputcsv($fp, $header);
-    foreach ($rows as $r) fputcsv($fp, $r);
-    fclose($fp);
+/** CSV-escape a single field (matches fputcsv quoting rules). */
+function eaCsvField($v): string {
+    $v = (string)$v;
+    if ($v === '' || !preg_match('/[",\n\r\\\\]/', $v)) return $v;
+    return '"' . str_replace('"', '""', $v) . '"';
 }
 
-/** Write a pretty JSON array temp file from a row iterator (decoded assoc rows). */
-function eaWriteJson(string $path, iterable $rows, callable $map = null): void {
-    $fp = fopen($path, 'wb');
-    fwrite($fp, "[\n");
-    $first = true;
-    foreach ($rows as $r) {
-        if ($map) $r = $map($r);
-        if (!$first) fwrite($fp, ",\n");
-        fwrite($fp, json_encode($r, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
-        $first = false;
-    }
-    fwrite($fp, "\n]\n");
-    fclose($fp);
+/** Render one CSV record line (fields already in column order). */
+function eaCsvLine(array $fields): string {
+    return implode(',', array_map('eaCsvField', array_values($fields))) . "\n";
 }
 
-/** Add a temp file to the zip as a stream; returns its sha256. */
-function eaZipFile(ZipStream $zip, string $name, string $tmpPath, array &$sums): void {
-    $stream = Utils::streamFor(fopen($tmpPath, 'rb'));
-    $zip->addFileFromPsr7Stream($name, $stream, compressionMethod: CompressionMethod::STORE, enableZeroHeader: true);
-    $sums[] = [hash_file('sha256', $tmpPath), $name];
+/**
+ * Add byte chunks to the zip as a STORE entry while computing the
+ * entry's SHA-256 inline. ZipStream consumes the stream eagerly, so
+ * the hash is final once addFileFromCallback returns.
+ */
+function eaZipChunks(ZipStream $zip, string $name, iterable $chunks, array &$sums): void {
+    $hash = hash_init('sha256');
+    $size = 0;
+    $gen = (function () use ($chunks, $hash, &$size) {
+        foreach ($chunks as $c) {
+            if ($c === '' || $c === null) continue;
+            hash_update($hash, $c);
+            $size += strlen($c);
+            yield $c;
+        }
+    })();
+    $zip->addFileFromCallback($name,
+        callback: fn() => Utils::streamFor($gen),
+        compressionMethod: CompressionMethod::STORE,
+        enableZeroHeader: true);
+    $sums[] = [hash_final($hash), $name];
+}
+
+/** Add a UTF-8-BOM CSV entry built from a header + row iterator. */
+function eaZipCsv(ZipStream $zip, string $name, array $header, iterable $rows, array &$sums): void {
+    $chunks = (function () use ($header, $rows) {
+        yield "\xEF\xBB\xBF" . eaCsvLine($header);
+        foreach ($rows as $r) yield eaCsvLine($r);
+    })();
+    eaZipChunks($zip, $name, $chunks, $sums);
+}
+
+/** Add a pretty-printed JSON array entry built from a row iterator. */
+function eaZipJson(ZipStream $zip, string $name, iterable $rows, ?callable $map, array &$sums): void {
+    $chunks = (function () use ($rows, $map) {
+        yield "[\n";
+        $first = true;
+        foreach ($rows as $r) {
+            if ($map) $r = $map($r);
+            if (!$first) yield ",\n";
+            yield json_encode($r, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            $first = false;
+        }
+        yield "\n]\n";
+    })();
+    eaZipChunks($zip, $name, $chunks, $sums);
 }
 
 /** Add a string as a zip entry; returns its sha256. */
@@ -218,22 +247,21 @@ function eaMemberRow(array $r): array {
  * the zip with integrity checks. Missing/inaccessible objects are
  * recorded explicitly in the manifest - never silently skipped.
  */
-function eaAddBinaryFiles(ZipStream $zip, PDO $pdo, int $pid, array $snapFiles, array &$sums, array &$manifestFiles, callable $heartbeat, string $spoolDir): void {
+function eaAddBinaryFiles(ZipStream $zip, PDO $pdo, int $pid, array $snapFiles, array &$sums, array &$manifestFiles, callable $heartbeat): void {
     require_once __DIR__ . '/gcs-storage.php';
     $bucket = exportArtifactDriver() === 'gcs' ? getGcsBucket() : null;
     $usedNames = [];
-    $spoolN = 0;
 
-    $addOne = function (string $zipPath, string $driver, string $storagePath, ?int $declaredSize, ?string $declaredSha, array $source) use (&$manifestFiles, &$sums, &$usedNames, &$spoolN, $zip, $bucket, $heartbeat, $spoolDir) {
+    $addOne = function (string $zipPath, string $driver, string $storagePath, ?int $declaredSize, ?string $declaredSha, array $source) use (&$manifestFiles, &$sums, &$usedNames, $zip, $bucket, $heartbeat) {
         // Deduplicate zip paths: append _2, _3... on collision.
         $base = $zipPath; $i = 2;
         while (isset($usedNames[$zipPath])) { $zipPath = preg_replace('/(\.[^\/]*)?$/', '_' . $i . '$1', $base); $i++; }
         $usedNames[$zipPath] = true;
         $entry = ['zipPath' => $zipPath, 'source' => $source, 'status' => 'pending'];
-        $spool = null;
+        $object = null; $abs = null;
         try {
             // Pin object metadata BEFORE reading.
-            $gen = null; $size = null; $md5 = null;
+            $gen = null; $md5 = null;
             if ($driver === 'gcs') {
                 $object = $bucket->object($storagePath);
                 $info = $object->exists() ? $object->info() : null;
@@ -247,27 +275,34 @@ function eaAddBinaryFiles(ZipStream $zip, PDO $pdo, int $pid, array $snapFiles, 
                 $size = filesize($abs);
             }
 
-            // Spool bytes to a per-file temp path so the sha256 in the
-            // manifest/SHA256SUMS always describes the exact bytes added
-            // to the zip (single read, no stream-pair divergence).
-            if ($driver === 'local') {
-                $spool = ScanFileStore::exportLocalPath($storagePath);
-            } else {
-                $spool = $spoolDir . '/bin_' . (++$spoolN);
-                $src = eaOpenBinaryStream($driver, $storagePath);
-                if (!$src) { $entry['status'] = 'missing'; $manifestFiles[] = $entry; return; }
-                [$st] = $src;
-                $out = fopen($spool, 'wb');
-                if ($out === false) throw new RuntimeException('spool open failed');
-                while (!feof($st)) fwrite($out, fread($st, 1 << 20));
-                fclose($out); fclose($st);
-                $size = filesize($spool);
-            }
-            if ($spool === null || !is_file($spool)) { $entry['status'] = 'missing'; $manifestFiles[] = $entry; return; }
+            // Stream the bytes straight into the zip while hashing, so
+            // SHA256SUMS describes the exact bytes written and no
+            // per-file spool is needed. A failure while streaming is
+            // FATAL: a partially-written zip entry would corrupt the
+            // whole archive, so the exception propagates, the upload
+            // session is aborted, and the export retries/fails cleanly
+            // instead of producing a damaged archive.
+            $chunks = eaBinaryChunks($driver, $storagePath, $object, $abs);
+            if ($chunks === null) { $entry['status'] = 'missing'; $manifestFiles[] = $entry; return; }
+
+            $hash = hash_init('sha256');
+            $seen = 0;
+            $tee = (function () use ($chunks, $hash, &$seen) {
+                foreach ($chunks as $ch) {
+                    if ($ch === '' || $ch === null) continue;
+                    hash_update($hash, $ch);
+                    $seen += strlen($ch);
+                    yield $ch;
+                }
+            })();
+            $zip->addFileFromCallback($zipPath,
+                callback: fn() => Utils::streamFor($tee),
+                compressionMethod: CompressionMethod::STORE,
+                exactSize: $size !== null ? (int)$size : null,
+                enableZeroHeader: true);
 
             // Post-read generation check: if the GCS object was replaced
-            // while we were reading it, flag explicitly (bytes are still
-            // self-consistent - we hash what we spooled).
+            // while we were reading it, flag explicitly.
             if ($driver === 'gcs') {
                 try {
                     $info2 = $bucket->object($storagePath)->info();
@@ -278,7 +313,8 @@ function eaAddBinaryFiles(ZipStream $zip, PDO $pdo, int $pid, array $snapFiles, 
                 } catch (Throwable $e) { /* object may be gone now - already recorded */ }
             }
 
-            $sha = hash_file('sha256', $spool);
+            $sha = hash_final($hash);
+            $size = $seen;
             if ($declaredSha && hash_equals(strtolower($declaredSha), (string)$sha)) {
                 $entry['checksum'] = 'match';
             } elseif ($declaredSha) {
@@ -287,16 +323,10 @@ function eaAddBinaryFiles(ZipStream $zip, PDO $pdo, int $pid, array $snapFiles, 
             } else {
                 $entry['checksum'] = 'computed';
             }
-            if ($declaredSize !== null && $size !== null && (int)$declaredSize !== (int)$size) {
+            if ($declaredSize !== null && (int)$declaredSize !== (int)$size) {
                 $entry['size_mismatch'] = true;
             }
 
-            $stream = fopen($spool, 'rb');
-            $psr = Utils::streamFor($stream);
-            $zip->addFileFromPsr7Stream($zipPath, $psr,
-                compressionMethod: CompressionMethod::STORE,
-                exactSize: $size !== null ? (int)$size : null, enableZeroHeader: true);
-            fclose($stream);
             $sums[] = [$sha, $zipPath];
             $entry['status'] = 'included';
             $entry['size'] = $size;
@@ -306,11 +336,11 @@ function eaAddBinaryFiles(ZipStream $zip, PDO $pdo, int $pid, array $snapFiles, 
             $manifestFiles[] = $entry;
             $heartbeat();
         } catch (Throwable $e) {
-            $entry['status'] = 'error';
-            $entry['error'] = 'read failed'; // never leak paths/PHI
-            $manifestFiles[] = $entry;
-        } finally {
-            if ($spool !== null && $driver === 'gcs') @unlink($spool);
+            // Preflight 'missing' cases returned above; anything thrown
+            // here means the object could not be read/streamed. That is
+            // fatal to archive integrity - rethrow so the whole export
+            // fails (and is retried) rather than silently skipping.
+            throw $e;
         }
     };
 
@@ -379,19 +409,45 @@ function eaAddBinaryFiles(ZipStream $zip, PDO $pdo, int $pid, array $snapFiles, 
     }
 }
 
-/** Open a binary stream for a stored object; returns [resource] or null. */
-function eaOpenBinaryStream(string $driver, string $storagePath): ?array {
+/**
+ * Byte-chunk iterator for a stored object (bounded memory).
+ * Returns a Generator, or null when the object cannot be opened.
+ * Read errors surface while the generator is consumed - callers must
+ * treat those as fatal to archive integrity.
+ */
+function eaBinaryChunks(string $driver, string $storagePath, $object = null, ?string $abs = null): ?iterable {
     if ($driver === 'gcs') {
         try {
-            $object = getGcsBucket()->object($storagePath);
-            if (!$object->exists()) return null;
-            return [$object->downloadAsStream()];
+            $object = $object ?: getGcsBucket()->object($storagePath);
+            $psr = $object->downloadAsStream();
         } catch (Throwable $e) { return null; }
+        return (function () use ($psr) {
+            try {
+                while (!$psr->eof()) {
+                    $d = $psr->read(1 << 20);
+                    if ($d === '' || $d === null) break;
+                    yield $d;
+                }
+            } finally {
+                try { $psr->close(); } catch (Throwable $e) { /* best effort */ }
+            }
+        })();
     }
-    $abs = ScanFileStore::exportLocalPath($storagePath);
+    $abs = $abs ?: ScanFileStore::exportLocalPath($storagePath);
     if ($abs === null || !is_file($abs)) return null;
-    $st = fopen($abs, 'rb');
-    return $st ? [$st] : null;
+    $st = @fopen($abs, 'rb');
+    if (!$st) return null;
+    return (function () use ($st) {
+        try {
+            while (!feof($st)) {
+                $d = fread($st, 1 << 20);
+                if ($d === false || $d === '') break;
+                yield $d;
+            }
+        } finally {
+            fclose($st);
+        }
+    })();
 }
 
 /**
@@ -429,13 +485,33 @@ function exportArchiveBuild(PDO $pdo, array $export, string $tmpDir, string $wor
         $warnings[] = "section {$sec}: {$note}";
     }
 
-    $stage = $tmpDir . '/stage';
-    @mkdir($stage, 0700, true);
+    // Bounded-memory guard: the JSONL snapshot lives on the container
+    // filesystem (memory-backed on Cloud Run). Refuse oversized
+    // snapshots with a clear error instead of letting the instance OOM.
+    // Binary objects are NOT included - they stream to the zip.
+    $snapBytes = 0;
+    foreach ($snap['files'] as $f) {
+        $s = @filesize($f);
+        if ($s !== false) $snapBytes += $s;
+    }
+    $maxSnapBytes = max(1, (int)(getEnvVar('EXPORT_ARCHIVE_SNAPSHOT_MAX_MB') ?? '512')) * 1024 * 1024;
+    if ($snapBytes > $maxSnapBytes) {
+        throw new RuntimeException("practice archive snapshot exceeds configured limit ({$snapBytes} > {$maxSnapBytes} bytes)");
+    }
 
     // ---------- Phase B: ZIP assembly ----------
-    $zipPath = $tmpDir . '/archive.zip';
-    $zipOut = fopen($zipPath, 'wb');
-    if ($zipOut === false) throw new RuntimeException('cannot open archive temp file');
+    // Sections stream JSONL -> CSV/JSON -> zip entry -> (GCS resumable
+    // upload | local temp file). No per-section staging files and no
+    // whole-archive temp file: peak memory is bounded by chunk buffers.
+    $artifactName = "dentatrak-practice-archive-{$exportId}.zip";
+    $gcsUploadPath = null;
+    if (exportArtifactDriver() === 'gcs') {
+        [$zipOut, $gcsUploadPath] = exportArtifactOpenStream($pid, $exportId, $artifactName);
+    } else {
+        $zipPath = $tmpDir . '/archive.zip';
+        $zipOut = fopen($zipPath, 'wb');
+        if ($zipOut === false) throw new RuntimeException('cannot open archive temp file');
+    }
     $zip = new ZipStream(
         outputStream: $zipOut,
         outputName: "dentatrak-practice-archive-{$exportId}.zip",
@@ -452,7 +528,7 @@ function exportArchiveBuild(PDO $pdo, array $export, string $tmpDir, string $wor
     if (isset($F['cases'])) {
         $stageLabel = getWorkflowStageLabelOverridesForPractice($pid);
         $dec = 'eaDec';
-        eaWriteCsv($stage . '/cases.csv', [
+        eaZipCsv($zip, 'cases/cases.csv', [
             'case_id','patient_first_name','patient_last_name','patient_dob','patient_gender',
             'dentist_name','case_type','case_type_label','tooth_shade','material',
             'due_date','patient_appointment_date','creation_date','last_update_date',
@@ -478,15 +554,14 @@ function exportArchiveBuild(PDO $pdo, array $export, string $tmpDir, string $wor
                     is_array($atts) ? count($atts) : 0, $c['clinical_details_json'] ?? '',
                 ];
             }
-        })());
-        eaZipFile($zip, 'cases/cases.csv', $stage . '/cases.csv', $sums);
+        })(), $sums);
         $heartbeat();
     }
 
     // ---- cases/cases.json (full fidelity) ----
     if (isset($F['cases'])) {
         $stageLabel = getWorkflowStageLabelOverridesForPractice($pid);
-        eaWriteJson($stage . '/cases.json', eaJsonlRows($F['cases']), function ($c) use ($stageLabel) {
+        eaZipJson($zip, 'cases/cases.json', eaJsonlRows($F['cases']), function ($c) use ($stageLabel) {
             $row = $c;
             foreach (['patient_first_name','patient_last_name','patient_dob','dentist_name','notes'] as $f) {
                 $row[$f] = eaDec($c[$f] ?? '');
@@ -497,8 +572,7 @@ function exportArchiveBuild(PDO $pdo, array $export, string $tmpDir, string $wor
             $row['statusLabel'] = resolveWorkflowStageLabel($c['status'], $stageLabel);
             unset($row['attachments_json'], $row['revisions_json'], $row['clinical_details_json']);
             return $row;
-        });
-        eaZipFile($zip, 'cases/cases.json', $stage . '/cases.json', $sums);
+        }, $sums);
         $heartbeat();
     }
 
@@ -537,25 +611,22 @@ function exportArchiveBuild(PDO $pdo, array $export, string $tmpDir, string $wor
             }
             $hdr = $first ? array_keys($first) : ['empty'];
         }
-        // Pass 2: stream rows to CSV.
-        $csvPath = $stage . '/' . $sec . '.csv';
-        $fp = fopen($csvPath, 'wb');
-        fwrite($fp, "\xEF\xBB\xBF");
-        fputcsv($fp, $hdr);
-        foreach (eaJsonlRows($F[$sec]) as $r) {
-            foreach ($deny as $d) unset($r[$d]);
-            if ($sec === 'comments') {
-                $r['comment_text'] = eaDec($r['comment_text'] ?? '');
-                $r['attachments'] = json_decode($r['attachments_json'] ?? '[]', true) ?: [];
-                unset($r['attachments_json']);
+        // Pass 2: stream rows to the zip entry as CSV.
+        $rowsGen = (function () use ($F, $sec, $hdr, $deny) {
+            foreach (eaJsonlRows($F[$sec]) as $r) {
+                foreach ($deny as $d) unset($r[$d]);
+                if ($sec === 'comments') {
+                    $r['comment_text'] = eaDec($r['comment_text'] ?? '');
+                    $r['attachments'] = json_decode($r['attachments_json'] ?? '[]', true) ?: [];
+                    unset($r['attachments_json']);
+                }
+                yield array_map(function ($k) use ($r) {
+                    $v = $r[$k] ?? '';
+                    return (is_array($v) || is_object($v)) ? json_encode($v, JSON_UNESCAPED_UNICODE) : $v;
+                }, $hdr);
             }
-            fputcsv($fp, array_map(function ($k) use ($r) {
-                $v = $r[$k] ?? '';
-                return (is_array($v) || is_object($v)) ? json_encode($v, JSON_UNESCAPED_UNICODE) : $v;
-            }, $hdr));
-        }
-        fclose($fp);
-        eaZipFile($zip, "data/{$sec}.csv", $csvPath, $sums);
+        })();
+        eaZipCsv($zip, "data/{$sec}.csv", $hdr, $rowsGen, $sums);
         $heartbeat();
     }
 
@@ -571,12 +642,11 @@ function exportArchiveBuild(PDO $pdo, array $export, string $tmpDir, string $wor
 
     // ---- practice/members.csv ----
     if (isset($F['members'])) {
-        eaWriteCsv($stage . '/members.csv',
+        eaZipCsv($zip, 'practice/members.csv',
             ['user_id','email','display_name','role','is_owner','limited_visibility','can_view_analytics','can_edit_cases','can_add_users','can_add_labels','is_lab','can_view_incoming_scans','created_at'],
             (function () use ($F) {
                 foreach (eaJsonlRows($F['members']) as $r) yield eaMemberRow($r);
-            })());
-        eaZipFile($zip, 'practice/members.csv', $stage . '/members.csv', $sums);
+            })(), $sums);
     }
 
     // ---- subscription.json (safe metadata) ----
@@ -590,12 +660,11 @@ function exportArchiveBuild(PDO $pdo, array $export, string $tmpDir, string $wor
 
     // ---- integrations/connections.json (sanitized) ----
     if (isset($F['integration_connections'])) {
-        eaWriteJson($stage . '/connections.json', eaJsonlRows($F['integration_connections']), 'eaSanitizeIntegration');
-        eaZipFile($zip, 'integrations/connections.json', $stage . '/connections.json', $sums);
+        eaZipJson($zip, 'integrations/connections.json', eaJsonlRows($F['integration_connections']), 'eaSanitizeIntegration', $sums);
     }
 
     // ---- Binary files with integrity checks ----
-    eaAddBinaryFiles($zip, $pdo, $pid, $F, $sums, $manifestFiles, $heartbeat, $tmpDir);
+    eaAddBinaryFiles($zip, $pdo, $pid, $F, $sums, $manifestFiles, $heartbeat);
 
     $bad = array_filter($manifestFiles, function ($f) {
         return in_array($f['status'] ?? '', ['missing','error','checksum_mismatch'], true)
@@ -655,9 +724,15 @@ function exportArchiveBuild(PDO $pdo, array $export, string $tmpDir, string $wor
     fclose($zipOut);
 
     // ---------- Phase C: store artifact ----------
-    $put = exportArtifactPutFile($pid, $exportId, "dentatrak-practice-archive-{$exportId}.zip", $zipPath);
-    // zipPath was moved into exports-v2 (local) or left for cleanup (gcs).
-    if ($put['driver'] === 'gcs') @unlink($zipPath);
+    if ($gcsUploadPath !== null) {
+        // Streamed straight into GCS; the object committed when the
+        // stream closed. Size/sha256 were computed inline during writes.
+        $put = exportArtifactStreamResult($gcsUploadPath);
+    } else {
+        $put = exportArtifactPutFile($pid, $exportId, $artifactName, $zipPath);
+        // zipPath was moved into exports-v2 (local) or left for cleanup (gcs).
+        if ($put['driver'] === 'gcs') @unlink($zipPath);
+    }
 
     $manifest['artifact'] = ['name' => "dentatrak-practice-archive-{$exportId}.zip",
         'size' => $put['size'], 'sha256' => $put['sha256'], 'driver' => $put['driver']];
@@ -721,6 +796,9 @@ function exportWorkerProcessArchive(PDO $pdo, array $export, string $workerId, s
                 'warnings' => count($res['warnings'])];
     } catch (Throwable $e) {
         error_log('[export-worker] archive ' . $exportId . ' failed: ' . $e->getMessage());
+        // Cancel any in-flight GCS upload session so a partially-built
+        // archive can never commit as an object.
+        try { exportArtifactAbortStreams(); } catch (Throwable $ignored) {}
         $attempts = (int)($export['attempts'] ?? 0);
         if ($attempts < EW_MAX_ATTEMPTS) {
             $pdo->prepare("UPDATE data_exports SET status='queued', claimed_at=NULL, claimed_by=NULL,

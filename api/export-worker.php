@@ -148,6 +148,16 @@ function exportWorkerProcessOne(PDO $pdo, int $exportId, string $workerId): arra
     if (!$export) {
         return ['id' => $exportId, 'status' => 'not_claimed'];
     }
+    // Rollout gate: the practice that owns this export row must still be
+    // allowed. Checked here (not just at request time) so removing a
+    // practice from DATA_EXPORT_V2_PRACTICES also stops queued work.
+    if (!dataExportV2PracticeAllowed((int)$export['practice_id'])) {
+        $pdo->prepare("UPDATE data_exports SET status='failed', progress=0,
+            error_message='practice not enabled for data export v2'
+            WHERE id=:id AND claimed_by=:w AND status='processing'")
+            ->execute(['id' => $exportId, 'w' => $workerId]);
+        return ['id' => $exportId, 'status' => 'failed', 'error' => 'practice_not_allowed'];
+    }
     if (($export['export_type'] ?? 'case_data') === 'practice_archive') {
         $aTmp = sys_get_temp_dir() . '/export-' . $exportId . '-' . uniqid();
         @mkdir($aTmp, 0700, true);
@@ -329,7 +339,9 @@ function exportWorkerProcessOne(PDO $pdo, int $exportId, string $workerId): arra
         }
 
         $src = $tmpDir . '/' . ($format === 'csv' ? 'cases.csv' : 'export.json');
-        $put = exportArtifactPut($pid, $exportId, $artifactName, file_get_contents($src));
+        // Stream the artifact to storage instead of loading it into
+        // memory; large case-data exports stay bounded.
+        $put = exportArtifactPutFile($pid, $exportId, $artifactName, $src);
         $sectionsDone = array_keys($manifest['sections']);
 
         // ---------- Phase C: finalize ----------
@@ -378,6 +390,7 @@ function exportWorkerProcessOne(PDO $pdo, int $exportId, string $workerId): arra
         return ['id' => $exportId, 'status' => 'completed', 'size' => $put['size']];
     } catch (Throwable $e) {
         error_log('[export-worker] export ' . $exportId . ' failed: ' . $e->getMessage());
+        try { exportArtifactAbortStreams(); } catch (Throwable $ignored) {}
         // Bounded retry: transient failures go back to 'queued' until the
         // attempt budget is exhausted, then the export is marked failed.
         // All writes are claim-scoped so a worker that lost its claim

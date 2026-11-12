@@ -32,6 +32,9 @@ require_once __DIR__ . '/api/dev-tools-access.php';
 // Load feature flags
 require_once __DIR__ . '/api/feature-flags.php';
 
+// Load export artifact helpers (practice allowlist gate for the v2 UI)
+require_once __DIR__ . '/api/export-artifacts.php';
+
 // Load practice permission helpers (canViewAnalytics, etc.)
 require_once __DIR__ . '/api/practice-security.php';
 
@@ -4521,7 +4524,7 @@ endif;
                           </button>
                           <p class="export-note"><?php echo t('settings.data_privacy.export.note'); ?></p>
                         </div>
-                        <?php if (function_exists('isFeatureEnabled') && isFeatureEnabled('DATA_EXPORT_V2')): ?>
+                        <?php if (function_exists('dataExportV2PracticeAllowed') && dataExportV2PracticeAllowed((int)$currentPracticeId)): ?>
                         <div class="data-export-section" id="exportV2Section">
                           <h4 class="subsection-title"><?php echo t('settings.data_privacy.export_v2.title'); ?></h4>
                           <p class="section-description"><?php echo t('settings.data_privacy.export_v2.description'); ?></p>

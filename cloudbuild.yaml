@@ -47,6 +47,8 @@ steps:
         'dtk-vpc-prod',
         '--add-cloudsql-instances',
         'dtk-prod-core:us-east1:dtk-sql-prod',
+        '--update-env-vars',
+        'EXPORT_RUN_JOB=dtk-export-worker',
         '--no-traffic',
         '--tag',
         'staged-${SHORT_SHA}',
@@ -75,6 +77,19 @@ steps:
       ]
     secretEnv: ['SMOKE_TEST_EMAIL', 'SMOKE_TEST_PASSWORD']
 
+  # ---------- Provision export infrastructure BEFORE promotion ----------
+  # The export worker job, its override-capable IAM role, the sweep
+  # scheduler, and the GCS lifecycle rule must all verify successfully
+  # while the candidate revision still has zero traffic. Every step in
+  # the script is fatal on failure, so a provisioning problem aborts
+  # the build here and the release is never partially promoted.
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: bash
+    args:
+      [
+        'scripts/provision-export-worker.sh'
+      ]
+
   # ---------- Promote: route 100% traffic to the verified revision ----------
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: bash
@@ -102,13 +117,7 @@ steps:
         'scripts/provision-ask-usage-worker.sh'
       ]
 
-  # ---------- Ensure data-export Cloud Run Job + sweep schedule (idempotent) ----------
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: bash
-    args:
-      [
-        'scripts/provision-export-worker.sh'
-      ]
+  # (data-export worker provisioning runs before promotion - see above)
 
 # Authenticated smoke-test credentials for the synthetic test-practice
 # account (injected as env vars into the staged-auth-smoke step only).

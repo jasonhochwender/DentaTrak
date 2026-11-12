@@ -39,10 +39,6 @@ function de2Out($code, $payload) {
     exit;
 }
 
-if (!isFeatureEnabled('DATA_EXPORT_V2')) {
-    de2Out(404, ['success' => false, 'message' => 'Not found']);
-}
-
 if (empty($_SESSION['db_user_id'])) {
     de2Out(401, ['success' => false, 'message' => t('export.authentication_required')]);
 }
@@ -50,6 +46,13 @@ if (empty($_SESSION['db_user_id'])) {
 $practiceId = requireValidPracticeContext();
 $userId = (int)$_SESSION['db_user_id'];
 $userEmail = $_SESSION['user_email'] ?? '';
+
+// Rollout gate: DATA_EXPORT_V2 plus the DATA_EXPORT_V2_PRACTICES
+// allowlist, evaluated against the session's server-resolved practice.
+// 404 keeps the surface invisible, same as the master flag.
+if (!dataExportV2PracticeAllowed($practiceId)) {
+    de2Out(404, ['success' => false, 'message' => 'Not found']);
+}
 
 requireNotLabCollaborator($practiceId, t('export.external_collaborator_denied'));
 requireCurrentTermsAcceptedForApi($userId);
@@ -90,7 +93,7 @@ switch ($action) {
         de2HandleRequest($pdo, $userId, $practiceId, $userEmail);
         break;
     case 'status':
-        de2HandleStatus($pdo, $userId);
+        de2HandleStatus($pdo, $userId, $practiceId);
         break;
     case 'download_url':
         if ($method !== 'POST') de2Out(405, ['success' => false, 'message' => t('export.method_not_allowed')]);
@@ -160,13 +163,13 @@ function de2HandleRequest(PDO $pdo, int $userId, int $practiceId, string $userEm
     echo json_encode(['success' => true, 'exportId' => $exportId, 'status' => $status]);
 }
 
-function de2HandleStatus(PDO $pdo, int $userId): void {
+function de2HandleStatus(PDO $pdo, int $userId, int $practiceId): void {
     de2EnsureSchema();
     $stmt = $pdo->prepare("SELECT id, export_type, format, status, progress,
         file_size, gcs_object, expires_at, created_at, completed_at, error_message,
         COALESCE(JSON_LENGTH(JSON_EXTRACT(manifest_json, '$.warnings')), 0) AS archive_warnings
-        FROM data_exports WHERE user_id = :u ORDER BY created_at DESC LIMIT 10");
-    $stmt->execute(['u' => $userId]);
+        FROM data_exports WHERE user_id = :u AND practice_id = :p ORDER BY created_at DESC LIMIT 10");
+    $stmt->execute(['u' => $userId, 'p' => $practiceId]);
     echo json_encode(['success' => true, 'exports' => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
 }
 
@@ -180,6 +183,12 @@ function de2HandleDownloadUrl(PDO $pdo, int $userId, int $practiceId): void {
     $stmt->execute(['id' => $exportId, 'u' => $userId]);
     $export = $stmt->fetch(PDO::FETCH_ASSOC);
     if (!$export || $export['status'] !== 'completed') {
+        de2Out(404, ['success' => false, 'message' => t('export.not_found_or_expired')]);
+    }
+    // Re-check the allowlist against the practice that OWNS the export -
+    // switching to an allowlisted practice cannot unlock another
+    // practice's artifacts.
+    if (!dataExportV2PracticeAllowed((int)$export['practice_id'])) {
         de2Out(404, ['success' => false, 'message' => t('export.not_found_or_expired')]);
     }
     if ($export['expires_at'] && strtotime($export['expires_at']) < time()) {
@@ -226,6 +235,9 @@ function de2HandleDownloadFile(PDO $pdo, int $userId, int $practiceId): void {
     $stmt->execute(['id' => $exportId, 'u' => $userId]);
     $export = $stmt->fetch(PDO::FETCH_ASSOC);
     if (!$export || !$export['file_path']) {
+        de2Out(404, ['success' => false, 'message' => t('export.not_found_or_expired')]);
+    }
+    if (!dataExportV2PracticeAllowed((int)$export['practice_id'])) {
         de2Out(404, ['success' => false, 'message' => t('export.not_found_or_expired')]);
     }
     if ($export['expires_at'] && strtotime($export['expires_at']) < time()) {

@@ -115,6 +115,9 @@ ok('recent queued export survives', $pdo->query("SELECT status FROM data_exports
 // ---------- 6. Job kick safety ----------
 putenv('EXPORT_RUN_JOB'); putenv('GOOGLE_CLOUD_PROJECT'); putenv('GCP_PROJECT');
 ok('kick is no-op without config', exportWorkerKickJob(1) === false);
+ok('stream upload helpers defined', function_exists('exportArtifactOpenStream')
+    && function_exists('exportArtifactStreamResult') && function_exists('exportArtifactAbortStreams'));
+ok('practice allowlist helper defined', function_exists('dataExportV2PracticeAllowed'));
 
 // ---------- 7. Provisioning script static checks ----------
 $sh = @file_get_contents(__DIR__ . '/../scripts/provision-export-worker.sh');
@@ -123,11 +126,31 @@ if ($sh !== false) {
     ok('script is bash', substr(trim($sh), 0, 2) === '#!');
     ok('deploys run job', strpos($sh, 'run jobs deploy') !== false && strpos($sh, 'dtk-export-worker') !== false);
     ok('copies env without echoing secrets', strpos($sh, '--env-vars-file') !== false && strpos($sh, '--set-secrets') !== false);
-    ok('grants invoker IAM', strpos($sh, 'roles/run.invoker') !== false);
+    ok('provisions override-capable runner role', strpos($sh, 'run.jobs.runWithOverrides') !== false
+        && strpos($sh, 'dtkExportJobRunner') !== false);
+    ok('does not rely on run.invoker alone', strpos($sh, '"roles/run.invoker"') === false
+        && strpos($sh, "'roles/run.invoker'") === false);
+    ok('scheduler token grant is fatal not warned', strpos($sh, 'roles/iam.serviceAccountTokenCreator') !== false
+        && strpos($sh, 'FATAL: could not grant iam.serviceAccountTokenCreator') !== false);
+    ok('script does not mutate the app service', strpos($sh, 'gcloud run services update "$SERVICE"') === false
+        && strpos($sh, '--update-env-vars "EXPORT_RUN_JOB') === false);
+    ok('verifies provisioning before finishing', strpos($sh, 'jobs get-iam-policy') !== false
+        && strpos($sh, 'scheduler jobs describe') !== false);
     ok('creates sweep scheduler', strpos($sh, 'scheduler jobs') !== false && strpos($sh, 'dtk-prod-export-worker-sweep') !== false);
     ok('no plaintext secret assignment', !preg_match('/DB_PASSWORD=\S|ENCRYPTION_KEY=\S/', $sh));
     $lint = shell_exec('bash -n ' . escapeshellarg(__DIR__ . '/../scripts/provision-export-worker.sh') . ' 2>&1');
     ok('bash syntax valid', trim((string)$lint) === '');
+}
+
+// Cloud Build must provision export infra BEFORE promoting traffic, and
+// EXPORT_RUN_JOB must ride the staged deploy (not a post-hoc service update).
+$cb = @file_get_contents(__DIR__ . '/../cloudbuild.yaml');
+ok('cloudbuild exists', $cb !== false);
+if ($cb !== false) {
+    $posProv = strpos($cb, 'provision-export-worker.sh');
+    $posPromo = strpos($cb, 'promote-staged.sh');
+    ok('export provisioning precedes promotion', $posProv !== false && $posPromo !== false && $posProv < $posPromo);
+    ok('deploy sets EXPORT_RUN_JOB', strpos($cb, 'EXPORT_RUN_JOB=dtk-export-worker') !== false);
 }
 
 // ---------- 8. Heartbeat lease + overlapping-worker protection ----------
@@ -160,6 +183,27 @@ ok('claim on exhausted row still works once', $claimedR !== null);
 // simulate the catch-path decision: attempts >= MAX -> failed
 $pdo->prepare("UPDATE data_exports SET status='failed', error_message='x' WHERE id=:id")->execute(['id' => $eRetry]);
 ok('exhausted export fails permanently', $pdo->query("SELECT status FROM data_exports WHERE id={$eRetry}")->fetchColumn() === 'failed');
+
+// ---------- 10. Practice allowlist gate ----------
+putenv('DATA_EXPORT_V2=true');
+putenv('DATA_EXPORT_V2_PRACTICES');
+ok('dev env + empty allowlist permits', dataExportV2PracticeAllowed($pid) === true);
+putenv('DATA_EXPORT_V2_PRACTICES=999999,888888');
+ok('non-listed practice denied', dataExportV2PracticeAllowed($pid) === false);
+ok('listed practice allowed', dataExportV2PracticeAllowed(999999) === true);
+putenv('DATA_EXPORT_V2_PRACTICES=' . $pid);
+ok('exact id allowed', dataExportV2PracticeAllowed($pid) === true);
+putenv('DATA_EXPORT_V2=false');
+ok('master flag off denies even when listed', dataExportV2PracticeAllowed($pid) === false);
+putenv('DATA_EXPORT_V2=true'); putenv('DATA_EXPORT_V2_PRACTICES');
+
+// Worker refuses queued work for a non-allowlisted practice.
+putenv('DATA_EXPORT_V2_PRACTICES=999999');
+$eNo = mkRow($pdo, $uid, $pid, 'queued');
+$resNo = exportWorkerProcessOne($pdo, $eNo, 'infra-test');
+ok('worker fails non-allowlisted export', ($resNo['status'] ?? '') === 'failed'
+    && $pdo->query("SELECT status FROM data_exports WHERE id={$eNo}")->fetchColumn() === 'failed');
+putenv('DATA_EXPORT_V2_PRACTICES');
 
 // ---------- Cleanup ----------
 foreach ($made as $id) { $pdo->exec("DELETE FROM data_exports WHERE id=" . (int)$id); }

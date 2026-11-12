@@ -98,3 +98,14 @@
 
 - Apache serves PHP via `php8apache2_4.dll` from `C:\MAMP\bin\php\php8.5.12\` with `PHPIniDir "C:\MAMP\conf\php8.5.12\php.ini"` (NOT the php.ini inside bin/php).
 - Windows DLL search order puts `C:\MAMP\bin\apache\bin\` first. Matching `libcrypto-3-x64.dll` / `libssl-3-x64.dll` copies from `php8.5.12` live there because the Machine PATH still contains stale `C:\MAMP\bin\php\php8.3.1` (User PATH has php8.5.12, but Machine PATH wins). Without the apache/bin copies, PHP 8.5 extensions bind OpenSSL 3.0-era DLLs and curl/openssl/sqlite fail with "The specified procedure could not be found". If PHP version changes, refresh those two DLLs.
+
+# Data Export v2 (async practice exports)
+
+- `api/data-export-v2.php` + `api/export-worker.php` (Cloud Run Job `dtk-export-worker`, provisioned by `scripts/provision-export-worker.sh` at the end of the pre-promotion phase in `cloudbuild.yaml`). Legacy `api/data-export.php` is unaffected.
+- Gates: `DATA_EXPORT_V2` master flag AND `DATA_EXPORT_V2_PRACTICES` (comma-separated practice ids). Empty allowlist permits everyone ONLY in development/test env; production empty = nobody. Enforced server-side at request, status (practice-scoped), download_url, download_file (against the export row's own practice_id), the Settings UI render, and again in the worker before processing a claimed row.
+- Artifacts: private GCS prefix `practice-exports/` (V4 signed URLs, 15 min) or local `exports-v2/` in dev. Seven-day expiry enforced at issuance + sweeper; 8-day GCS lifecycle rule is the backstop.
+- Large archives stream: ZIP bytes go through a resumable-upload stream wrapper (`DtkExportGcsUploadStream` in `api/export-artifacts.php`, `dtkexpupload://` scheme) directly to GCS in 8 MiB chunks with inline SHA-256 - no whole-archive temp file. Section CSV/JSON and binary files also stream (no staging files). JSONL DB snapshots still land on the container filesystem; `EXPORT_ARCHIVE_SNAPSHOT_MAX_MB` (default 512) bounds them.
+- A mid-read file failure is FATAL to archive integrity (partial zip entries would corrupt the archive): the upload session is cancelled via `exportArtifactAbortStreams()` and the export retries/fails. Missing objects are preflighted and recorded in `manifest.json`, never fatal.
+- IAM: app SA needs custom role `dtkExportJobRunner` (`run.jobs.run` + `run.jobs.runWithOverrides`) on the job - `roles/run.invoker` cannot pass the `EXPORT_ID` container override. Scheduler runs the same SA with empty overrides; its service agent needs `iam.serviceAccountTokenCreator` on the SA (fatal if ungrantable).
+- Controlled rollout runbook: `docs/data-export-v2-production-test-plan.md`. Do NOT enable for customers without explicit approval.
+- Verification: `php tests/data-export-v2-test.php`, `php tests/data-export-v2-infra-test.php`, `php tests/data-export-v2-archive-test.php` (local dev DB on 3308).
