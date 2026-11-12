@@ -55,7 +55,14 @@ SERVICE_ACCOUNT="1029275239454-compute@developer.gserviceaccount.com"
 SCHEDULE="*/15 * * * *"
 TIME_ZONE="America/New_York"
 
-command -v python3 >/dev/null || { echo "python3 is required"; exit 1; }
+# python3 is used for JSON/YAML wrangling below. The cloud-sdk build
+# image ships it only inside the bundled SDK runtime (not on PATH), so
+# fall back to that location before giving up.
+PYTHON_BIN="$(command -v python3 || command -v python || true)"
+if [ -z "$PYTHON_BIN" ] && [ -x /usr/lib/google-cloud-sdk/platform/bundledpythonunix/bin/python3 ]; then
+    PYTHON_BIN=/usr/lib/google-cloud-sdk/platform/bundledpythonunix/bin/python3
+fi
+[ -n "$PYTHON_BIN" ] || { echo "python3 is required"; exit 1; }
 
 IMAGE=$(gcloud run services describe "$SERVICE" \
     --region "$REGION" --project "$PROJECT" \
@@ -71,7 +78,7 @@ ENV_FILE=$(mktemp /tmp/export-worker-env.XXXXXX.yaml)
 chmod 600 "$ENV_FILE"
 trap 'rm -f "$ENV_FILE"' EXIT
 
-SECRETS_CSV=$(SERVICE_JSON="$SERVICE_JSON" python3 - "$ENV_FILE" <<'PY'
+SECRETS_CSV=$(SERVICE_JSON="$SERVICE_JSON" "$PYTHON_BIN" - "$ENV_FILE" <<'PY'
 import json, os, sys
 svc = json.loads(os.environ["SERVICE_JSON"])
 container = svc["spec"]["template"]["spec"]["containers"][0]
@@ -205,7 +212,7 @@ fi
 # upload (exports expire at 7 days). Existing bucket rules are preserved -
 # we read the current lifecycle config, append our rule if absent, and
 # write the merged result back.
-BUCKET_NAME=$(SERVICE_JSON="$SERVICE_JSON" python3 -c '
+BUCKET_NAME=$(SERVICE_JSON="$SERVICE_JSON" "$PYTHON_BIN" -c '
 import json, os
 env = json.loads(os.environ["SERVICE_JSON"])["spec"]["template"]["spec"]["containers"][0].get("env", [])
 print(next((e.get("value", "") for e in env if e.get("name") == "GCS_BUCKET_NAME"), ""))
@@ -221,7 +228,7 @@ trap 'rm -f "$ENV_FILE" "$LIFECYCLE_FILE"' EXIT
 if ! gsutil lifecycle get "gs://${BUCKET_NAME}" > "$LIFECYCLE_FILE" 2>/dev/null; then
     printf '{"lifecycle":{"rule":[]}}\n' > "$LIFECYCLE_FILE"
 fi
-if BUCKET_LC="$LIFECYCLE_FILE" python3 - <<'PY'
+if BUCKET_LC="$LIFECYCLE_FILE" "$PYTHON_BIN" - <<'PY'
 import json, os, sys
 path = os.environ["BUCKET_LC"]
 try:
@@ -260,7 +267,7 @@ gcloud scheduler jobs describe "$SCHEDULER_NAME" \
     --location "$REGION" --project "$PROJECT" --format='value(name)' >/dev/null
 gcloud run jobs get-iam-policy "$JOB_NAME" \
     --region "$REGION" --project "$PROJECT" --format=json | \
-    python3 -c 'import json,sys; p=json.load(sys.stdin); print("job IAM bindings:", len(p.get("bindings",[])))'
+    "$PYTHON_BIN" -c 'import json,sys; p=json.load(sys.stdin); print("job IAM bindings:", len(p.get("bindings",[])))'
 echo "Export worker provisioning verified: job, IAM, scheduler, lifecycle."
 
 echo "Done. The app revision may now be promoted."
