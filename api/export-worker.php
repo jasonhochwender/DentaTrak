@@ -406,6 +406,11 @@ function exportWorkerProcessOne(PDO $pdo, int $exportId, string $workerId): arra
         $pdo->prepare("UPDATE data_exports SET status='failed', error_message=:em, progress=0
             WHERE id=:id AND claimed_by=:w")
             ->execute(['em' => 'Export processing failed', 'id' => $exportId, 'w' => $workerId]);
+        // Terminal failure: remove any artifact committed during this
+        // attempt (e.g. upload succeeded but finalize failed). Retry
+        // attempts keep their artifact - the next attempt overwrites
+        // the same deterministic object name.
+        exportArtifactCleanupFailedExport($exportId);
         return ['id' => $exportId, 'status' => 'failed', 'error' => $e->getMessage()];
     } finally {
         foreach (glob($tmpDir . '/*') ?: [] as $f) @unlink($f);

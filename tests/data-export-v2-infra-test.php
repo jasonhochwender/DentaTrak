@@ -205,6 +205,19 @@ ok('worker fails non-allowlisted export', ($resNo['status'] ?? '') === 'failed'
     && $pdo->query("SELECT status FROM data_exports WHERE id={$eNo}")->fetchColumn() === 'failed');
 putenv('DATA_EXPORT_V2_PRACTICES');
 
+// ---------- 10b. Failed-export artifact cleanup wiring ----------
+$workerSrc = file_get_contents(__DIR__ . '/../api/export-worker.php');
+$archiveSrc = file_get_contents(__DIR__ . '/../api/export-archive.php');
+$artSrc = file_get_contents(__DIR__ . '/../api/export-artifacts.php');
+ok('case-data worker cleans failed-export artifacts',
+    substr_count($workerSrc, 'exportArtifactCleanupFailedExport') >= 1);
+ok('archive worker cleans failed-export artifacts',
+    substr_count($archiveSrc, 'exportArtifactCleanupFailedExport') >= 1);
+ok('artifact puts register committed refs',
+    substr_count($artSrc, 'exportArtifactNoteCommitted') >= 4);
+ok('putFile self-cleans on post-upload failure',
+    strpos($artSrc, 'deleteGcsObject($objectPath)') !== false);
+
 // ---------- Cleanup ----------
 foreach ($made as $id) { $pdo->exec("DELETE FROM data_exports WHERE id=" . (int)$id); }
 foreach (glob(__DIR__ . '/../exports-v2/*fake-expired*') ?: [] as $f) @unlink($f);

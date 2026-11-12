@@ -809,6 +809,7 @@ function exportWorkerProcessArchive(PDO $pdo, array $export, string $workerId, s
         $pdo->prepare("UPDATE data_exports SET status='failed', error_message=:em, progress=0
             WHERE id=:id AND claimed_by=:w")
             ->execute(['em' => 'Archive processing failed', 'id' => $exportId, 'w' => $workerId]);
+        exportArtifactCleanupFailedExport($exportId);
         return ['id' => $exportId, 'status' => 'failed', 'error' => $e->getMessage()];
     }
 }

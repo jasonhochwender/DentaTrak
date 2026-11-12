@@ -187,6 +187,31 @@ ok('cases.json includes archived case', strpos($casesJson, $archId) !== false);
 $phiCsv = $z->getFromName('data/phi_access_log.csv');
 ok('phi access log present', strpos($phiCsv, 'access_type') !== false || strlen($phiCsv) > 20);
 
+// ---------- Failed-export artifact cleanup ----------
+$expA = 900000 + random_int(0, 9999);
+$expB = $expA + 50000;
+$tmpA = tempnam(sys_get_temp_dir(), 'expa'); file_put_contents($tmpA, 'cleanup-A-' . $uniq);
+$tmpB = tempnam(sys_get_temp_dir(), 'expb'); file_put_contents($tmpB, 'cleanup-B-' . $uniq);
+$putA = exportArtifactPutFile($pid, $expA, 'dentatrak-case-export-x.csv', $tmpA);
+$putB = exportArtifactPutFile($pid, $expB, 'dentatrak-case-export-y.csv', $tmpB);
+$expv2dir = __DIR__ . '/../exports-v2';
+ok('putFile stores local artifact', $putA['driver'] === 'local' && is_file($expv2dir . '/' . $putA['ref']));
+exportArtifactCleanupFailedExport($expA);
+ok('failed export artifact deleted', !is_file($expv2dir . '/' . $putA['ref']));
+ok('other export artifact preserved', is_file($expv2dir . '/' . $putB['ref']));
+// Safety: a ref outside the export namespace must never be deleted.
+$decoy = $expv2dir . '/decoy-' . $uniq . '.bin';
+file_put_contents($decoy, 'decoy');
+$GLOBALS['dtkExportCommittedArtifacts'][$expB][] = ['driver' => 'local', 'bucket' => null, 'ref' => 'cases/999/decoy-' . $uniq . '.bin'];
+exportArtifactCleanupFailedExport($expB);
+ok('non-namespace ref skipped by cleanup', is_file($decoy));
+ok('own artifact still deleted alongside skipped ref', !is_file($expv2dir . '/' . $putB['ref']));
+@unlink($decoy);
+// Cleanup failure tolerance: deleting an already-gone ref must not throw.
+$GLOBALS['dtkExportCommittedArtifacts'][$expA][] = ['driver' => 'local', 'bucket' => null, 'ref' => $putA['ref']];
+exportArtifactCleanupFailedExport($expA);
+ok('repeat cleanup is a safe no-op', !is_file($expv2dir . '/' . $putA['ref']));
+
 // ---------- Cleanup ----------
 foreach ($cleanup['exports'] as $id) $pdo->exec("DELETE FROM data_exports WHERE id=" . (int)$id);
 foreach ($cleanup['cases'] as $cid) $pdo->exec("DELETE FROM cases_cache WHERE case_id=" . $pdo->quote($cid));

@@ -31,6 +31,42 @@ if (!function_exists('exportArtifactPrefix')) {
     }
 }
 
+if (!function_exists('exportArtifactNoteCommitted')) {
+    /**
+     * Record an artifact that has been committed to storage for an
+     * export, so a later terminal failure can remove it. Entries are
+     * keyed by export id; refs are always practice-exports/ objects or
+     * exports-v2/ local files - never original practice data.
+     */
+    function exportArtifactNoteCommitted(int $exportId, array $put): void {
+        $GLOBALS['dtkExportCommittedArtifacts'][$exportId][] = $put;
+    }
+}
+
+if (!function_exists('exportArtifactCleanupFailedExport')) {
+    /**
+     * Delete every committed artifact recorded for an export that has
+     * reached a terminal 'failed' state. Called only on the final
+     * attempt (never on retry, where the artifact is overwritten by
+     * the next attempt anyway). Best-effort: individual delete
+     * failures are logged inside exportArtifactDelete.
+     */
+    function exportArtifactCleanupFailedExport(int $exportId): void {
+        $entries = $GLOBALS['dtkExportCommittedArtifacts'][$exportId] ?? [];
+        unset($GLOBALS['dtkExportCommittedArtifacts'][$exportId]);
+        foreach ($entries as $put) {
+            // Safety: only ever delete refs inside this export's own
+            // artifact namespace.
+            $ref = (string)($put['ref'] ?? '');
+            if ($ref === '' || !preg_match('#^(practice-exports/\d+/' . $exportId . '/|\d+_' . $exportId . '_)#', $ref)) {
+                error_log('[export-artifacts] cleanup skipped unexpected ref for export ' . $exportId);
+                continue;
+            }
+            exportArtifactDelete($put['driver'] ?? null, $put['bucket'] ?? null, $ref);
+        }
+    }
+}
+
 if (!function_exists('exportArtifactPut')) {
     /**
      * Store artifact bytes. Returns ['driver','ref','size','sha256'] where
@@ -49,8 +85,10 @@ if (!function_exists('exportArtifactPut')) {
             $objectPath = exportArtifactPrefix($practiceId, $exportId) . $filename;
             $bucket = getGcsBucket();
             $bucket->upload($bytes, ['name' => $objectPath]);
-            return ['driver' => 'gcs', 'bucket' => $GLOBALS['appConfig']['gcs']['bucket_name'],
+            $put = ['driver' => 'gcs', 'bucket' => $GLOBALS['appConfig']['gcs']['bucket_name'],
                     'ref' => $objectPath, 'size' => $size, 'sha256' => $sha];
+            exportArtifactNoteCommitted($exportId, $put);
+            return $put;
         }
 
         $dir = __DIR__ . '/../exports-v2';
@@ -60,7 +98,9 @@ if (!function_exists('exportArtifactPut')) {
         $rel = "{$practiceId}_{$exportId}_" . preg_replace('/[^A-Za-z0-9._-]/', '_', $filename);
         file_put_contents($dir . '/' . $rel, $bytes);
         chmod($dir . '/' . $rel, 0600);
-        return ['driver' => 'local', 'bucket' => null, 'ref' => $rel, 'size' => $size, 'sha256' => $sha];
+        $put = ['driver' => 'local', 'bucket' => null, 'ref' => $rel, 'size' => $size, 'sha256' => $sha];
+        exportArtifactNoteCommitted($exportId, $put);
+        return $put;
     }
 }
 
@@ -85,14 +125,23 @@ if (!function_exists('exportArtifactPutFile')) {
             if ($stream === false) throw new RuntimeException('artifact open failed');
             try {
                 $bucket->upload($stream, ['name' => $objectPath]);
+            } catch (Throwable $e) {
+                // The upload may have committed before the failure (e.g.
+                // stream-ownership errors after a successful PUT). Remove
+                // the object immediately so failed exports never orphan
+                // artifacts; the lifecycle rule remains the fallback.
+                try { deleteGcsObject($objectPath); } catch (Throwable $ignored) {}
+                throw $e;
             } finally {
                 // google/cloud wraps the resource in a Guzzle PSR-7 stream
                 // that takes ownership and fcloses it during upload; only
                 // close it ourselves if it is still open.
                 if (is_resource($stream)) fclose($stream);
             }
-            return ['driver' => 'gcs', 'bucket' => $GLOBALS['appConfig']['gcs']['bucket_name'],
+            $put = ['driver' => 'gcs', 'bucket' => $GLOBALS['appConfig']['gcs']['bucket_name'],
                     'ref' => $objectPath, 'size' => $size, 'sha256' => $sha];
+            exportArtifactNoteCommitted($exportId, $put);
+            return $put;
         }
 
         $dir = __DIR__ . '/../exports-v2';
@@ -103,7 +152,9 @@ if (!function_exists('exportArtifactPutFile')) {
             @unlink($absPath);
         }
         chmod($dir . '/' . $rel, 0600);
-        return ['driver' => 'local', 'bucket' => null, 'ref' => $rel, 'size' => $size, 'sha256' => $sha];
+        $put = ['driver' => 'local', 'bucket' => null, 'ref' => $rel, 'size' => $size, 'sha256' => $sha];
+        exportArtifactNoteCommitted($exportId, $put);
+        return $put;
     }
 }
 
@@ -413,9 +464,14 @@ if (!function_exists('exportArtifactStreamResult')) {
         if ($r === null) {
             throw new RuntimeException('export upload stream did not finalize');
         }
-        return ['driver' => 'gcs',
+        $put = ['driver' => 'gcs',
                 'bucket' => $GLOBALS['appConfig']['gcs']['bucket_name'],
                 'ref' => $r['ref'], 'size' => $r['size'], 'sha256' => $r['sha256']];
+        // Path is dtkexpupload://{practiceId}/{exportId}/{name}
+        if (preg_match('#^dtkexpupload://\d+/(\d+)/#', $path, $m)) {
+            exportArtifactNoteCommitted((int)$m[1], $put);
+        }
+        return $put;
     }
 }
 
