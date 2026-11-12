@@ -333,6 +333,7 @@ function exportWorkerProcessOne(PDO $pdo, int $exportId, string $workerId): arra
                 unset($cm['attachments_json']);
             }
             unset($cm);
+            $out['comments'] = $comments;
             $out['activity'] = $activity;
             file_put_contents($tmpDir . '/export.json', json_encode($out, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
             $artifactName = "dentatrak-case-export-{$exportId}.json";
