@@ -73,6 +73,14 @@
   --radius-full: 9999px;
 }
 
+/* The UA stylesheet's [hidden] rule loses to any author display
+   declaration (e.g. .main-tab{display:inline-flex}, .ap-filter-panel
+   {display:flex}), which left hidden-attribute elements visible.
+   Enforce the semantic globally so `hidden` always means hidden. */
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
   font-family: 'Poppins', 'Inter', 'Noto Sans KR', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;

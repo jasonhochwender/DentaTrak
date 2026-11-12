@@ -143,9 +143,9 @@
     }
     api('summary', null, 'GET').then(function (data) {
       scanTabBackoff = 1;
-      if (data && data.success) {
+      if (data && data.success && typeof data.visible === 'boolean') {
         lastScanSummary = data;
-        applyScanTabVisibility(!!data.visible);
+        applyScanTabVisibility(data.visible);
         if (data.visible) updateScanBadge(data.attention);
       }
     }).catch(function () {
