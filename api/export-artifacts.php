@@ -86,7 +86,10 @@ if (!function_exists('exportArtifactPutFile')) {
             try {
                 $bucket->upload($stream, ['name' => $objectPath]);
             } finally {
-                fclose($stream);
+                // google/cloud wraps the resource in a Guzzle PSR-7 stream
+                // that takes ownership and fcloses it during upload; only
+                // close it ourselves if it is still open.
+                if (is_resource($stream)) fclose($stream);
             }
             return ['driver' => 'gcs', 'bucket' => $GLOBALS['appConfig']['gcs']['bucket_name'],
                     'ref' => $objectPath, 'size' => $size, 'sha256' => $sha];
