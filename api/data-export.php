@@ -570,7 +570,9 @@ function handleExportStatus(int $userId): void {
     ensureExportTables();
     
     $stmt = $pdo->prepare("
-        SELECT id, status, file_size, expires_at, created_at, completed_at, error_message
+        SELECT id, status, file_size, expires_at, created_at, completed_at, error_message,
+               CASE WHEN status = 'completed' AND expires_at IS NOT NULL AND expires_at < NOW()
+                    THEN 'expired' ELSE status END AS effective_status
         FROM data_exports
         WHERE user_id = :user_id
         ORDER BY created_at DESC
@@ -578,6 +580,8 @@ function handleExportStatus(int $userId): void {
     ");
     $stmt->execute(['user_id' => $userId]);
     $exports = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($exports as &$e) { $e['status'] = $e['effective_status']; unset($e['effective_status']); }
+    unset($e);
     
     echo json_encode([
         'success' => true,
@@ -627,7 +631,8 @@ function handleExportDownload(int $userId): void {
     }
     
     // Check if expired
-    if ($export['status'] === 'expired' || strtotime($export['expires_at']) < time()) {
+    if ($export['status'] === 'expired'
+        || (!empty($export['expires_at']) && strtotime($export['expires_at']) < time())) {
         // Mark as expired if not already
         $stmt = $pdo->prepare("UPDATE data_exports SET status = 'expired' WHERE id = :id");
         $stmt->execute(['id' => $export['id']]);

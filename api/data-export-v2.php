@@ -170,7 +170,19 @@ function de2HandleStatus(PDO $pdo, int $userId, int $practiceId): void {
         COALESCE(JSON_LENGTH(JSON_EXTRACT(manifest_json, '$.warnings')), 0) AS archive_warnings
         FROM data_exports WHERE user_id = :u AND practice_id = :p ORDER BY created_at DESC LIMIT 10");
     $stmt->execute(['u' => $userId, 'p' => $practiceId]);
-    echo json_encode(['success' => true, 'exports' => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    // Effective status: a completed export past expires_at is expired even
+    // before the worker sweep persists the transition, so the UI never
+    // shows a stale "Ready" with an active Download button.
+    $now = time();
+    foreach ($rows as &$r) {
+        if ($r['status'] === 'completed' && !empty($r['expires_at'])
+            && strtotime($r['expires_at']) < $now) {
+            $r['status'] = 'expired';
+        }
+    }
+    unset($r);
+    echo json_encode(['success' => true, 'exports' => $rows]);
 }
 
 function de2HandleDownloadUrl(PDO $pdo, int $userId, int $practiceId): void {
@@ -196,12 +208,16 @@ function de2HandleDownloadUrl(PDO $pdo, int $userId, int $practiceId): void {
         de2Out(410, ['success' => false, 'message' => t('export.expired')]);
     }
 
-    // Resolve artifact location (new gcs_object column or legacy file_path).
+    // Resolve artifact location (new gcs_object column, or file_path which
+    // is either 'gcs:<object>' for legacy GCS artifacts or a local name).
     $ext = ['csv' => 'csv', 'json' => 'json', 'zip' => 'zip'][$export['format'] ?? 'csv'] ?? 'csv';
+    $fp = (string)($export['file_path'] ?? '');
+    $isGcs = !empty($export['gcs_object']) || str_starts_with($fp, 'gcs:');
+    $ref = $export['gcs_object'] ?: (str_starts_with($fp, 'gcs:') ? substr($fp, 4) : $fp);
     $artifact = [
         'id' => $exportId,
-        'driver' => $export['gcs_object'] ? 'gcs' : 'local',
-        'ref' => $export['gcs_object'] ?: $export['file_path'],
+        'driver' => $isGcs ? 'gcs' : 'local',
+        'ref' => $ref,
         'filename' => 'dentatrak-' . (($export['export_type'] ?? '') === 'practice_archive' ? 'practice-archive' : 'case-export')
             . '-' . $exportId . '.' . $ext,
     ];
@@ -241,9 +257,12 @@ function de2HandleDownloadFile(PDO $pdo, int $userId, int $practiceId): void {
         de2Out(404, ['success' => false, 'message' => t('export.not_found_or_expired')]);
     }
     if ($export['expires_at'] && strtotime($export['expires_at']) < time()) {
+        $pdo->prepare("UPDATE data_exports SET status='expired' WHERE id=:id")->execute(['id' => $exportId]);
         de2Out(410, ['success' => false, 'message' => t('export.expired')]);
     }
-    $path = __DIR__ . '/../exports-v2/' . basename($export['file_path']);
+    // Legacy local artifacts live under exports/, v2 under exports-v2/.
+    $dir = (($export['export_type'] ?? '') === 'legacy_json') ? 'exports' : 'exports-v2';
+    $path = __DIR__ . '/../' . $dir . '/' . basename($export['file_path']);
     if (!is_file($path)) {
         de2Out(404, ['success' => false, 'message' => t('export.file_not_found')]);
     }

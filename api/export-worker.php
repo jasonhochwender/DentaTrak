@@ -430,23 +430,42 @@ function exportWorkerProcessOne(PDO $pdo, int $exportId, string $workerId): arra
  *  3. Abandoned 'queued' rows older than EW_ABANDON_HOURS - fail them so
  *     they cannot sit forever if dispatch never happened.
  *
- * Legacy export rows (export_type='legacy_json') are never touched.
+ * Legacy export rows (export_type='legacy_json') ARE expired and their
+ * artifacts cleaned, but only through their own storage conventions:
+ * 'gcs:<object>' file_path refs delete that object, plain filenames are
+ * removed from exports/ (dev) - original practice data is never touched.
  */
 function exportWorkerSweep(PDO $pdo): array {
     runDataExportsV2Migration($pdo);
     runDataExportsV2AttemptsMigration($pdo);
     $out = ['expired' => 0, 'requeued' => 0, 'failed_stale' => 0, 'abandoned' => 0];
 
-    // 1. Expired artifacts (v2 only).
-    $exp = $pdo->query("SELECT id, gcs_object, gcs_bucket, file_path FROM data_exports
-        WHERE export_type <> 'legacy_json' AND status IN ('completed','failed','processing','queued','pending')
+    // 1. Expired artifacts (v2 + legacy).
+    $exp = $pdo->query("SELECT id, export_type, gcs_object, gcs_bucket, file_path FROM data_exports
+        WHERE status IN ('completed','failed','processing','queued','pending')
           AND expires_at IS NOT NULL AND expires_at < NOW()")->fetchAll(PDO::FETCH_ASSOC);
     foreach ($exp as $row) {
         $id = (int)$row['id'];
+        $isLegacy = ($row['export_type'] ?? '') === 'legacy_json';
         if (!empty($row['gcs_object'])) {
             exportArtifactDelete('gcs', $row['gcs_bucket'], $row['gcs_object']);
         } elseif (!empty($row['file_path'])) {
-            exportArtifactDelete('local', null, $row['file_path']);
+            $fp = (string)$row['file_path'];
+            if (str_starts_with($fp, 'gcs:')) {
+                // Legacy GCS artifact: 'gcs:<object>' in the default bucket.
+                try {
+                    require_once __DIR__ . '/gcs-storage.php';
+                    deleteGcsObject(substr($fp, 4));
+                } catch (Throwable $e) {
+                    error_log('[export-worker] legacy artifact delete failed for export ' . $id);
+                }
+            } elseif ($isLegacy) {
+                // Legacy local artifact lives under exports/, not exports-v2/.
+                $p = __DIR__ . '/../exports/' . basename($fp);
+                if (is_file($p)) @unlink($p);
+            } else {
+                exportArtifactDelete('local', null, $fp);
+            }
         }
         $pdo->prepare("UPDATE data_exports SET status='expired' WHERE id=:id")->execute(['id' => $id]);
         $out['expired']++;

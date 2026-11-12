@@ -153,6 +153,13 @@ function eaSnapshot(PDO $pdo, int $pid, string $tmpDir): array {
                       FROM practice_users pu LEFT JOIN users u ON u.id = pu.user_id WHERE pu.practice_id = :p",
         'practice' => "SELECT * FROM practices WHERE id = :p",
         'user_prefs' => "SELECT * FROM user_notification_preferences WHERE practice_id = :p",
+        // Per-member personal preferences (theme, highlight thresholds,
+        // locale, etc.) - the legacy exporter's userSettings equivalent,
+        // scoped to every member of this practice.
+        'user_settings' => "SELECT up.*, pu.role AS member_role, pu.is_owner AS member_is_owner
+                            FROM user_preferences up
+                            JOIN practice_users pu ON pu.user_id = up.user_id
+                            WHERE pu.practice_id = :p",
     ];
 
     $pdo->beginTransaction();
@@ -593,6 +600,7 @@ function exportArchiveBuild(PDO $pdo, array $export, string $tmpDir, string $wor
         'integration_sync_runs' => null,
         'integration_entity_mappings' => null,
         'user_prefs' => null,
+        'user_settings' => null,
     ];
     // Columns that may carry raw payloads/metadata are stripped per section.
     $columnDenylist = [

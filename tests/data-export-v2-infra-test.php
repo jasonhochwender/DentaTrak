@@ -68,20 +68,40 @@ file_put_contents(__DIR__ . '/../exports-v2/' . $fakeRel, "a,b\n1,2\n");
 $pdo->prepare("UPDATE data_exports SET file_path=:fp, expires_at = NOW() - INTERVAL 1 HOUR WHERE id=:id")
     ->execute(['fp' => $fakeRel, 'id' => $eExp]);
 
-// A legacy row that is also "expired" must NOT be touched.
+// Legacy rows ARE expired by the sweep now (they previously kept a stale
+// 'completed' status forever, so the UI showed Ready + Download). A plain
+// local filename resolves under exports/ - nothing to delete here, but the
+// status must still flip so downloads are blocked.
 $legacyId = mkRow($pdo, $uid, $pid, 'completed', [
     'export_type' => 'legacy_json',
     'file_path' => 'legacy_should_survive.json',
 ]);
 $pdo->exec("UPDATE data_exports SET expires_at = NOW() - INTERVAL 2 HOUR WHERE id={$legacyId}");
+// A legacy GCS artifact ('gcs:<object>' file_path) must also be expired;
+// deletion is best-effort and safe without GCS credentials locally.
+$legacyGcsId = mkRow($pdo, $uid, $pid, 'completed', [
+    'export_type' => 'legacy_json',
+    'file_path' => 'gcs:practice-exports/' . $pid . '/' . 999999 . '/dentatrak_export_x.json',
+]);
+$pdo->exec("UPDATE data_exports SET expires_at = NOW() - INTERVAL 2 HOUR WHERE id={$legacyGcsId}");
+// A NON-expired legacy row must remain untouched.
+$legacyLiveId = mkRow($pdo, $uid, $pid, 'completed', [
+    'export_type' => 'legacy_json',
+    'file_path' => 'legacy_live.json',
+    'expires_at' => date('Y-m-d H:i:s', strtotime('+7 days')),
+]);
 
 $sweep = exportWorkerSweep($pdo);
-ok('sweep reports expired', ($sweep['expired'] ?? 0) >= 1, json_encode($sweep));
+ok('sweep reports expired', ($sweep['expired'] ?? 0) >= 3, json_encode($sweep));
 $st = $pdo->query("SELECT status FROM data_exports WHERE id={$eExp}")->fetchColumn();
 ok('expired export marked expired', $st === 'expired');
 ok('expired artifact file deleted', !is_file(__DIR__ . '/../exports-v2/' . $fakeRel));
 $stL = $pdo->query("SELECT status FROM data_exports WHERE id={$legacyId}")->fetchColumn();
-ok('legacy export untouched by sweep', $stL === 'completed');
+ok('expired legacy export marked expired', $stL === 'expired');
+$stLG = $pdo->query("SELECT status FROM data_exports WHERE id={$legacyGcsId}")->fetchColumn();
+ok('expired legacy gcs export marked expired', $stLG === 'expired');
+$stLL = $pdo->query("SELECT status FROM data_exports WHERE id={$legacyLiveId}")->fetchColumn();
+ok('unexpired legacy export untouched', $stLL === 'completed');
 
 // Expired rows cannot transition back / be re-downloaded: download gate
 // requires status='completed'.
@@ -217,6 +237,25 @@ ok('artifact puts register committed refs',
     substr_count($artSrc, 'exportArtifactNoteCommitted') >= 4);
 ok('putFile self-cleans on post-upload failure',
     strpos($artSrc, 'deleteGcsObject($objectPath)') !== false);
+
+// ---------- 10c. Expiration enforcement wiring (static) ----------
+$v2Src = file_get_contents(__DIR__ . '/../api/data-export-v2.php');
+$legacySrc = file_get_contents(__DIR__ . '/../api/data-export.php');
+ok('v2 status computes effective expired status',
+    strpos($v2Src, "'expired'") !== false && strpos($v2Src, 'strtotime($r[') !== false);
+ok('v2 download_url enforces expires_at',
+    substr_count($v2Src, 'expires_at') >= 3);
+ok('v2 download resolves gcs: file_path refs',
+    strpos($v2Src, "str_starts_with(\$fp, 'gcs:')") !== false);
+ok('v2 download_file marks expired + legacy dir',
+    strpos($v2Src, "status='expired'") !== false && strpos($v2Src, "'exports'") !== false);
+ok('legacy status reports effective expired status',
+    strpos($legacySrc, 'effective_status') !== false);
+ok('legacy download enforces expires_at',
+    strpos($legacySrc, "status = 'expired'") !== false
+    && strpos($legacySrc, "strtotime(\$export['expires_at']) < time()") !== false);
+ok('sweep expires legacy rows',
+    strpos($workerSrc, 'legacy_json') !== false && strpos($workerSrc, 'gcs:') !== false);
 
 // ---------- Cleanup ----------
 foreach ($made as $id) { $pdo->exec("DELETE FROM data_exports WHERE id=" . (int)$id); }

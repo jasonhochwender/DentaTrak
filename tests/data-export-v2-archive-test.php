@@ -100,6 +100,15 @@ $pdo->prepare("INSERT INTO scanner_scan_files (scan_id,external_file_id,file_nam
 $scanFileId = (int)$pdo->lastInsertId();
 $cleanup['scans'][] = $scanId;
 
+// user_settings fixture: guarantee >=1 user_preferences row for a practice
+// member (insert minimal row only when none exists; restored in cleanup).
+$prefUserId = (int)$pdo->query("SELECT user_id FROM practice_users WHERE practice_id={$pid} LIMIT 1")->fetchColumn();
+$hadPref = $prefUserId > 0 && (int)$pdo->query("SELECT COUNT(*) FROM user_preferences WHERE user_id={$prefUserId}")->fetchColumn() > 0;
+if ($prefUserId > 0 && !$hadPref) {
+    $pdo->prepare("INSERT INTO user_preferences (user_id, theme) VALUES (?, 'dark')")->execute([$prefUserId]);
+    $cleanup['prefs'][] = $prefUserId;
+}
+
 // ---------- Run archive ----------
 $pdo->exec("INSERT INTO data_exports (user_id,practice_id,export_type,format,status,created_at)
     VALUES ({$uid},{$pid},'practice_archive','zip','queued',NOW())");
@@ -187,6 +196,15 @@ ok('cases.json includes archived case', strpos($casesJson, $archId) !== false);
 $phiCsv = $z->getFromName('data/phi_access_log.csv');
 ok('phi access log present', strpos($phiCsv, 'access_type') !== false || strlen($phiCsv) > 20);
 
+// user_settings: per-member user_preferences (legacy userSettings parity).
+ok('zip has data/user_settings.csv', in_array('data/user_settings.csv', $names, true));
+ok('zip has data/user_prefs.csv', in_array('data/user_prefs.csv', $names, true));
+$usCsv = $z->getFromName('data/user_settings.csv');
+ok('user_settings has preference columns', $usCsv !== false && strpos($usCsv, 'theme') !== false && strpos($usCsv, 'user_id') !== false);
+ok('user_settings scoped to practice members', $usCsv !== false && strpos($usCsv, (string)$prefUserId) !== false);
+$rc = $m['exportInfo']['rowCounts'] ?? [];
+ok('manifest counts user_settings', array_key_exists('user_settings', $rc));
+
 // ---------- Failed-export artifact cleanup ----------
 $expA = 900000 + random_int(0, 9999);
 $expB = $expA + 50000;
@@ -220,6 +238,7 @@ foreach ($cleanup['scans'] as $sid) {
     $pdo->exec("DELETE FROM scanner_incoming_scans WHERE id=" . (int)$sid);
 }
 foreach ($cleanup['files'] as $f) @unlink($f);
+foreach ($cleanup['prefs'] ?? [] as $u) $pdo->exec("DELETE FROM user_preferences WHERE user_id=" . (int)$u);
 @unlink(dirname($attAbs)); @unlink(dirname($stlAbs));
 
 echo "\n{$passed} passed, {$failed} failed\n";
