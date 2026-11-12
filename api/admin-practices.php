@@ -597,6 +597,7 @@ function getListAdoptionMetrics(PDO $pdo, array $practiceIds): array {
         $metrics[(int)$id] = [
             'total_cases' => 0,
             'last_activity' => null,
+            'last_login' => null,
         ];
     }
 
@@ -653,6 +654,9 @@ function getListAdoptionMetrics(PDO $pdo, array $practiceIds): array {
             $last = $lastCaseActivity;
         }
         $metrics[$id]['last_activity'] = $last;
+        // Most recent login among the practice's current members. This is
+        // an account-level timestamp, not proof of access to this practice.
+        $metrics[$id]['last_login'] = $lastLogin;
     }
 
     return $metrics;
@@ -911,6 +915,7 @@ function handleGetRequest($action) {
                 $practice['adoption'] = $adoptionMetrics[(int)$practice['id']] ?? [
                     'total_cases' => 0,
                     'last_activity' => null,
+                    'last_login' => null,
                 ];
                 $practice['integration'] = buildAdminIntegrationStatus(
                     $pdo,

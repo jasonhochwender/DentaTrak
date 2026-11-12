@@ -3483,6 +3483,8 @@
         "tabs_phi_log": "PHI Access Log",
         "tabs_users": "Users & Access",
         "tabs_settings": "Settings",
+        "no_recorded_login": "No recorded login",
+        "last_login_member_hint": "Most recent login among this practice's members (account-level, not practice-specific access)",
         "label_legal_name": "Legal Name",
         "label_baa_status": "BAA Status",
         "label_baa_version": "BAA Version",

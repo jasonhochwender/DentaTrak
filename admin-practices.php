@@ -590,12 +590,23 @@ $userEmail = $_SESSION['user_email'] ?? '';
             margin-top: 20px;
         }
         
+        /* This page uses the shared admin shell (.pa-content caps at
+           1400px in admin.css); widen it here only, then give the detail
+           panel the larger share of the two-column layout. */
+        .pa-content {
+            max-width: 1680px;
+        }
+
+        .admin-container {
+            max-width: none;
+        }
+
         .main-content-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 24px;
+            grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+            gap: 20px;
         }
-        
+
         @media (max-width: 1200px) {
             .main-content-grid {
                 grid-template-columns: 1fr;
@@ -639,9 +650,11 @@ $userEmail = $_SESSION['user_email'] ?? '';
         .detail-tabs {
             display: flex;
             border-bottom: 1px solid #e5e7eb;
+            overflow-x: auto;
         }
-        
+
         .detail-tab {
+            flex: 0 0 auto;
             padding: 12px 20px;
             background: none;
             border: none;
@@ -650,6 +663,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
             color: #6b7280;
             border-bottom: 2px solid transparent;
             margin-bottom: -1px;
+            white-space: nowrap;
         }
         
         .detail-tab:hover {
@@ -1178,6 +1192,9 @@ $userEmail = $_SESSION['user_email'] ?? '';
         let selectedPracticeId = null;
         let currentView = 'all';
         let practiceSearch = '';
+        // Detail tab survives practice switches; defaults to Settings on
+        // the initial page visit (deep links may override it once).
+        let currentDetailTab = 'settings';
 
         // Counter and helper to prevent stale tab requests (slower/older responses
         // from a previously selected practice or tab cannot overwrite the current view).
@@ -1237,12 +1254,8 @@ $userEmail = $_SESSION['user_email'] ?? '';
                         const deepTab = deepLinkParams.get('tab');
                         if (deepLink && practices.some(p => p.id === deepLink)) {
                             selectPractice(deepLink);
-                            if (deepTab && DETAIL_TABS.includes(deepTab)) {
-                                const tabBtns = document.querySelectorAll('.detail-tab');
-                                tabBtns.forEach(b => b.classList.remove('active'));
-                                const idx = DETAIL_TABS.indexOf(deepTab);
-                                if (tabBtns[idx]) tabBtns[idx].classList.add('active');
-                                loadTabByName(deepTab, deepLink);
+                            if (deepTab && DETAIL_TABS.includes(deepTab) && deepTab !== currentDetailTab) {
+                                activateDetailTab(deepTab);
                             }
                         }
                     } else {
@@ -1355,6 +1368,16 @@ $userEmail = $_SESSION['user_email'] ?? '';
                 const usagePrimaryText = userLabel + ' · ' + caseLabel;
                 const usagePrimaryTitle = escapeHtml(usagePrimaryText).replace(/"/g, '&quot;');
 
+                // Most recent login among the practice's members (account
+                // level — not proof of access to this specific practice).
+                const lastLoginRaw = practice.adoption?.last_login || null;
+                const lastLoginText = lastLoginRaw
+                    ? formatExactDateTime(lastLoginRaw)
+                    : t('admin_practices.no_recorded_login');
+                const lastLoginTitle = lastLoginRaw
+                    ? t('admin_practices.last_login_member_hint')
+                    : '';
+
                 const practiceNameRaw = practice.practice_name || practice.legal_name || t('admin_practices.unnamed');
                 const practiceName = escapeHtml(practiceNameRaw).replace(/'/g, "\\'");
                 const practiceTitle = escapeHtml(practiceNameRaw).replace(/"/g, '&quot;');
@@ -1385,6 +1408,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
                     '</td>' +
                     '<td class="col-usage">' +
                         '<div class="usage-primary" title="' + usagePrimaryTitle + '">' + usagePrimaryText + '</div>' +
+                        '<div class="usage-secondary"' + (lastLoginTitle ? ' title="' + escapeHtml(lastLoginTitle) + '"' : '') + '>Last login ' + escapeHtml(lastLoginText) + '</div>' +
                     '</td>' +
                     '<td class="col-actions" onclick="event.stopPropagation()">' +
                         '<button class="action-btn actions-toggle" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Actions for ' + practiceName + '" onclick="toggleActionsMenu(event, ' + practice.id + ')">' + t('admin_practices.table_actions') + '</button>' +
@@ -1462,25 +1486,52 @@ $userEmail = $_SESSION['user_email'] ?? '';
                     '</div>' +
                 '</div>' +
                 '<div class="detail-tabs">' +
-                    '<button class="detail-tab active" onclick="showTab(\'settings\', ' + practiceId + ')">' + t('admin_practices.tabs_settings') + '</button>' +
-                    '<button class="detail-tab" onclick="showTab(\'users\', ' + practiceId + ')">' + t('admin_practices.tabs_users') + '</button>' +
-                    '<button class="detail-tab" onclick="showTab(\'subscription\', ' + practiceId + ')">' + t('admin_practices.tabs_subscription') + '</button>' +
-                    '<button class="detail-tab" onclick="showTab(\'usage\', ' + practiceId + ')">' + t('admin_practices.tabs_usage') + '</button>' +
-                    '<button class="detail-tab" onclick="showTab(\'compliance\', ' + practiceId + ')">' + t('admin_practices.tabs_compliance') + '</button>' +
-                    '<button class="detail-tab" onclick="showTab(\'phi\', ' + practiceId + ')">' + t('admin_practices.tabs_phi_log') + '</button>' +
+                    detailTabButton('settings', practiceId) +
+                    detailTabButton('users', practiceId) +
+                    detailTabButton('subscription', practiceId) +
+                    detailTabButton('usage', practiceId) +
+                    detailTabButton('compliance', practiceId) +
+                    detailTabButton('phi', practiceId) +
                 '</div>' +
                 '<div class="detail-content" id="detailContent">' +
                     '<div class="loading">' + t('common.loading') + '</div>' +
                 '</div>';
 
-            // Load settings tab by default
-            loadSettingsTab(practiceId);
+            // Reload whichever tab was active for the previous practice.
+            loadTabByName(currentDetailTab, practiceId);
         }
-        
-        function showTab(tab, practiceId) {
-            // Update tab buttons
-            document.querySelectorAll('.detail-tab').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
+
+        const DETAIL_TAB_LABELS = {
+            settings: 'admin_practices.tabs_settings',
+            users: 'admin_practices.tabs_users',
+            subscription: 'admin_practices.tabs_subscription',
+            usage: 'admin_practices.tabs_usage',
+            compliance: 'admin_practices.tabs_compliance',
+            phi: 'admin_practices.tabs_phi_log'
+        };
+
+        function detailTabButton(tab, practiceId) {
+            const active = tab === currentDetailTab ? ' active' : '';
+            return '<button class="detail-tab' + active + '" onclick="showTab(\'' + tab + '\', ' + practiceId + ', this)">' + t(DETAIL_TAB_LABELS[tab]) + '</button>';
+        }
+
+        // Switch the active detail tab without changing practices
+        // (used by deep links). Updates state, styling, and content.
+        function activateDetailTab(tab) {
+            if (!DETAIL_TABS.includes(tab)) return;
+            currentDetailTab = tab;
+            document.querySelectorAll('.detail-tab').forEach((btn, idx) => {
+                btn.classList.toggle('active', DETAIL_TABS[idx] === tab);
+            });
+            if (selectedPracticeId !== null) {
+                loadTabByName(tab, selectedPracticeId);
+            }
+        }
+
+        function showTab(tab, practiceId, btn) {
+            currentDetailTab = tab;
+            document.querySelectorAll('.detail-tab').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
             loadTabByName(tab, practiceId);
         }
 
@@ -2003,7 +2054,15 @@ $userEmail = $_SESSION['user_email'] ?? '';
             html += metric('Total Users', adoption.total_users);
             html += metric('Users With Recorded Login', adoption.users_with_login);
             html += metric('No Recorded Login', adoption.users_without_login);
-            html += metric('Most Recent Login', formatRelativeTimestamp(adoption.most_recent_login, 'No recorded login'));
+            if (adoption.most_recent_login) {
+                html += '<div class="compliance-detail">' +
+                    '<div class="label">Most Recent Login</div>' +
+                    '<div class="value" style="font-size: 1.05rem;">' + escapeHtml(formatExactDateTime(adoption.most_recent_login)) + '</div>' +
+                    '<div style="font-size: 0.75rem; color: #6b7280; margin-top: 2px;">' + escapeHtml(loginRelativeText(adoption.most_recent_login)) + '</div>' +
+                    '</div>';
+            } else {
+                html += metric('Most Recent Login', '<span style="color: #9ca3af; font-size: 1rem;">No recorded login</span>');
+            }
             html += metric('Active Cases', adoption.active_cases);
             html += metric('Cases Created Last 30 Days', adoption.created_last_30_days);
             html += metric((adoption.terminal_label || 'Delivered') + ' Last 30 Days', adoption.delivered_last_30_days);
@@ -3032,6 +3091,25 @@ $userEmail = $_SESSION['user_email'] ?? '';
             }
 
             return { text: text, title: formatDateTime(dateStr) };
+        }
+
+        // Exact timestamp in the viewer's locale and timezone, e.g.
+        // "Nov 12, 2026, 9:42 AM". DB DATETIME values are UTC (see
+        // parseDateUTC), so the browser converts them to local time.
+        function formatExactDateTime(dateStr) {
+            const date = parseDateUTC(dateStr);
+            if (!date) return '';
+            return date.toLocaleString(undefined, {
+                year: 'numeric', month: 'short', day: 'numeric',
+                hour: 'numeric', minute: '2-digit'
+            });
+        }
+
+        // Plain-text relative label ("Today", "3 days ago", or a short
+        // date) for use as secondary text under an exact timestamp.
+        function loginRelativeText(dateStr) {
+            const rel = formatRelativeLogin(dateStr);
+            return rel.text;
         }
 
         function parseDateUTC(dateStr) {
