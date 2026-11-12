@@ -1343,7 +1343,8 @@
                 "history_created": "Creata",
                 "type_archive": "Archivio (ZIP)",
                 "type_legacy": "JSON legacy",
-                "download_error": "Download non riuscito. Riprova."
+                "download_error": "Download non riuscito. Riprova.",
+                "export_not_found": "Questa esportazione non è nella cronologia recente dello studio corrente."
             }
         },
         "dev_tools": {

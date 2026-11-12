@@ -2437,6 +2437,13 @@ input#practiceName {
   cursor: help;
 }
 
+.export-history-row.export-history-highlight {
+  outline: 2px solid var(--primary-color, #2563eb);
+  outline-offset: 1px;
+  background: #eff6ff;
+  scroll-margin: 120px;
+}
+
 @media (max-width: 640px) {
   .export-history-row .export-history-meta {
     flex-basis: 100%;

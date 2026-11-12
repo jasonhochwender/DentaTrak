@@ -15531,6 +15531,7 @@ document.addEventListener('DOMContentLoaded', function () {
       if (!exportV2List) return;
       if (!exports || !exports.length) {
         exportV2List.innerHTML = '<div class="export-history-empty">' + exportV2T('history_empty') + '</div>';
+        highlightPendingExport();
         return;
       }
       exportV2List.innerHTML = exports.map(function(e) {
@@ -15552,10 +15553,11 @@ document.addEventListener('DOMContentLoaded', function () {
             return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
           }));
         }
-        return '<div class="export-history-row">' +
+        return '<div class="export-history-row" data-export-id="' + e.id + '">' +
           '<span class="export-status-badge ' + badgeCls + '">' + exportV2StatusText(e.status) + '</span>' +
           '<span class="export-history-meta">' + meta.join(' · ') + '</span>' + warn + dl + '</div>';
       }).join('');
+      highlightPendingExport();
       exportV2List.querySelectorAll('.export-v2-download').forEach(function(btn) {
         btn.addEventListener('click', function() {
           btn.disabled = true;
@@ -15651,6 +15653,99 @@ document.addEventListener('DOMContentLoaded', function () {
         );
       });
     }
+
+    // ---- Export email deep link (?export_id=N, or pendingExport carried
+    // through login.php in sessionStorage) ----
+    // Resolves to Settings > Data & Privacy > Export History and highlights
+    // the referenced row. The id is only a navigation hint - every data
+    // access still goes through the authenticated, practice-scoped APIs.
+    var pendingExportHighlight = null;
+    var exportDeepLinkResolved = false;
+
+    function stripExportIdParam() {
+      try {
+        var params = new URLSearchParams(window.location.search);
+        if (params.get('export_id') === null) return;
+        params.delete('export_id');
+        var q = params.toString();
+        window.history.replaceState({}, '',
+          window.location.pathname + (q ? '?' + q : '') + window.location.hash);
+      } catch (e) {}
+    }
+
+    function consumeExportDeepLink() {
+      var id = null;
+      try {
+        var params = new URLSearchParams(window.location.search);
+        var raw = params.get('export_id');
+        if (raw !== null && /^\d{1,20}$/.test(raw)) id = parseInt(raw, 10);
+      } catch (e) {}
+      stripExportIdParam();
+      if (!id) {
+        try {
+          var pending = sessionStorage.getItem('pendingExport');
+          if (pending) {
+            sessionStorage.removeItem('pendingExport');
+            var o = JSON.parse(pending);
+            if (o && /^\d{1,20}$/.test(String(o.export_id || ''))) {
+              id = parseInt(o.export_id, 10);
+            }
+          }
+        } catch (e) {}
+      }
+      return id;
+    }
+
+    function highlightPendingExport() {
+      if (pendingExportHighlight === null || !exportV2List) return;
+      var row = exportV2List.querySelector(
+        '.export-history-row[data-export-id="' + pendingExportHighlight + '"]');
+      if (row) {
+        pendingExportHighlight = null;
+        exportDeepLinkResolved = true;
+        row.classList.add('export-history-highlight');
+        row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      } else {
+        // List fully rendered and the id is absent: older than the 10-row
+        // window, another practice, denied, or nonexistent - say so
+        // generically without revealing which.
+        pendingExportHighlight = null;
+        exportDeepLinkResolved = true;
+        showToast(exportV2T('export_not_found'), 'info');
+      }
+    }
+
+    function openExportDeepLinkSettings(attempt) {
+      attempt = attempt || 0;
+      if (typeof openSettingsBillingModal !== 'function') return;
+      openSettingsBillingModal();
+      var modal = document.getElementById('settingsBillingModal');
+      if (modal && modal.style.display === 'block') {
+        setTimeout(function() {
+          var nav = document.querySelector(
+            '#settingsForm .settings-nav-item[data-nav-target="data-privacy"]');
+          if (nav) nav.click();
+          if (exportV2List) exportV2List.scrollIntoView({ block: 'nearest' });
+        }, 60);
+        return;
+      }
+      // Page still loading - retry a few times, then give up quietly.
+      if (attempt < 20) setTimeout(function() { openExportDeepLinkSettings(attempt + 1); }, 500);
+    }
+
+    window.processPendingExport = function() {
+      var id = consumeExportDeepLink();
+      // Only act when the v2 surface is rendered for this practice.
+      if (!id || !exportV2List) return;
+      pendingExportHighlight = id;
+      openExportDeepLinkSettings();
+      highlightPendingExport();
+    };
+    // Self-invoke: app.js is deferred, so the inline main.php
+    // DOMContentLoaded hook can run before this handler exists. The call
+    // is idempotent - the URL param and sessionStorage key are consumed
+    // on first read.
+    window.processPendingExport();
 
     // Load 2FA status when settings modal opens
     var settingsModal = document.getElementById('settingsBillingModal');

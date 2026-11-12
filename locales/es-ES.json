@@ -1343,7 +1343,8 @@
                 "history_created": "Creado",
                 "type_archive": "Archivo (ZIP)",
                 "type_legacy": "JSON heredado",
-                "download_error": "Error de descarga. Inténtelo de nuevo."
+                "download_error": "Error de descarga. Inténtelo de nuevo.",
+                "export_not_found": "Esta exportación no está en el historial reciente de la consulta actual."
             }
         },
         "dev_tools": {

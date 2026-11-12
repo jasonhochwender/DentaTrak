@@ -194,6 +194,7 @@ screenshots/
 !/tests/data-export-v2-test.php
 !/tests/data-export-v2-infra-test.php
 !/tests/data-export-v2-archive-test.php
+!/tests/export-ui-test.php
 !/tests/user-environment-test.php
 !/tests/header-switcher-browser-test.js
 !/tests/insights-usage-tracking-e2e-test.js

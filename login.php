@@ -106,6 +106,17 @@ $sessionRevoked = isset($_GET['revoked']) && $_GET['revoked'] == '1';
     })();
   </script>
   <?php endif; ?>
+  <?php if (!empty($_GET['export_id']) && preg_match('/^\d{1,20}$/', (string)$_GET['export_id'])): ?>
+  <script>
+    (function() {
+      try {
+        sessionStorage.setItem('pendingExport', JSON.stringify({
+          export_id: <?php echo (int)$_GET['export_id']; ?>
+        }));
+      } catch (e) {}
+    })();
+  </script>
+  <?php endif; ?>
 </head>
 <?php 
   // Determine environment for visual cues

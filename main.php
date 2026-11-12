@@ -66,6 +66,12 @@ if (empty($_SESSION['db_user_id'])) {
         $loginUrl .= (strpos($loginUrl, '?') === false ? '?' : '&')
             . 'od_pat=' . urlencode((string)$_GET['od_pat']);
     }
+    // Export email deep links carry only the numeric export id - resolved
+    // into Settings > Data & Privacy > Export History after sign-in.
+    if (!empty($_GET['export_id']) && preg_match('/^\d{1,20}$/', (string)$_GET['export_id'])) {
+        $loginUrl .= (strpos($loginUrl, '?') === false ? '?' : '&')
+            . 'export_id=' . urlencode((string)$_GET['export_id']);
+    }
     header('Location: ' . $loginUrl);
     exit;
 }
@@ -5248,6 +5254,13 @@ endif;
           && preg_match('/^[A-Za-z0-9_-]{1,64}$/', $_GET['case'])) {
           $deepLinkCaseId = $_GET['case'];
       }
+      // Export email deep link: numeric id only, resolved client-side into
+      // Settings > Data & Privacy > Export History (feature-flagged).
+      $deepLinkExportId = null;
+      if (!empty($_GET['export_id']) && is_string($_GET['export_id'])
+          && preg_match('/^\d{1,20}$/', $_GET['export_id'])) {
+          $deepLinkExportId = (int)$_GET['export_id'];
+      }
       ?>
       window.addEventListener('DOMContentLoaded', function() {
         <?php if ($deepLinkCaseId !== null): ?>
@@ -5255,11 +5268,17 @@ endif;
           window.openCaseById(<?php echo json_encode($deepLinkCaseId); ?>);
         }
         <?php endif; ?>
+        <?php if ($deepLinkExportId !== null): ?>
+        window.__exportDeepLinkId = <?php echo $deepLinkExportId; ?>;
+        <?php endif; ?>
         if (typeof window.processPendingNotification === 'function') {
           window.processPendingNotification();
         }
         if (typeof window.processPendingOdPatient === 'function') {
           window.processPendingOdPatient();
+        }
+        if (typeof window.processPendingExport === 'function') {
+          window.processPendingExport();
         }
       });
     })();

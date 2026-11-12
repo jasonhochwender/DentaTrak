@@ -503,7 +503,9 @@ function exportWorkerSweep(PDO $pdo): array {
 function ewSendReadyEmail(string $email, int $exportId, int $size, string $expiresAt, string $format, ?int $userId): void {
     global $appConfig, $pdo;
     $base = rtrim($appConfig['baseUrl'] ?? '', '/');
-    $appUrl = $base . '/main.php';
+    // Deep link: main.php resolves export_id into Settings > Data & Privacy
+    // > Export History. No tokens or storage references in the URL.
+    $appUrl = $base . '/main.php?export_id=' . $exportId;
     $locale = function_exists('resolveEmailLocale') ? resolveEmailLocale($userId, null, null) : 'en-US';
     $appName = $appConfig['appName'] ?? 'DentaTrak';
 
@@ -558,7 +560,7 @@ function ewSendReadyEmail(string $email, int $exportId, int $size, string $expir
 function ewSendFailedEmail(string $email, int $exportId, string $format, ?int $userId): void {
     global $appConfig;
     $base = rtrim($appConfig['baseUrl'] ?? '', '/');
-    $appUrl = $base . '/main.php';
+    $appUrl = $base . '/main.php?export_id=' . $exportId;
     $locale = function_exists('resolveEmailLocale') ? resolveEmailLocale($userId, null, null) : 'en-US';
     $appName = $appConfig['appName'] ?? 'DentaTrak';
 

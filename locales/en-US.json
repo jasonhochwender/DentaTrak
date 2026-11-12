@@ -1343,7 +1343,8 @@
                 "history_created": "Created",
                 "type_archive": "Archive (ZIP)",
                 "type_legacy": "Legacy JSON",
-                "download_error": "Download failed. Please try again."
+                "download_error": "Download failed. Please try again.",
+                "export_not_found": "This export is not in the current practice's recent export history."
             }
         },
         "dev_tools": {

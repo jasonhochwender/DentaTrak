@@ -1343,7 +1343,8 @@
                 "history_created": "생성일",
                 "type_archive": "아카이브 (ZIP)",
                 "type_legacy": "레거시 JSON",
-                "download_error": "다운로드에 실패했습니다. 다시 시도하세요."
+                "download_error": "다운로드에 실패했습니다. 다시 시도하세요.",
+                "export_not_found": "이 내보내기는 현재 진료실의 최근 내보내기 기록에 없습니다."
             }
         },
         "dev_tools": {
