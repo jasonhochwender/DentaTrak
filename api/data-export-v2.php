@@ -1,0 +1,238 @@
+<?php
+/**
+ * Data Export v2 API
+ *
+ * Async practice-data exports processed by api/export-worker.php (Cloud
+ * Run Job / CLI). Gated behind the DATA_EXPORT_V2 feature flag - when
+ * disabled every action returns 404 so the surface is invisible.
+ *
+ * Actions:
+ *   request       POST - queue a case_data export (format=csv|json)
+ *   status        GET  - list the caller's recent exports
+ *   download_url  POST - issue a short-lived signed URL for a completed
+ *                        export (records issuance; actual GCS downloads
+ *                        are evidenced by bucket Data Access audit logs)
+ *   download_file GET  - dev-only local-driver artifact proxy; streams
+ *                        bytes and PHI-logs the actual download
+ *
+ * Authorization: authenticated practice member, not a lab collaborator,
+ * current Terms accepted, and an UNRESTRICTED practice admin or owner
+ * (is_owner=1, or role=admin with limited_visibility=0). Assigned-Only
+ * admins are denied - they keep the legacy personal-scoped export.
+ */
+
+require_once __DIR__ . '/session.php';
+require_once __DIR__ . '/appConfig.php';
+require_once __DIR__ . '/practice-security.php';
+require_once __DIR__ . '/hipaa-compliance.php';
+require_once __DIR__ . '/csrf.php';
+require_once __DIR__ . '/security-headers.php';
+require_once __DIR__ . '/feature-flags.php';
+require_once __DIR__ . '/export-artifacts.php';
+
+header('Content-Type: application/json');
+setApiSecurityHeaders();
+
+function de2Out($code, $payload) {
+    http_response_code($code);
+    echo json_encode($payload);
+    exit;
+}
+
+if (!isFeatureEnabled('DATA_EXPORT_V2')) {
+    de2Out(404, ['success' => false, 'message' => 'Not found']);
+}
+
+if (empty($_SESSION['db_user_id'])) {
+    de2Out(401, ['success' => false, 'message' => t('export.authentication_required')]);
+}
+
+$practiceId = requireValidPracticeContext();
+$userId = (int)$_SESSION['db_user_id'];
+$userEmail = $_SESSION['user_email'] ?? '';
+
+requireNotLabCollaborator($practiceId, t('export.external_collaborator_denied'));
+requireCurrentTermsAcceptedForApi($userId);
+
+/**
+ * Unrestricted admin/owner check: owner, or admin role without
+ * limited_visibility. Assigned-Only members never qualify.
+ */
+function de2IsUnrestrictedAdminOrOwner(PDO $pdo, int $practiceId, int $userId): bool {
+    $stmt = $pdo->prepare("
+        SELECT is_owner, role, COALESCE(limited_visibility,0) AS lv
+        FROM practice_users
+        WHERE practice_id = :pid AND user_id = :uid
+        LIMIT 1
+    ");
+    $stmt->execute(['pid' => $practiceId, 'uid' => $userId]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$row) return false;
+    if ((int)$row['is_owner'] === 1) return true;
+    return $row['role'] === 'admin' && (int)$row['lv'] === 0;
+}
+
+function de2EnsureSchema(): void {
+    global $pdo;
+    require_once __DIR__ . '/../migrations/2026_11_13_data_exports_v2.php';
+    runDataExportsV2Migration($pdo);
+}
+
+$method = $_SERVER['REQUEST_METHOD'];
+$action = $_GET['action'] ?? $_POST['action'] ?? 'request';
+
+switch ($action) {
+    case 'request':
+        if ($method !== 'POST') de2Out(405, ['success' => false, 'message' => t('export.method_not_allowed')]);
+        requireCsrfToken();
+        de2HandleRequest($pdo, $userId, $practiceId, $userEmail);
+        break;
+    case 'status':
+        de2HandleStatus($pdo, $userId);
+        break;
+    case 'download_url':
+        if ($method !== 'POST') de2Out(405, ['success' => false, 'message' => t('export.method_not_allowed')]);
+        requireCsrfToken();
+        de2HandleDownloadUrl($pdo, $userId, $practiceId);
+        break;
+    case 'download_file':
+        de2HandleDownloadFile($pdo, $userId, $practiceId);
+        break;
+    default:
+        de2Out(400, ['success' => false, 'message' => t('export.invalid_action')]);
+}
+
+function de2HandleRequest(PDO $pdo, int $userId, int $practiceId, string $userEmail): void {
+    if (!de2IsUnrestrictedAdminOrOwner($pdo, $practiceId, $userId)) {
+        de2Out(403, ['success' => false, 'message' => t('export.admin_only')]);
+    }
+    de2EnsureSchema();
+
+    // One active job per user.
+    $stmt = $pdo->prepare("SELECT id, status FROM data_exports
+        WHERE user_id = :u AND status IN ('queued','processing') LIMIT 1");
+    $stmt->execute(['u' => $userId]);
+    if ($existing = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        de2Out(200, ['success' => false, 'message' => t('export.in_progress'),
+                     'exportId' => (int)$existing['id'], 'status' => $existing['status']]);
+    }
+
+    // Daily cap on completed v2 exports per practice (cost guard).
+    $cap = (int)(getEnvVar('DATA_EXPORT_DAILY_CAP') ?? 10);
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM data_exports
+        WHERE practice_id = :p AND export_type = 'case_data'
+          AND created_at >= CURDATE()");
+    $stmt->execute(['p' => $practiceId]);
+    if ((int)$stmt->fetchColumn() >= $cap) {
+        de2Out(429, ['success' => false, 'message' => 'Daily export limit reached']);
+    }
+
+    $format = ($_POST['format'] ?? 'csv') === 'json' ? 'json' : 'csv';
+    $stmt = $pdo->prepare("INSERT INTO data_exports
+        (user_id, practice_id, export_type, format, status, created_at)
+        VALUES (:u, :p, 'case_data', :f, 'queued', NOW())");
+    $stmt->execute(['u' => $userId, 'p' => $practiceId, 'f' => $format]);
+    $exportId = (int)$pdo->lastInsertId();
+
+    if (function_exists('logUserActivity')) {
+        logUserActivity($userId, 'data_export_v2_requested', "Case data export queued (ID: {$exportId}, format: {$format})");
+    }
+
+    // Local development: run the worker inline so the UI works without a
+    // separate job runner. Production always goes through the job queue.
+    $isDev = ($appConfig['current_environment'] ?? '') === 'development';
+    if ($isDev) {
+        require_once __DIR__ . '/export-worker.php';
+        exportWorkerProcessOne($pdo, $exportId, 'dev-inline');
+        $row = $pdo->query("SELECT status FROM data_exports WHERE id = {$exportId}")->fetch(PDO::FETCH_ASSOC);
+        $status = $row['status'] ?? 'failed';
+    } else {
+        $status = 'queued';
+        // Best-effort wake of the Cloud Run Job; the scheduled drain is the
+        // guaranteed path if this call fails.
+        try { exportWorkerKickJob($exportId); } catch (Throwable $e) { /* queued regardless */ }
+    }
+
+    echo json_encode(['success' => true, 'exportId' => $exportId, 'status' => $status]);
+}
+
+function de2HandleStatus(PDO $pdo, int $userId): void {
+    de2EnsureSchema();
+    $stmt = $pdo->prepare("SELECT id, export_type, format, status, progress,
+        file_size, gcs_object, expires_at, created_at, completed_at, error_message
+        FROM data_exports WHERE user_id = :u ORDER BY created_at DESC LIMIT 10");
+    $stmt->execute(['u' => $userId]);
+    echo json_encode(['success' => true, 'exports' => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
+}
+
+function de2HandleDownloadUrl(PDO $pdo, int $userId, int $practiceId): void {
+    if (!de2IsUnrestrictedAdminOrOwner($pdo, $practiceId, $userId)) {
+        de2Out(403, ['success' => false, 'message' => t('export.admin_only')]);
+    }
+    de2EnsureSchema();
+    $exportId = (int)($_POST['export_id'] ?? 0);
+    $stmt = $pdo->prepare("SELECT * FROM data_exports WHERE id = :id AND user_id = :u");
+    $stmt->execute(['id' => $exportId, 'u' => $userId]);
+    $export = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$export || $export['status'] !== 'completed') {
+        de2Out(404, ['success' => false, 'message' => t('export.not_found_or_expired')]);
+    }
+    if ($export['expires_at'] && strtotime($export['expires_at']) < time()) {
+        $pdo->prepare("UPDATE data_exports SET status='expired' WHERE id=:id")->execute(['id' => $exportId]);
+        de2Out(410, ['success' => false, 'message' => t('export.expired')]);
+    }
+
+    // Resolve artifact location (new gcs_object column or legacy file_path).
+    $artifact = [
+        'id' => $exportId,
+        'driver' => $export['gcs_object'] ? 'gcs' : 'local',
+        'ref' => $export['gcs_object'] ?: $export['file_path'],
+        'filename' => 'dentatrak-case-export-' . $exportId . ($export['format'] === 'json' ? '.json' : '.csv'),
+    ];
+    if ($artifact['driver'] === 'gcs') {
+        $artifact['bucket'] = $export['gcs_bucket'];
+    }
+
+    $url = exportArtifactSignedUrl($artifact, 900);
+    if (!$url) {
+        de2Out(500, ['success' => false, 'message' => 'Could not issue download URL']);
+    }
+
+    // Authorization-to-download evidence (NOT proof the file was fetched -
+    // that is covered by GCS Data Access audit logs / the app proxy log).
+    $pdo->prepare("UPDATE data_exports SET url_issued_at = NOW(), url_issued_count = url_issued_count + 1 WHERE id = :id")
+        ->execute(['id' => $exportId]);
+    logPHIAccess(PHI_ACTION_EXPORT_URL_ISSUED, null, ['export_id' => $exportId, 'format' => $export['format']],
+        'practice_export', (string)$exportId, $practiceId);
+
+    echo json_encode(['success' => true, 'url' => $url, 'expires_in' => 900]);
+}
+
+function de2HandleDownloadFile(PDO $pdo, int $userId, int $practiceId): void {
+    // Dev-driver proxy only: when artifacts live on local disk there is no
+    // signed URL, so stream through the app with the same auth checks.
+    if (exportArtifactDriver() === 'gcs') {
+        de2Out(404, ['success' => false, 'message' => 'Not found']);
+    }
+    $exportId = (int)($_GET['export_id'] ?? 0);
+    $stmt = $pdo->prepare("SELECT * FROM data_exports WHERE id = :id AND user_id = :u AND status='completed'");
+    $stmt->execute(['id' => $exportId, 'u' => $userId]);
+    $export = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$export || !$export['file_path']) {
+        de2Out(404, ['success' => false, 'message' => t('export.not_found_or_expired')]);
+    }
+    if ($export['expires_at'] && strtotime($export['expires_at']) < time()) {
+        de2Out(410, ['success' => false, 'message' => t('export.expired')]);
+    }
+    $path = __DIR__ . '/../exports-v2/' . basename($export['file_path']);
+    if (!is_file($path)) {
+        de2Out(404, ['success' => false, 'message' => t('export.file_not_found')]);
+    }
+    logPHIAccess(PHI_ACTION_DATA_EXPORT_DOWNLOAD, null, ['export_id' => $exportId],
+        'practice_export', (string)$exportId, $practiceId);
+    header('Content-Type: ' . ($export['format'] === 'json' ? 'application/json' : 'text/csv'));
+    header('Content-Disposition: attachment; filename="dentatrak-case-export-' . $exportId . '.' . $export['format'] . '"');
+    header('Content-Length: ' . filesize($path));
+    readfile($path);
+    exit;
+}

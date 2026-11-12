@@ -4521,6 +4521,23 @@ endif;
                           </button>
                           <p class="export-note"><?php echo t('settings.data_privacy.export.note'); ?></p>
                         </div>
+                        <?php if (function_exists('isFeatureEnabled') && isFeatureEnabled('DATA_EXPORT_V2')): ?>
+                        <div class="data-export-section" id="exportV2Section">
+                          <h4 class="subsection-title"><?php echo t('settings.data_privacy.export_v2.title'); ?></h4>
+                          <p class="section-description"><?php echo t('settings.data_privacy.export_v2.description'); ?></p>
+                          <div class="export-v2-controls" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                            <select id="exportV2Format" class="form-input" style="max-width:140px;">
+                              <option value="csv"><?php echo t('settings.data_privacy.export_v2.format_csv'); ?></option>
+                              <option value="json"><?php echo t('settings.data_privacy.export_v2.format_json'); ?></option>
+                            </select>
+                            <button type="button" id="exportV2Btn" class="btn-secondary">
+                              <span class="btn-icon">📥</span> <?php echo t('settings.data_privacy.export_v2.button'); ?>
+                            </button>
+                          </div>
+                          <div id="exportV2Status" class="export-status" style="display:none;margin-top:8px;"></div>
+                          <div id="exportV2List" style="margin-top:10px;"></div>
+                        </div>
+                        <?php endif; ?>
                         <?php if ($isCurrentUserPracticeAdmin): ?>
                         <div class="phi-audit-section">
                           <h4 class="subsection-title"><?php echo t('phiAudit.section.title'); ?></h4>

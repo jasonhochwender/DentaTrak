@@ -15534,6 +15534,85 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     }
 
+    // ---- Data export v2 (async pipeline; feature-flagged) ----
+    var exportV2Btn = document.getElementById('exportV2Btn');
+    var exportV2Status = document.getElementById('exportV2Status');
+    var exportV2List = document.getElementById('exportV2List');
+    var exportV2Format = document.getElementById('exportV2Format');
+
+    function exportV2StatusText(s) {
+      return t('settings.data_privacy.export_v2.status_' + (s || 'unknown')) || s;
+    }
+
+    function renderExportV2List(exports) {
+      if (!exportV2List) return;
+      if (!exports || !exports.length) { exportV2List.innerHTML = ''; return; }
+      exportV2List.innerHTML = exports.map(function(e) {
+        var dl = '';
+        if (e.status === 'completed') {
+          dl = '<button type="button" class="btn-secondary btn-sm export-v2-download" data-id="' + e.id + '" style="margin-left:8px;">' +
+               t('settings.data_privacy.export_v2.download') + '</button>';
+        }
+        return '<div class="export-v2-row" style="font-size:0.82rem;padding:6px 0;border-top:1px solid #eee;">' +
+          '<span>#' + e.id + ' · ' + (e.format || '').toUpperCase() + ' · ' +
+          '<strong>' + exportV2StatusText(e.status) + '</strong>' +
+          (e.file_size ? ' · ' + Math.round(e.file_size / 1024) + ' KB' : '') + dl + '</div>';
+      }).join('');
+      exportV2List.querySelectorAll('.export-v2-download').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          btn.disabled = true;
+          var fd = new FormData();
+          fd.append('export_id', btn.dataset.id);
+          fd.append('csrf_token', csrfToken);
+          fetch('api/data-export-v2.php?action=download_url', {
+            method: 'POST', credentials: 'same-origin',
+            headers: { 'X-CSRF-Token': csrfToken }, body: fd
+          }).then(function(r) { return r.json(); }).then(function(d) {
+            if (d.success && d.url) { window.location.href = d.url; }
+            else { btn.disabled = false; }
+          }).catch(function() { btn.disabled = false; });
+        });
+      });
+    }
+
+    function loadExportV2Status() {
+      if (!exportV2List) return;
+      fetch('api/data-export-v2.php?action=status', { credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(d) { if (d.success) renderExportV2List(d.exports); })
+        .catch(function() {});
+    }
+
+    if (exportV2Btn) {
+      loadExportV2Status();
+      exportV2Btn.addEventListener('click', function() {
+        exportV2Btn.disabled = true;
+        var fd = new FormData();
+        fd.append('format', exportV2Format ? exportV2Format.value : 'csv');
+        fd.append('csrf_token', csrfToken);
+        fetch('api/data-export-v2.php?action=request', {
+          method: 'POST', credentials: 'same-origin',
+          headers: { 'X-CSRF-Token': csrfToken }, body: fd
+        }).then(function(r) { return r.json(); }).then(function(d) {
+          if (exportV2Status) {
+            exportV2Status.textContent = d.success
+              ? t('settings.data_privacy.export_v2.queued')
+              : (d.message || t('settings.data_privacy.export_v2.error'));
+            exportV2Status.className = 'export-status ' + (d.success ? 'success' : 'error');
+            exportV2Status.style.display = 'block';
+          }
+          setTimeout(loadExportV2Status, 1500);
+          setTimeout(loadExportV2Status, 5000);
+        }).catch(function() {
+          if (exportV2Status) {
+            exportV2Status.textContent = t('settings.data_privacy.export_v2.error');
+            exportV2Status.className = 'export-status error';
+            exportV2Status.style.display = 'block';
+          }
+        }).finally(function() { exportV2Btn.disabled = false; });
+      });
+    }
+
     // Load 2FA status when settings modal opens
     var settingsModal = document.getElementById('settingsBillingModal');
     if (settingsModal) {

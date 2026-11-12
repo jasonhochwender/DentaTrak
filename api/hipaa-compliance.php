@@ -42,6 +42,11 @@ if (!defined('PHI_ACTION_CASE_VIEW')) {
     define('PHI_ACTION_DATA_EXPORT', 'export_practice_data');
     // Previously generated practice export actually downloaded.
     define('PHI_ACTION_DATA_EXPORT_DOWNLOAD', 'download_practice_data_export');
+    // A short-lived signed download URL was issued for a completed export
+    // (api/data-export-v2.php). Distinct from PHI_ACTION_DATA_EXPORT_DOWNLOAD,
+    // which records the artifact bytes actually leaving via the app proxy -
+    // URL issuance is authorization evidence, not proof of download.
+    define('PHI_ACTION_EXPORT_URL_ISSUED', 'export_download_url_issued');
     // The PHI access audit report itself exported to CSV.
     define('PHI_ACTION_AUDIT_REPORT_EXPORT', 'export_audit_report');
     // An Ask DentaTrak assistant query that read authorized case/remake data.
@@ -65,6 +70,7 @@ function getPHIAccessActions(): array {
         PHI_ACTION_ATTACHMENTS_ZIP,
         PHI_ACTION_DATA_EXPORT,
         PHI_ACTION_DATA_EXPORT_DOWNLOAD,
+        PHI_ACTION_EXPORT_URL_ISSUED,
         PHI_ACTION_AUDIT_REPORT_EXPORT,
         PHI_ACTION_ASK_QUERY,
     ];

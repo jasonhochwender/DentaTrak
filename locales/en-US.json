@@ -1311,6 +1311,24 @@
                 "success_message": "Your data export is being prepared. You will receive an email when it's ready.",
                 "error": "Failed to start export.",
                 "unknown_error": "An error occurred. Please try again."
+            },
+            "export_v2": {
+                "title": "Case Data Export (new)",
+                "description": "Asynchronous export of your practice's case data as CSV (Excel-ready) or JSON. Processed in the background; download link expires after 7 days.",
+                "format_csv": "CSV (Excel)",
+                "format_json": "JSON",
+                "button": "Export case data",
+                "queued": "Export queued - you will be notified by email when ready.",
+                "error": "Export request failed.",
+                "download": "Download",
+                "status_queued": "Queued",
+                "status_processing": "Processing",
+                "status_completed": "Ready",
+                "status_failed": "Failed",
+                "status_expired": "Expired",
+                "status_pending": "Pending",
+                "status_cancelled": "Cancelled",
+                "status_unknown": "Unknown"
             }
         },
         "dev_tools": {

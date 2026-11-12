@@ -191,6 +191,7 @@ screenshots/
 !/tests/admin-practices-settings-parity-test.php
 !/tests/practice-usage-report-test.php
 !/tests/admin-practice-scope-test.php
+!/tests/data-export-v2-test.php
 !/tests/user-environment-test.php
 !/tests/header-switcher-browser-test.js
 !/tests/insights-usage-tracking-e2e-test.js
