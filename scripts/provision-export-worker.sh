@@ -188,7 +188,7 @@ if gcloud scheduler jobs describe "$SCHEDULER_NAME" \
         --oauth-service-account-email "$SERVICE_ACCOUNT" \
         --oauth-token-scope "https://www.googleapis.com/auth/cloud-platform" \
         --message-body "$SCHED_BODY" \
-        --headers "Content-Type=application/json" \
+        --update-headers "Content-Type=application/json" \
         --attempt-deadline 60s \
         --max-retry-attempts 1 \
         --quiet
