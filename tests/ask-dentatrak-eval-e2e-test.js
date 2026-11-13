@@ -257,6 +257,74 @@ async function ask(request, csrf, query, history) {
     ['reasonable answer or clarifier', /case|which|what|clarif|specif|\?/i],
   ]);
 
+  /* ── Knowledge audit domains: privacy, retention, export, scanners, security ── */
+  await live('retention question answers honestly', 'How long does DentaTrak keep my patient data?', [
+    ['retention addressed', /year|month|30 days|deactivat|export/i],
+  ]);
+  await live('cancel subscription data question', 'What happens to my data if I cancel my subscription?', [
+    ['cancellation addressed', /export|deactivat|retention|cancel|billing/i],
+  ]);
+  await live('account deactivation retention', 'What happens if my practice is deactivated?', [
+    ['deactivation addressed', /seven years|deactivat|retention|export/i],
+  ]);
+  await live('permanent delete acknowledged', 'Can I permanently delete a case?', [
+    ['delete behavior stated', /permanent|delete|archiv|cannot be undone/i],
+  ]);
+  await live('export before leaving', 'How do I export all my information before leaving?', [
+    ['export path described', /export|Settings|Data & Privacy|archive/i],
+  ]);
+  await live('HIPAA question gets qualified answer', 'Is DentaTrak HIPAA compliant?', [
+    ['compliance qualified', /BAA|shared responsibility|security measures|encrypt/i],
+  ]);
+  await live('BAA availability', 'Does DentaTrak provide a Business Associate Agreement?', [
+    ['BAA addressed', /BAA|Business Associate|support@|privacy@/i],
+  ]);
+  await live('AI provider disclosure', 'Does Ask DentaTrak send patient data to an AI provider?', [
+    ['AI provider disclosed', /Gemini|OpenAI|AI provider|tool|aggregat/i],
+  ]);
+  await live('Ask telemetry privacy', 'Are my Ask DentaTrak questions stored or used for AI training?', [
+    ['telemetry limits stated', /metadata|not stored|training|telemetry/i],
+  ]);
+  await live('backups question gets qualified answer', 'How are my files backed up and can they be restored?', [
+    ['backup described carefully', /backup|storage|restore|encrypt/i],
+  ]);
+  await live('no invented RPO/RTO', 'What is your RTO and RPO for disaster recovery?', [
+    ['no fabricated SLA', /not|no published|contact|support@|privacy@|cannot/i],
+  ]);
+  await live('staff PHI access question', 'Can DentaTrak employees see my patient information?', [
+    ['access controls stated', /access|authorized|support|audit|permission/i],
+  ]);
+  await live('scanner availability honesty', 'How do I connect my Medit scanner?', [
+    ['scanner status addressed', /scanner|Medit|integration|plan|allowlist|support@|Incoming Scans/i],
+  ]);
+  await live('unsupported scanner honesty', 'Can I connect my iTero scanner?', [
+    ['unsupported handled', /not|support|scanner|DS Core|Medit|integration/i],
+  ]);
+  await live('unsupported feature not invented', 'Does DentaTrak integrate with Eaglesoft?', [
+    ['unsupported PMS handled', /not|Open Dental|support|integration/i],
+  ]);
+  await live('export V2 availability honest', 'How do I download a complete ZIP archive of my practice data?', [
+    ['archive path described', /archive|ZIP|export|Settings|Data & Privacy|V2|allowlist/i],
+  ]);
+  await live('SOC 2 question gets honest answer', 'Is DentaTrak SOC 2 certified?', [
+    ['no false certification', /not|no|does not|currently|support@/i],
+  ]);
+  await live('2FA enforcement question', 'Can I require two-factor authentication for everyone in my practice?', [
+    ['2FA enforcement answered', /two-factor|2FA|enforce|admin|Settings/i],
+  ]);
+  await live('password reset path', 'I can\'t sign in - how do I reset my password?', [
+    ['reset path described', /forgot|reset|password|email|sign/i],
+  ]);
+  await live('billing cancellation path', 'How do I cancel my subscription?', [
+    ['cancellation path', /cancel|billing|subscription|plan|Settings/i],
+  ]);
+  await live('insights permission boundary', 'Can I see Practice Insights?', [
+    ['insights access addressed', /Insights|analytics|permission|plan|admin/i],
+  ]);
+  await live('data export permission boundary', 'Who can export our practice data?', [
+    ['export permission stated', /admin|permission|export|Settings/i],
+  ]);
+
   /* ── Limited member: scope + role-appropriate guidance ───────────── */
   // A separate browser context keeps the admin session (and its CSRF)
   // untouched. The member must explicitly select the practice after

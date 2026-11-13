@@ -59,6 +59,9 @@ function askTelemetryTopics(): array {
         'attachments', 'shipping_tracking', 'notifications',
         'data_export', 'account_settings',
         'case_stale_status', 'waiting_on_lab',
+        // privacy / retention / security / ops
+        'data_privacy', 'retention_deletion', 'backups_recovery',
+        'hipaa_compliance', 'ai_privacy', 'scanner_integration',
         // case data
         'cases_general', 'cases_due', 'cases_overdue', 'cases_by_status',
         'cases_assigned', 'cases_created', 'cases_by_lab', 'cases_metrics',

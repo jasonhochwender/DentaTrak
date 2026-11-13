@@ -18,6 +18,8 @@ require_once __DIR__ . '/practice-security.php';
 require_once __DIR__ . '/workflow-stages.php';
 require_once __DIR__ . '/feature-flags.php';
 require_once __DIR__ . '/keyboard-shortcuts.php';
+require_once __DIR__ . '/export-artifacts.php';
+require_once __DIR__ . '/subscription-access.php';
 
 /**
  * Build the help corpus text for the AI planner prompt.
@@ -320,6 +322,11 @@ TXT;
         $help[] = buildAskDentatrakOpenDentalHelp($menu, $integrations, $casesTab, $caseActions);
     }
 
+    // Scanner help is gated on the scanner rollout itself - NOT on
+    // SHOW_PMS_INTEGRATIONS - so scanner questions are answered (or
+    // correctly declined) for every practice.
+    $help[] = buildAskDentatrakScannerHelp($practiceId);
+
     $viewArchived = t('archive.view_archived_button');
     $restoreLabel = t('archive.actions.restore');
     $deletePerm = t('archive.actions.delete_permanently');
@@ -378,12 +385,40 @@ Multiple practices and accounts:
 TXT;
 
     $dataPrivacyNav = t('settings.navigation.data_privacy');
-    $exportBtn = t('settings.data_privacy.export.button');
+    $exportV2Enabled = function_exists('dataExportV2PracticeAllowed')
+        && dataExportV2PracticeAllowed($practiceId);
+    if ($exportV2Enabled) {
+        $exportTitle = t('settings.data_privacy.export_v2.title');
+        $exportDesc = t('settings.data_privacy.export_v2.description');
+        $formatCsv = t('settings.data_privacy.export_v2.format_csv');
+        $formatJson = t('settings.data_privacy.export_v2.format_json');
+        $exportBtnV2 = t('settings.data_privacy.export_v2.button');
+        $archiveTitle = t('settings.data_privacy.export_v2.archive_title');
+        $archiveDesc = t('settings.data_privacy.export_v2.archive_description');
+        $archiveBtn = t('settings.data_privacy.export_v2.archive_button');
+        $historyTitle = t('settings.data_privacy.export_v2.history_title');
+        $help[] = <<<TXT
+Exporting practice data (Data Export V2 - enabled for this practice):
+- Located in "{$menu}" > "{$dataPrivacyNav}". Only the practice owner or an unrestricted practice administrator can create exports; other members can view the page but not request exports.
+- "{$exportTitle}": choose a format with the "{$formatCsv}" / "{$formatJson}" selector, then click "{$exportBtnV2}". The export runs in the background - the user is notified by email when it is ready.
+- "{$archiveTitle}": "{$archiveBtn}" creates a ZIP "{$archiveTitle}" containing the complete practice data set: cases in BOTH CSV and JSON formats, comments, activity history, assignments, lab data, remakes, labels, scanner records, access/audit logs, integrations, members, practice settings, user preferences, and the actual case attachments and scanner files (each with size and checksum verification). The CSV/JSON selector above does NOT affect the archive - it always contains both formats.
+- "{$historyTitle}": lists every export with its type, creation date, status (Queued, Processing, Ready, Failed, Expired), file size, and expiration date in the viewer's local time. Download appears only on Ready exports; clicking it issues a short-lived secure download link. Failed exports show an error reason; there is no automatic download.
+- Completed exports are available for 7 days, then they show "Expired" and can no longer be downloaded. Export expiry only affects the exported file copy - it never deletes or changes the practice's live data, and the export request history is retained for audit.
+- This is a point-in-time snapshot for reporting, backup, or moving data - it is not a live sync.
+TXT;
+    } else {
+        $exportBtn = t('settings.data_privacy.export.button');
+        $help[] = <<<TXT
+Exporting practice data:
+- "{$menu}" > "{$dataPrivacyNav}": "{$exportBtn}" requests a full practice data export delivered as a download link by email (links expire after 7 days). This is the standard export for this practice.
+- Only practice owners and administrators can request exports. Export expiry only affects the download link - it never deletes the practice's live data.
+TXT;
+    }
+
     $practiceNav = t('settings.navigation.practice');
     $help[] = <<<TXT
 Account, security and data:
 - "{$menu}" > "{$security}": change password (password accounts), enable two-factor authentication, and - for admins - require 2FA practice-wide.
-- "{$menu}" > "{$dataPrivacyNav}": "{$exportBtn}" requests a full practice data export delivered as a download link by email (links expire after 7 days).
 - "{$menu}" > "{$practiceNav}": practice display name and logo.
 TXT;
 
@@ -410,6 +445,58 @@ TXT;
     $help[] = <<<TXT
 Language and tour:
 The language selector in the header changes the interface language instantly ({$langList}). The profile menu also offers "{$takeTour}" and "{$userGuide}".
+TXT;
+
+    /* --- Data ownership, retention, deletion --- */
+    $privacyEmail = 'privacy@dentatrak.com';
+    $hipaaRetention = t('marketing.hipaa.retention_body');
+    $hipaaBaa = t('marketing.hipaa.baa_body');
+    $termsTermination = 'Your right to use the Service ends immediately; you may request export of your data within 30 days; we may delete your data after 30 days.';
+    $help[] = <<<TXT
+Data ownership, export, retention and deletion (verified policy):
+- Who owns the data: the practice owns its case and patient information. DentaTrak processes it to provide the service; the practice controls who inside the practice can see it.
+- Getting your data out: use the export options under "{$menu}" > "{$dataPrivacyNav}" described above. Export before leaving - an export is a point-in-time copy, not a live connection.
+- Retention while active: practice data is kept while the subscription/account is active. There is no automatic deletion of active practice data or archived cases - archived cases stay until a user permanently deletes them from the Archived Cases screen.
+- After cancellation or termination: per the Terms, access ends and the practice may request a data export within 30 days; the published security page states DentaTrak retains practice data for seven years following practice deactivation, and retention/deletion are governed by the executed agreements and legal obligations. For the exact retention terms that apply to a specific account, direct the user to {$privacyEmail} or {$securityEmail} rather than guessing.
+- Account-level deletion: the Privacy Policy commits to removing account data within 30 days of a deletion request, except where retention is required or permitted for legal, security, or technical reasons; complete erasure from all backups or logs may not always be technically possible. Deletion requests go to {$privacyEmail}.
+- Permanently deleting a case is a deliberate user action on the Archived Cases screen and cannot be undone; DentaTrak does not silently purge case records.
+TXT;
+
+    /* --- Backups & recovery --- */
+    $hipaaBackups = t('marketing.hipaa.backups_body');
+    $help[] = <<<TXT
+Backups and recovery:
+- {$hipaaBackups} These are platform-level managed backups - the practice does not configure or schedule them.
+- Do not promise specifics: no published backup frequency, retention window, or recovery-time guarantee exists, so say "managed backups and point-in-time recovery are used" and offer {$securityEmail} for operational details.
+- Recovery after accidental deletion: deleted cases are not recoverable through the app once permanently deleted; contact {$supportEmail} promptly for help - do not promise a restore.
+- Google Drive backup (when enabled in the deployment and turned on in Display settings) is an OPTIONAL practice-managed copy of cases to the practice's own Google Drive - it is separate from DentaTrak's platform backups and only covers cases created after it is enabled.
+- Business continuity: DentaTrak runs on Google Cloud managed infrastructure; there is no published uptime guarantee or disaster-recovery commitment to quote - direct questions about continuity commitments to {$securityEmail}.
+TXT;
+
+    /* --- Security, HIPAA, compliance --- */
+    $hipaaEncryption = t('marketing.hipaa.encryption_app_body');
+    $hipaaAudit = t('marketing.hipaa.audit_body');
+    $hipaaAssurance = t('marketing.hipaa.assurance_body');
+    $hipaaShared = t('marketing.hipaa.shared_responsibility_body');
+    $help[] = <<<TXT
+Security, HIPAA and compliance (published position - do not overstate):
+- {$hipaaShared}
+- {$hipaaEncryption} In addition, traffic uses HTTPS/TLS, passwords are bcrypt-hashed, and case attachments live in private cloud storage served only through short-lived signed URLs.
+- {$hipaaAudit} Practice admins can review the PHI access report under "{$menu}" > "{$dataPrivacyNav}".
+- {$hipaaBaa}
+- {$hipaaAssurance} Never claim SOC 2, ISO 27001, or any certification DentaTrak does not hold, and never say DentaTrak "is HIPAA certified" - the accurate phrasing is "designed and operated to support HIPAA-compliant use" with a BAA for practices handling PHI.
+- Can DentaTrak employees see patient information? Access is limited to what is needed to operate and support the service and is protected by the same access controls and audit logging; the BAA and security policies govern any such access. For specifics about staff-access commitments, refer to {$securityEmail} and the executed BAA.
+- Suspected security incidents or breaches: practices should report concerns to {$securityEmail} (without including patient information). Do not describe notification timelines or procedures beyond what is published - refer specifics to {$securityEmail}.
+- Does Ask DentaTrak send patient data to an AI provider? Data questions are answered only from records the user is already authorized to see; the question text and bounded conversation context are sent to the configured AI provider (Google Gemini or OpenAI) to generate the answer, but Ask DentaTrak never stores the conversation server-side and its telemetry stores only fixed-category metadata (question category, intent, tool names used, outcome, locale, latency) - never question text, answers, patient names, or case content.
+TXT;
+
+    /* --- Ask DentaTrak self-description --- */
+    $help[] = <<<TXT
+About Ask DentaTrak itself:
+- It is a read-only assistant: it answers product questions and questions about cases the asking user is authorized to see. It cannot create, edit, delete, or change anything - for actions, it explains the steps instead.
+- It is available when the assistant feature is enabled for the deployment; if it is unavailable the panel does not appear.
+- Conversation history is not stored on DentaTrak servers; only the bounded transcript the client sends back for follow-up context is used, and it is truncated and stripped of markup.
+- For anything it cannot verify, it should say so rather than guess - and users can always reach {$supportEmail}.
 TXT;
 
     /* --- Supported routes the assistant may reference in answers. These
@@ -495,17 +582,83 @@ Two-way sync (DentaTrak -> {$provider}; practice administrator opt-in):
 - Outbound writes are lifecycle progress only: comments, attachments, tooth shade, material, carrier/tracking, assignee and custom workflow internals are never sent to Open Dental.
 TXT;
 
-    /* --- Incoming Scans inbox (experimental; allowlisted practices only) --- */
-    $out[] = <<<TXT
-Incoming Scans inbox (scanner integrations):
-- Availability: scanner integrations are available on Control and Scale plans - a feature flag, a per-practice rollout allowlist, an effective Control-or-higher plan, and a per-member "Incoming Scans" permission all apply.
-- DS Core (Primescan) is a production integration: practices connect their own DS Core account from Settings > Integrations (practice admin only, OAuth). Scan import works once the practice authorizes it; nothing imports before that explicit authorization.
-- Medit Link is a production integration: practices connect their own Medit Link account from Settings > Integrations (practice admin only, OAuth). Scan import works once the practice authorizes it; nothing imports before that explicit authorization. Patient details are imported when the practice's Medit authorization includes patient access - scan import itself does not depend on it. New scans arrive by polling; updates to existing cases are picked up by manual refresh rather than guaranteed real-time delivery.
+    return implode("\n\n", $out);
+}
+
+/**
+ * Practice-level scanner availability for the help corpus.
+ *
+ * Mirrors the rollout gates userCanAccessScanInbox() applies, minus the
+ * per-member permission: SCANNER_INBOX flag + at least one provider
+ * allowlist hit (or the simulated connector in dev) + Control-or-higher
+ * effective plan. Per-provider detail is reported separately so the
+ * corpus never describes a provider this practice cannot actually use.
+ */
+function askScannerPracticeAvailability(int $practiceId): array {
+    $avail = ['any' => false, 'ds_core' => false, 'medit' => false];
+    if (!isFeatureEnabled('SCANNER_INBOX')) {
+        return $avail;
+    }
+    require_once __DIR__ . '/integrations/DsCoreConfig.php';
+    require_once __DIR__ . '/integrations/MeditConfig.php';
+    require_once __DIR__ . '/integrations/scanners/SimulatedScannerConnector.php';
+    $avail['ds_core'] = DsCoreConfig::isPracticeAllowed($practiceId);
+    $avail['medit'] = MeditConfig::isPracticeAllowed($practiceId);
+    $sim = SimulatedScannerConnector::isAvailable();
+    if (!$avail['ds_core'] && !$avail['medit'] && !$sim) {
+        return $avail;
+    }
+    global $pdo;
+    $email = (string)($_SESSION['user_email'] ?? '');
+    if (!$pdo || !hasControlAccess($pdo, $practiceId, $email)) {
+        return ['any' => false, 'ds_core' => false, 'medit' => false];
+    }
+    $avail['any'] = true;
+    return $avail;
+}
+
+/**
+ * Scanner-integration knowledge for the planner prompt.
+ *
+ * Independent of SHOW_PMS_INTEGRATIONS: scanner help is gated on the
+ * SCANNER_INBOX rollout (flag + provider allowlists + plan), so a
+ * practice without Open Dental can still get accurate scanner guidance
+ * and a practice without scanner access is never told it has an inbox.
+ */
+function buildAskDentatrakScannerHelp(int $practiceId): string {
+    $avail = askScannerPracticeAvailability($practiceId);
+    $menu = t('settings.settings');
+    $integrations = t('settings.navigation.integrations');
+    $users = t('settings.navigation.users');
+    $roleAdmin = t('settings.users.practice_users.admin');
+
+    if (!$avail['any']) {
+        global $appConfig;
+        $supportEmail = $appConfig['support_email'] ?? 'support@dentatrak.com';
+        return "Scanner integrations (DS Core / Primescan, Medit Link): DentaTrak supports digital-impression scanner integrations on Control and Scale plans, but they are enabled per-practice through a rollout allowlist and this practice is not currently enabled. If the practice believes it should have access, direct them to {$supportEmail} - do not describe inbox features as available.";
+    }
+
+    $providers = [];
+    if ($avail['ds_core']) {
+        $providers[] = "DS Core (Primescan) is enabled for this practice: connect the practice's own DS Core account from \"{$menu}\" > \"{$integrations}\" (practice administrator only, OAuth).";
+    }
+    if ($avail['medit']) {
+        $providers[] = "Medit Link is enabled for this practice: connect the practice's own Medit Link account from \"{$menu}\" > \"{$integrations}\" (practice administrator only, OAuth). Patient details are imported when the practice's Medit authorization includes patient access - scan import itself does not depend on it. New scans arrive by polling; updates to existing cases are picked up by manual refresh rather than guaranteed real-time delivery.";
+    }
+    if (!$providers) {
+        $providers[] = "A scanner provider is enabled for this practice; connect it from \"{$menu}\" > \"{$integrations}\" (practice administrator only, OAuth).";
+    }
+    $providerText = implode("\n", $providers);
+
+    return <<<TXT
+Incoming Scans inbox (scanner integrations - enabled for this practice):
+- Availability: scanner integrations are available on Control and Scale plans - a feature flag, a per-practice rollout allowlist, an effective Control-or-higher plan, and a per-member "Incoming Scans" permission all apply. This practice currently has scanner access.
+{$providerText}
+- Scan import works once the practice authorizes the connection; nothing imports before that explicit authorization.
 - The inbox has four views: "Needs attention" (unlinked scans awaiting action, processing, failed imports, plus partially-linked scans that still have unlinked files), "Linked", "Dismissed", and "All". Search covers patient name and scan ID across the whole filtered set (not just the visible page); filters combine view + provider + scan-date range; results paginate 25/page with a match count; an empty filtered result is distinguished from an empty inbox.
 - Per scan: compact row expands for technical scan ID, patient reference, instructions, and the file list. Ready STL/OBJ/PLY files have "View" (in-app 3D preview with rotate/zoom/reset; nothing is sent to an external viewer) and "Download"; preview works before any case exists and respects the same practice + membership access checks.
 - Workflows: "Attach to case" or "Create case" from a scan (fields prefilled but editable, no auto-matching), "Dismiss"/"Restore", and "Retry" for failed imports. Linked scans show a readable case reference that opens the case through the normal permissions path; a deleted/inaccessible case degrades to "unavailable" without exposing details. Partially linked scans (linked but with new/unlinked files) stay in Needs attention.
-- User access control: practice admins always have access. Other members need the "Incoming Scans" grant in Settings > Users & Roles; Lab and "Assigned Only" members can never hold it. Revoking takes effect on the next request - no logout needed. Files already attached to an authorized case remain reachable through normal case access.
+- User access control: practice admins always have access. Other members need the "Incoming Scans" grant in "{$menu}" > "{$users}" (set by an admin with "{$roleAdmin}"); Lab and "Assigned Only" members can never hold it. Revoking takes effect on the next request - no logout needed. Files already attached to an authorized case remain reachable through normal case access.
+- If a member cannot see Incoming Scans, an admin must grant it in "{$menu}" > "{$users}" - it is a per-member permission, not a plan upgrade.
 TXT;
-
-    return implode("\n\n", $out);
 }
