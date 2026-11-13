@@ -4096,6 +4096,7 @@
         }
     },
     "ask_dentatrak": {
+        "case_data_unavailable": "As respostas em tempo real sobre os dados dos seus casos estão temporariamente indisponíveis. Você ainda pode consultar seus casos e verificar o Insights para detalhes, ou me perguntar como usar os recursos do DentaTrak.",
         "ask_app": "Pergunte ao {appName}",
         "title": "Pergunte ao {appName}",
         "subtitle": "Seu assistente da clínica",

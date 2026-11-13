@@ -3812,6 +3812,7 @@
         "save_success": "Préférences de notification enregistrées."
     },
     "ask_dentatrak": {
+        "case_data_unavailable": "Les réponses en direct sur les données de vos dossiers ne sont pas disponibles pour le moment. Vous pouvez toujours consulter vos dossiers et les Insights pour plus de détails, ou me demander comment utiliser les fonctionnalités de DentaTrak.",
         "ask_app": "Demander à {appName}",
         "title": "Demander à {appName}",
         "subtitle": "Votre assistant de cabinet",

@@ -3812,6 +3812,7 @@
         "save_success": "Preferencias de notificaciones guardadas."
     },
     "ask_dentatrak": {
+        "case_data_unavailable": "Las respuestas en vivo sobre los datos de sus casos no están disponibles temporalmente. Todavía puede consultar sus casos y revisar Insights para más detalles, o preguntarme cómo usar las funciones de DentaTrak.",
         "ask_app": "Pregunte a {appName}",
         "title": "Pregunte a {appName}",
         "subtitle": "Su asistente del consultorio",

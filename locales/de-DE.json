@@ -202,6 +202,7 @@
         }
     },
     "ask_dentatrak": {
+        "case_data_unavailable": "Aktuelle Antworten zu Ihren Falldaten sind vorübergehend nicht verfügbar. Sie können Ihre Fälle weiterhin einsehen und für Details die Insights prüfen oder mich fragen, wie man DentaTrak-Funktionen benutzt.",
         "ask_app": "{appName} fragen",
         "title": "{appName} fragen",
         "subtitle": "Ihr Praxisassistent",

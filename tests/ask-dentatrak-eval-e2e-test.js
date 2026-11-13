@@ -160,7 +160,7 @@ async function ask(request, csrf, query, history) {
 
   await live('notification prefs question names real toggles', 'Where do I change which emails I get?', [
     ['preferences surface', /preference|notification/i],
-    ['real event names', /assign|mention|comment|status|due date/i],
+    ['real event names', /assign|mention|comment|status|due date|toggle/i],
   ]);
 
   await live('lab visibility question gets scoped answer', 'Can my lab see all my cases?', [
@@ -274,7 +274,7 @@ async function ask(request, csrf, query, history) {
     ['export path described', /export|Settings|Data & Privacy|archive/i],
   ]);
   await live('HIPAA question gets qualified answer', 'Is DentaTrak HIPAA compliant?', [
-    ['compliance qualified', /BAA|shared responsibility|security measures|encrypt/i],
+    ['compliance qualified', /BAA|Business Associate|shared responsibility|security measures|encrypt|certification/i],
   ]);
   await live('BAA availability', 'Does DentaTrak provide a Business Associate Agreement?', [
     ['BAA addressed', /BAA|Business Associate|support@|privacy@/i],

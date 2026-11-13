@@ -451,15 +451,15 @@ TXT;
     $privacyEmail = 'privacy@dentatrak.com';
     $hipaaRetention = t('marketing.hipaa.retention_body');
     $hipaaBaa = t('marketing.hipaa.baa_body');
-    $termsTermination = 'Your right to use the Service ends immediately; you may request export of your data within 30 days; we may delete your data after 30 days.';
     $help[] = <<<TXT
-Data ownership, export, retention and deletion (verified policy):
-- Who owns the data: the practice owns its case and patient information. DentaTrak processes it to provide the service; the practice controls who inside the practice can see it.
+Data ownership, export, retention and deletion (verified policy - distinguish these categories; do not conflate them):
+- Who owns the data: the practice owns its case and patient information (PHI). DentaTrak processes it to provide the service; the practice controls who inside the practice can see it.
+- Practice case/patient data retention: kept while the subscription/account is active. There is no automatic deletion of active practice data or archived cases - archived cases stay until a user permanently deletes them from the Archived Cases screen, and permanent deletion cannot be undone. After cancellation or deactivation, retention is governed by the executed agreements: the published security page states practice data is retained for seven years following practice deactivation, while the Terms allow the practice to request an export within 30 days of termination. These public documents describe different windows - for the exact terms that apply to a specific account, direct the user to {$privacyEmail} or {$securityEmail} rather than guessing.
+- Account information (non-PHI): the Privacy Policy commits to removing account data within 30 days of a verified deletion request, except where retention is required or permitted for legal, security, or technical reasons; complete erasure from all backups or logs may not always be technically possible. Deletion requests go to {$privacyEmail}.
+- Export files: a requested export (CSV/JSON or archive) is a point-in-time copy kept available for download for 7 days, then it expires. Export expiry affects only the exported file copy - it never deletes or changes the practice's live data.
+- Backups: DentaTrak uses managed platform backups and point-in-time recovery; deleting data from the live service does not guarantee immediate removal from backup copies, which age out on the provider's backup schedule (no published window). See the Backups and recovery section below.
+- Ask DentaTrak telemetry: usage records (fixed-category metadata only - never question text or case content) are retained for 180 days and then deleted by a scheduled cleanup job.
 - Getting your data out: use the export options under "{$menu}" > "{$dataPrivacyNav}" described above. Export before leaving - an export is a point-in-time copy, not a live connection.
-- Retention while active: practice data is kept while the subscription/account is active. There is no automatic deletion of active practice data or archived cases - archived cases stay until a user permanently deletes them from the Archived Cases screen.
-- After cancellation or termination: per the Terms, access ends and the practice may request a data export within 30 days; the published security page states DentaTrak retains practice data for seven years following practice deactivation, and retention/deletion are governed by the executed agreements and legal obligations. For the exact retention terms that apply to a specific account, direct the user to {$privacyEmail} or {$securityEmail} rather than guessing.
-- Account-level deletion: the Privacy Policy commits to removing account data within 30 days of a deletion request, except where retention is required or permitted for legal, security, or technical reasons; complete erasure from all backups or logs may not always be technically possible. Deletion requests go to {$privacyEmail}.
-- Permanently deleting a case is a deliberate user action on the Archived Cases screen and cannot be undone; DentaTrak does not silently purge case records.
 TXT;
 
     /* --- Backups & recovery --- */
@@ -487,13 +487,13 @@ Security, HIPAA and compliance (published position - do not overstate):
 - {$hipaaAssurance} Never claim SOC 2, ISO 27001, or any certification DentaTrak does not hold, and never say DentaTrak "is HIPAA certified" - the accurate phrasing is "designed and operated to support HIPAA-compliant use" with a BAA for practices handling PHI.
 - Can DentaTrak employees see patient information? Access is limited to what is needed to operate and support the service and is protected by the same access controls and audit logging; the BAA and security policies govern any such access. For specifics about staff-access commitments, refer to {$securityEmail} and the executed BAA.
 - Suspected security incidents or breaches: practices should report concerns to {$securityEmail} (without including patient information). Do not describe notification timelines or procedures beyond what is published - refer specifics to {$securityEmail}.
-- Does Ask DentaTrak send patient data to an AI provider? Data questions are answered only from records the user is already authorized to see; the question text and bounded conversation context are sent to the configured AI provider (Google Gemini or OpenAI) to generate the answer, but Ask DentaTrak never stores the conversation server-side and its telemetry stores only fixed-category metadata (question category, intent, tool names used, outcome, locale, latency) - never question text, answers, patient names, or case content.
+- Does Ask DentaTrak send patient data to an AI provider? It depends on the question type. Product-help questions send only the question text and bounded conversation context to the configured AI provider (Google Gemini or OpenAI). When live case-data answers are enabled for the deployment, the authorized case records fetched for the answer - which can include patient names and case details the user is already permitted to see - are ALSO sent to that provider to compose the reply. Ask DentaTrak never stores conversations server-side, and its telemetry stores only fixed-category metadata (question category, intent, tool names used, outcome, locale, latency) - never question text, answers, patient names, or case content. If asked whether case-data transmission is currently enabled, say it depends on the deployment's privacy configuration and refer specifics to {$securityEmail} - do not claim it is or is not enabled.
 TXT;
 
     /* --- Ask DentaTrak self-description --- */
     $help[] = <<<TXT
 About Ask DentaTrak itself:
-- It is a read-only assistant: it answers product questions and questions about cases the asking user is authorized to see. It cannot create, edit, delete, or change anything - for actions, it explains the steps instead.
+- It is a read-only assistant: it answers product questions and, when live case-data answers are enabled for the deployment, questions about cases the asking user is authorized to see. It cannot create, edit, delete, or change anything - for actions, it explains the steps instead.
 - It is available when the assistant feature is enabled for the deployment; if it is unavailable the panel does not appear.
 - Conversation history is not stored on DentaTrak servers; only the bounded transcript the client sends back for follow-up context is used, and it is truncated and stripped of markup.
 - For anything it cannot verify, it should say so rather than guess - and users can always reach {$supportEmail}.
@@ -542,7 +542,7 @@ TXT;
 Connect a {$provider} practice (practice administrator):
 1. "{$menu}" > "{$integrations}" > {$provider} card > "{$i('connect')}" - "{$i('setup.step1_title')}": {$i('setup.step1_desc')} {$i('setup.key_once_note')}
 2. "{$i('setup.step2_title')}": {$i('setup.step2_a')} {$i('setup.step2_b')} {$i('setup.step2_c')}
-3. "{$i('setup.step3_title')}": {$i('setup.step3_desc')}
+3. "{$i('setup.step3_title')}": {$i('setup.step3_desc')} {$i('setup.step3_local')} {$i('setup.step3_cloud')}
 4. "{$i('setup.step4_title')}": {$i('setup.step4_desc')}
 A connection key may be regenerated later ("{$i('setup.regenerate_key')}"), which replaces the key in Open Dental too.
 TXT;

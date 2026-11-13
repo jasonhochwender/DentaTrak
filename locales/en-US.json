@@ -3812,6 +3812,7 @@
         "save_success": "Notification preferences saved."
     },
     "ask_dentatrak": {
+        "case_data_unavailable": "Live answers about your case data are temporarily unavailable. You can still browse your cases and check Insights for details, or ask me how to use DentaTrak features.",
         "ask_app": "Ask {appName}",
         "title": "Ask {appName}",
         "subtitle": "Your practice assistant",
