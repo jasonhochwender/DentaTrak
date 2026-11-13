@@ -25,7 +25,8 @@ tsconfig.json
 *.md
 README.md
 .env.example
-scripts/
+scripts/*
+!scripts/marketing-*.php
 deploy.cmd
 
 # Local runtime data (gitignored; must never bake into the image -
