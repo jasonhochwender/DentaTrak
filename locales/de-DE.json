@@ -2979,7 +2979,8 @@
                 "type_archive": "Archiv (ZIP)",
                 "type_legacy": "Legacy-JSON",
                 "download_error": "Download fehlgeschlagen. Bitte versuchen Sie es erneut.",
-                "export_not_found": "Dieser Export befindet sich nicht im aktuellen Exportverlauf der Praxis."
+                "export_not_found": "Dieser Export befindet sich nicht im aktuellen Exportverlauf der Praxis.",
+                "format_label": "Format"
             }
         },
         "dev_tools": {

@@ -1344,7 +1344,8 @@
                 "type_archive": "Archive (ZIP)",
                 "type_legacy": "JSON hérité",
                 "download_error": "Échec du téléchargement. Veuillez réessayer.",
-                "export_not_found": "Cette exportation ne figure pas dans l'historique récent du cabinet actuel."
+                "export_not_found": "Cette exportation ne figure pas dans l'historique récent du cabinet actuel.",
+                "format_label": "Format"
             }
         },
         "dev_tools": {

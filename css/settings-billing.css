@@ -2382,9 +2382,54 @@ input#practiceName {
 }
 
 /* Export format segmented control + history list */
+.export-controls-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 0 0 12px 0;
+}
+
+.export-format-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
 .export-format-toggle {
   display: inline-flex;
-  margin: 0 0 12px 0;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: transparent;
+  padding: 0;
+}
+
+.export-format-toggle .case-view-btn {
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: 7px 16px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  background: var(--background-white);
+  color: var(--text-primary);
+}
+
+.export-format-toggle .case-view-btn:hover {
+  color: var(--text-primary);
+}
+
+.export-format-toggle .case-view-btn.active {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: #fff;
+  box-shadow: none;
+}
+
+.export-format-toggle .case-view-btn:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
 }
 
 .export-history-list {

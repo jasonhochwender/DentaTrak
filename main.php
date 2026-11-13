@@ -4525,13 +4525,16 @@ endif;
                         <div class="data-export-section">
                           <h4 class="subsection-title"><?php echo t('settings.data_privacy.export_v2.title'); ?></h4>
                           <p class="section-description"><?php echo t('settings.data_privacy.export_v2.description'); ?></p>
-                          <div class="case-view-toggle export-format-toggle" role="group" aria-label="<?php echo t('settings.data_privacy.export_v2.format_group_aria'); ?>">
-                            <button type="button" id="exportV2FormatCsv" class="case-view-btn active" aria-pressed="true"><?php echo t('settings.data_privacy.export_v2.format_csv'); ?></button>
-                            <button type="button" id="exportV2FormatJson" class="case-view-btn" aria-pressed="false"><?php echo t('settings.data_privacy.export_v2.format_json'); ?></button>
+                          <div class="export-controls-row">
+                            <span class="export-format-label" id="exportFormatLabel"><?php echo t('settings.data_privacy.export_v2.format_label'); ?></span>
+                            <div class="case-view-toggle export-format-toggle" role="group" aria-labelledby="exportFormatLabel">
+                              <button type="button" id="exportV2FormatCsv" class="case-view-btn active" aria-pressed="true"><?php echo t('settings.data_privacy.export_v2.format_csv'); ?></button>
+                              <button type="button" id="exportV2FormatJson" class="case-view-btn" aria-pressed="false"><?php echo t('settings.data_privacy.export_v2.format_json'); ?></button>
+                            </div>
+                            <button type="button" id="exportV2Btn" class="btn-secondary">
+                              <span class="btn-icon">📥</span> <?php echo t('settings.data_privacy.export_v2.button'); ?>
+                            </button>
                           </div>
-                          <button type="button" id="exportV2Btn" class="btn-secondary">
-                            <span class="btn-icon">📥</span> <?php echo t('settings.data_privacy.export_v2.button'); ?>
-                          </button>
                           <div id="exportV2Status" class="export-status" style="display:none;margin-top:12px;"></div>
                         </div>
                         <div class="data-export-section">

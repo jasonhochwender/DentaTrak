@@ -37,6 +37,18 @@ ok('history section present', strpos($main, 'exportV2List') !== false);
 ok('segmented format control present', strpos($main, 'exportV2FormatCsv') !== false
     && strpos($main, 'exportV2FormatJson') !== false
     && strpos($main, 'role="group"') !== false);
+ok('format label present and associated', strpos($main, 'exportFormatLabel') !== false
+    && strpos($main, 'aria-labelledby="exportFormatLabel"') !== false
+    && strpos($main, 'format_label') !== false);
+ok('controls row wraps label, selector, and button', strpos($main, 'export-controls-row') !== false);
+$css = file_get_contents(__DIR__ . '/../css/settings-billing.css');
+ok('selected format uses primary color + white text',
+    strpos($css, '.export-format-toggle .case-view-btn.active') !== false
+    && strpos($css, 'background: var(--primary-color)') !== false
+    && strpos($css, 'color: #fff') !== false);
+ok('unselected format keeps border + dark text',
+    strpos($css, '.export-format-toggle .case-view-btn {') !== false
+    && strpos($css, 'border: 1px solid var(--border-light)') !== false);
 ok('native select removed', strpos($main, 'id="exportV2Format"') === false);
 ok('archive button present', strpos($main, 'id="exportV2ArchiveBtn"') !== false);
 

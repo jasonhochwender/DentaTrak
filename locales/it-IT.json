@@ -1344,7 +1344,8 @@
                 "type_archive": "Archivio (ZIP)",
                 "type_legacy": "JSON legacy",
                 "download_error": "Download non riuscito. Riprova.",
-                "export_not_found": "Questa esportazione non è nella cronologia recente dello studio corrente."
+                "export_not_found": "Questa esportazione non è nella cronologia recente dello studio corrente.",
+                "format_label": "Formato"
             }
         },
         "dev_tools": {

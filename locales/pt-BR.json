@@ -5313,7 +5313,8 @@
                 "type_archive": "Arquivo (ZIP)",
                 "type_legacy": "JSON legado",
                 "download_error": "Falha no download. Tente novamente.",
-                "export_not_found": "Esta exportação não está no histórico recente do consultório atual."
+                "export_not_found": "Esta exportação não está no histórico recente do consultório atual.",
+                "format_label": "Formato"
             }
         },
         "dev_tools": {
