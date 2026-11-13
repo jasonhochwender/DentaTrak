@@ -162,6 +162,8 @@ screenshots/
 !/tests/marketing-outreach-tabs-e2e-test.js
 !/tests/marketing-crm-phase4-test.php
 !/tests/marketing-crm-campaigns-e2e-test.js
+!/tests/marketing-crm-ux-e2e-test.js
+!/tests/marketing-mcp-crm-test.php
 !/tests/landing-page-refresh-test.js
 !/tests/lab-insights-recs-test.php
 !/tests/lab-quality-test.php

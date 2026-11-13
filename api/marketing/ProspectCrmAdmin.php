@@ -558,6 +558,35 @@ final class ProspectCrmAdmin
         return 1;
     }
 
+    /**
+     * Append a research note (e.g. from the MCP/ChatGPT connector).
+     * Stored as event_type 'research_note' - explicitly NOT an activity
+     * type, so it can never be mistaken for a call/meeting/manual email.
+     */
+    public function addResearchNote(int $contactId, string $text, array $meta = []): int
+    {
+        $cur = $this->contactRow($contactId);
+        if (!$cur) throw new InvalidArgumentException('contact not found');
+        $text = trim($text);
+        if ($text === '') throw new InvalidArgumentException('note text required');
+        $details = ['text' => mb_substr($text, 0, 8000), 'kind' => 'research'];
+        if (!empty($meta['sources']) && is_array($meta['sources'])) {
+            $details['sources'] = array_values(array_slice(array_map('strval', $meta['sources']), 0, 20));
+        }
+        if (!empty($meta['researched_at'])) {
+            $details['researched_at'] = mb_substr((string)$meta['researched_at'], 0, 40);
+        }
+        $this->pdo->prepare(
+            'INSERT INTO marketing_prospect_events (contact_id, org_id, event_type, details, actor, source)
+             VALUES (?,?,?,?,?,?)'
+        )->execute([
+            $contactId, $cur['org_id'] !== null ? (int)$cur['org_id'] : null,
+            'research_note', json_encode($details),
+            substr($this->actor, 0, 190), 'mcp',
+        ]);
+        return (int)$this->pdo->lastInsertId();
+    }
+
     /** Bulk update: priority, tags (append), owner. Returns per-id results. */
     public function bulkUpdate(array $ids, array $fields): array
     {

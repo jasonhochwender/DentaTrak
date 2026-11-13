@@ -284,6 +284,15 @@ final class ProspectCrm
         }
         $orgType = trim((string)($o['org_type'] ?? ''));
         if ($orgType !== '') { $where[] = 'LOWER(o.org_type) = LOWER(?)'; $args[] = $orgType; }
+        // Geography: city matches the org location/metro text; state
+        // matches the imported per-contact State abbreviation (extra_fields).
+        $city = trim((string)($o['city'] ?? ''));
+        if ($city !== '') { $where[] = 'o.location LIKE ?'; $args[] = '%' . $city . '%'; }
+        $state = self::normalizeUsState((string)($o['state'] ?? ''));
+        if ($state !== null) {
+            $where[] = "UPPER(JSON_UNQUOTE(JSON_EXTRACT(c.extra_fields,'$.State'))) = ?";
+            $args[] = $state;
+        }
         if (!empty($o['review'])) { $where[] = 'c.needs_review = 1'; }
 
         // Computed filters resolve to contact-id sets from the shared
@@ -486,5 +495,30 @@ final class ProspectCrm
             'flags'             => $flags,
             'followup_buckets'  => $buckets,
         ];
+    }
+
+    /**
+     * Normalize a US state name or abbreviation to its uppercase
+     * abbreviation. Returns null for empty input; unrecognized values are
+     * returned uppercased so they simply match nothing.
+     */
+    public static function normalizeUsState(string $v): ?string
+    {
+        $v = strtoupper(trim($v));
+        if ($v === '') return null;
+        static $map = [
+            'ALABAMA'=>'AL','ALASKA'=>'AK','ARIZONA'=>'AZ','ARKANSAS'=>'AR','CALIFORNIA'=>'CA',
+            'COLORADO'=>'CO','CONNECTICUT'=>'CT','DELAWARE'=>'DE','DISTRICT OF COLUMBIA'=>'DC',
+            'FLORIDA'=>'FL','GEORGIA'=>'GA','HAWAII'=>'HI','IDAHO'=>'ID','ILLINOIS'=>'IL',
+            'INDIANA'=>'IN','IOWA'=>'IA','KANSAS'=>'KS','KENTUCKY'=>'KY','LOUISIANA'=>'LA',
+            'MAINE'=>'ME','MARYLAND'=>'MD','MASSACHUSETTS'=>'MA','MICHIGAN'=>'MI','MINNESOTA'=>'MN',
+            'MISSISSIPPI'=>'MS','MISSOURI'=>'MO','MONTANA'=>'MT','NEBRASKA'=>'NE','NEVADA'=>'NV',
+            'NEW HAMPSHIRE'=>'NH','NEW JERSEY'=>'NJ','NEW MEXICO'=>'NM','NEW YORK'=>'NY',
+            'NORTH CAROLINA'=>'NC','NORTH DAKOTA'=>'ND','OHIO'=>'OH','OKLAHOMA'=>'OK',
+            'OREGON'=>'OR','PENNSYLVANIA'=>'PA','RHODE ISLAND'=>'RI','SOUTH CAROLINA'=>'SC',
+            'SOUTH DAKOTA'=>'SD','TENNESSEE'=>'TN','TEXAS'=>'TX','UTAH'=>'UT','VERMONT'=>'VT',
+            'VIRGINIA'=>'VA','WASHINGTON'=>'WA','WEST VIRGINIA'=>'WV','WISCONSIN'=>'WI','WYOMING'=>'WY',
+        ];
+        return $map[$v] ?? $v;
     }
 }

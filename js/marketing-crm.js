@@ -104,7 +104,10 @@
             updateBulkBar();
             return;
         }
-        var html = '<table class="mo-table mo-crm-table"><thead><tr>';
+        var html = '<table class="mo-table mo-crm-table"><colgroup>' +
+            '<col style="width:30px"><col style="width:17%"><col style="width:15%"><col style="width:19%">' +
+            '<col style="width:9%"><col style="width:10%"><col style="width:11%"><col style="width:8%"><col>' +
+            '</colgroup><thead><tr>';
         COLS.forEach(function (c) {
             if (c.key === 'select') {
                 html += '<th class="mo-crm-check"><input type="checkbox" id="moCrmCheckAll" aria-label="Select all on page"></th>';
@@ -137,10 +140,10 @@
                 '<td>' + esc(p.contact_name || '—') +
                 (f.title ? '<br><span class="mo-sub">' + esc(f.title) + '</span>' : '') + '</td>' +
                 '<td><span class="mo-sub">' + esc(f.email || '(missing)') + '</span></td>' +
-                '<td><span class="mo-pill">' + esc(f.status || '—') + '</span></td>' +
-                '<td>' + esc(f.priority || '—') + '</td>' +
-                '<td>' + esc(fmtDate(p.followup_ts)) + '<br><span class="mo-pill ' + p.bucket + '">' + esc(p.bucket.replace(/_/g, ' ')) + '</span></td>' +
-                '<td>' + elig + '</td>' +
+                '<td class="mo-nowrap"><span class="mo-pill">' + esc(f.status || '—') + '</span></td>' +
+                '<td class="mo-nowrap">' + esc(f.priority || '—') + '</td>' +
+                '<td class="mo-nowrap">' + esc(fmtDate(p.followup_ts)) + '<br><span class="mo-pill ' + p.bucket + '">' + esc(p.bucket.replace(/_/g, ' ')) + '</span></td>' +
+                '<td class="mo-nowrap">' + elig + '</td>' +
                 '<td>' + flags + '</td></tr>';
         });
         html += '</tbody></table>';
@@ -197,6 +200,13 @@
         var n = selectedIds().length;
         bar.classList.toggle('mo-hidden', n === 0);
         $('moBulkCount').textContent = n + ' ' + cfg.str.selected;
+        // Keep every bulk control inert while nothing is selected so the
+        // bar can never act on an empty selection.
+        ['moBulkPriority', 'moBulkOwner', 'moBulkTags', 'moBulkCampaign', 'moBulkExport', 'moBulkClear']
+            .forEach(function (id) {
+                var el = $(id);
+                if (el) el.disabled = (n === 0);
+            });
     }
     function bulkUpdate(fields) {
         var ids = selectedIds();
@@ -304,7 +314,8 @@
 
         el.innerHTML =
             '<div class="mo-drawer-head"><h2>' + esc(f.org || p.contact_name || cfg.str.prospect) + '</h2>' +
-            '<div><button class="mo-btn secondary small" id="moEditProspect">' + esc(cfg.str.edit) + '</button> ' +
+            '<div><button class="mo-btn secondary small" id="moDrawerCampaign">' + esc(cfg.str.addToCampaign) + '</button> ' +
+            '<button class="mo-btn secondary small" id="moEditProspect">' + esc(cfg.str.edit) + '</button> ' +
             '<button class="mo-btn secondary small" id="moDrawerClose" aria-label="Close">&times;</button></div></div>' +
             '<div class="mo-drawer-body">' +
             '<p>' + eligHtml + ' ' + flags + '</p>' + review + grid + orgHtml + campHtml + histHtml + evHtml +
@@ -312,6 +323,7 @@
         el.classList.remove('mo-hidden');
 
         $('moDrawerClose').onclick = closeDrawer;
+        $('moDrawerCampaign').onclick = function () { openCampaignAdd([f.contact_id]); };
         $('moEditProspect').onclick = function () { openProspectForm(f.contact_id); };
         var er = $('moResolveReview');
         if (er) er.onclick = function () {
@@ -538,17 +550,20 @@
             function refreshPreview() {
                 clearTimeout(previewTimer);
                 previewTimer = setTimeout(function () {
-                    var cid = $('caCampaign').value;
-                    if (!cid && !$('caName').value.trim()) { $('caPreview').innerHTML = ''; return; }
+                    var camEl = $('caCampaign'), nameEl = $('caName'), prevEl = $('caPreview');
+                    if (!camEl || !nameEl || !prevEl) return; // modal closed
+                    var cid = camEl.value;
+                    if (!cid && !nameEl.value.trim()) { prevEl.innerHTML = ''; return; }
                     apiPost('campaign_add_recipients', payload(true)).then(function (r) {
-                        if (!r.success) { $('caPreview').innerHTML = '<div class="mo-warn">' + esc(r.error || cfg.str.loadFailed) + '</div>'; return; }
+                        if (!prevEl.isConnected) return;
+                        if (!r.success) { prevEl.innerHTML = '<div class="mo-warn">' + esc(r.error || cfg.str.loadFailed) + '</div>'; return; }
                         var html = '<table class="mo-table" style="margin-top:8px;"><thead><tr><th>' + esc(cfg.str.colContact) + '</th><th>' + esc(cfg.str.colOrg) + '</th><th>' + esc(cfg.str.colEmail) + '</th><th>' + esc(cfg.str.colEligibility) + '</th></tr></thead><tbody>';
                         (r.results || []).forEach(function (x) {
                             var status = x.ok ? ('<span class="mo-pill ' + (x.status === 'draft' ? 'draft' : 'suppressed') + '">' + esc(x.status) + '</span>')
                                               : '<span class="mo-pill excluded">' + esc(x.reason || 'skipped') + '</span>';
                             html += '<tr><td>' + esc(x.contact_name || '—') + '</td><td>' + esc(x.org || '—') + '</td><td>' + esc(x.email || '—') + '</td><td>' + status + '</td></tr>';
                         });
-                        $('caPreview').innerHTML = html + '</tbody></table>' +
+                        prevEl.innerHTML = html + '</tbody></table>' +
                             '<p class="mo-sub">' + esc(cfg.str.previewNote.replace('{n}', r.added)) + '</p>';
                     });
                 }, 250);
@@ -1085,7 +1100,7 @@
                 var v = this.value.trim(); if (!v) return;
                 bulkUpdate({ tags_add: v }); this.value = '';
             };
-            $('moBulkCampaign').onclick = openCampaignAdd;
+            $('moBulkCampaign').onclick = function () { openCampaignAdd(); };
             // Campaign detail bar (CRM mode).
             if ($('moCampBackCrm')) $('moCampBackCrm').onclick = campBack;
             if ($('moCampGenerateCrm')) $('moCampGenerateCrm').onclick = campGenerate;

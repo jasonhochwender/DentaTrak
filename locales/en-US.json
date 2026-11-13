@@ -7521,6 +7521,7 @@
         "col_source": "Source",
         "col_method": "Method",
         "col_notes": "Notes",
+        "col_tags": "Tags",
         "col_line": "Line",
         "parent_org": "Parent organization",
         "demo_status": "Demo status",

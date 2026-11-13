@@ -95,6 +95,7 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
         .mo-btn.secondary { background: #fff; color: #1e40af; border: 1px solid #1e40af; }
         .mo-btn.danger { background: #b91c1c; }
         .mo-btn.small { padding: 5px 10px; font-size: 0.78rem; }
+        .mo-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .mo-msg-list { display: flex; flex-direction: column; gap: 10px; }
         .mo-msg { border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; background: #fff; }
         .mo-msg-head { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: baseline; }
@@ -113,7 +114,9 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
         .mo-warn { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; padding: 10px 14px; border-radius: 6px; font-size: 0.85rem; margin-bottom: 14px; }
         .mo-error { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 10px 14px; border-radius: 6px; font-size: 0.85rem; margin-bottom: 14px; }
         .mo-ok { background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; padding: 10px 14px; border-radius: 6px; font-size: 0.85rem; margin-bottom: 14px; }
-        .mo-hidden { display: none; }
+        .mo-hidden { display: none !important; }
+        .mo-nowrap { white-space: nowrap; }
+        .mo-crm-table th.mo-crm-check, .mo-crm-table td.mo-crm-check { width: 30px; }
         .mo-pager { display: flex; gap: 8px; align-items: center; margin-top: 12px; font-size: 0.82rem; color: #6b7280; }
         .mo-step-note { font-size: 0.78rem; color: #6b7280; margin-top: 6px; }
         /* Phase 3 CRM */
@@ -150,6 +153,17 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
         .mo-events li { border-left: 2px solid #e5e7eb; padding: 6px 0 6px 12px; margin-left: 4px; }
         .mo-activity-add { display: flex; flex-direction: column; gap: 8px; margin: 10px 0; }
         .mo-activity-add select, .mo-activity-add textarea { padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.85rem; font-family: inherit; }
+        /* Native select arrows sit flush against the border; give every
+           Marketing Outreach select a consistent right gutter and a custom
+           chevron so spacing is identical across browsers. Placed last so
+           it wins over the padding shorthands above. */
+        .mo-pane select, .mo-bulkbar select, .mo-field select, .mo-modal select,
+        .mo-drawer select, .mo-toolbar select, .mo-activity-add select, .mo-msg select {
+            -webkit-appearance: none; appearance: none;
+            padding-right: 2rem;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 0.6rem center; background-size: 10px 6px;
+        }
         @media (max-width: 720px) {
             .mo-table { display: block; overflow-x: auto; }
             .mo-msg textarea { min-height: 160px; }
@@ -1063,6 +1077,8 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
                 save: <?php echo json_encode(ma('save')); ?>,
                 cancel: <?php echo json_encode(ma('cancel')); ?>,
                 maxRecipients: '10',
+                noCampaigns: <?php echo json_encode(ma('no_campaigns')); ?>,
+                colTags: <?php echo json_encode(ma('col_tags')); ?>,
                 newDraftCampaign: <?php echo json_encode(ma('new_draft_campaign')); ?>,
                 campaignName: <?php echo json_encode(ma('campaign_name')); ?>,
                 campaignNamePh: <?php echo json_encode(ma('campaign_name_ph')); ?>,

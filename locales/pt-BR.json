@@ -7521,6 +7521,7 @@
         "col_source": "Origem",
         "col_method": "Método",
         "col_notes": "Notas",
+        "col_tags": "Tags",
         "col_line": "Linha",
         "parent_org": "Organização principal",
         "demo_status": "Status da demo",

@@ -7521,6 +7521,7 @@
         "col_source": "출처",
         "col_method": "방식",
         "col_notes": "메모",
+        "col_tags": "태그",
         "col_line": "라인",
         "parent_org": "상위 조직",
         "demo_status": "데모 상태",

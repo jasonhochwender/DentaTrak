@@ -44,6 +44,43 @@ $TOOLS = [
     'inputSchema'=>['type'=>'object','properties'=>['batch_id'=>['type'=>'string'],'approve'=>['type'=>'boolean']],'required'=>['batch_id','approve']]],
   'get_batch' => ['description'=>'Batch + per-recipient results (status, gmail_message_id, errors)',
     'inputSchema'=>['type'=>'object','properties'=>['batch_id'=>['type'=>'string']],'required'=>['batch_id']]],
+  // --- Prospect CRM (MySQL) -----------------------------------------
+  'search_prospects' => ['description'=>'Search the prospect CRM by org/contact/email/domain, status, priority, org type, eligibility, review flag. Paginated; returns stable contact ids.',
+    'inputSchema'=>['type'=>'object','properties'=>[
+      'q'=>['type'=>'string'],'org_type'=>['type'=>'string'],'status'=>['type'=>'string'],
+      'priority'=>['type'=>'string'],'eligible'=>['type'=>'string','enum'=>['','initial','followup']],
+      'flag'=>['type'=>'string'],'bucket'=>['type'=>'string'],'city'=>['type'=>'string'],
+      'state'=>['type'=>'string','description'=>'US state name or abbreviation (e.g. Georgia or GA)'],
+      'review'=>['type'=>'boolean'],
+      'page'=>['type'=>'integer'],'per'=>['type'=>'integer']]]],
+  'get_prospect' => ['description'=>'Full prospect detail: contact + org + eligibility + recent activity/events.',
+    'inputSchema'=>['type'=>'object','properties'=>['contact_id'=>['type'=>'integer']],'required'=>['contact_id']]],
+  'get_organization' => ['description'=>'Organization detail incl. parent/child DSOs and contact count.',
+    'inputSchema'=>['type'=>'object','properties'=>['org_id'=>['type'=>'integer']],'required'=>['org_id']]],
+  'list_organization_contacts' => ['description'=>'Contacts belonging to an organization.',
+    'inputSchema'=>['type'=>'object','properties'=>['org_id'=>['type'=>'integer'],'page'=>['type'=>'integer'],'per'=>['type'=>'integer']],'required'=>['org_id']]],
+  'check_prospect_duplicate' => ['description'=>'Check for existing contacts/orgs matching an email, org name, or contact name before creating records. Read-only.',
+    'inputSchema'=>['type'=>'object','properties'=>[
+      'email'=>['type'=>'string'],'org_name'=>['type'=>'string'],'contact_name'=>['type'=>'string'],'org_id'=>['type'=>'integer']]]],
+  'prepare_prospect' => ['description'=>'Validate a proposed prospect and preview duplicate matches. Writes nothing - review output, then call create_prospect.',
+    'inputSchema'=>['type'=>'object','properties'=>['org_id'=>['type'=>'integer'],'new_org'=>['type'=>'object'],'contact_name'=>['type'=>'string'],'first_name'=>['type'=>'string'],'last_name'=>['type'=>'string'],'email'=>['type'=>'string'],'title'=>['type'=>'string'],'phone'=>['type'=>'string'],'status'=>['type'=>'string'],'priority'=>['type'=>'string'],'notes'=>['type'=>'string']]]],
+  'create_prospect' => ['description'=>'Create a CRM contact (optionally under new_org). REQUIRES confirm=true - only set after the user explicitly approves this specific record. Returns contact_id, duplicate warnings, review reasons. Never sends email.',
+    'inputSchema'=>['type'=>'object','properties'=>['org_id'=>['type'=>'integer'],'new_org'=>['type'=>'object'],'first_name'=>['type'=>'string'],'last_name'=>['type'=>'string'],'full_name'=>['type'=>'string'],'contact_name'=>['type'=>'string'],'email'=>['type'=>'string'],'title'=>['type'=>'string'],'phone'=>['type'=>'string'],'status'=>['type'=>'string'],'priority'=>['type'=>'string'],'fit'=>['type'=>'string'],'owner_email'=>['type'=>'string'],'source'=>['type'=>'string'],'tags'=>['type'=>'array','items'=>['type'=>'string']],'notes'=>['type'=>'string'],'contact_notes'=>['type'=>'string'],'followup_date'=>['type'=>'string'],'demo_status'=>['type'=>'string'],'trial_status'=>['type'=>'string'],'outcome'=>['type'=>'string'],'objection_reason'=>['type'=>'string'],'outreach_method'=>['type'=>'string'],'confirm'=>['type'=>'boolean']]]],
+  'create_organization' => ['description'=>'Create a CRM organization (practice, DSO, etc.). Optional parent_org_id for DSO hierarchy. Set dry_run=true to preview duplicates without writing; REQUIRES confirm=true to actually create - only after explicit user approval.',
+    'inputSchema'=>['type'=>'object','properties'=>[
+      'name'=>['type'=>'string'],'org_type'=>['type'=>'string'],'website'=>['type'=>'string'],'domain'=>['type'=>'string'],
+      'location'=>['type'=>'string'],'phone'=>['type'=>'string'],'status'=>['type'=>'string'],
+      'parent_org_id'=>['type'=>'integer'],'tags'=>['type'=>'array','items'=>['type'=>'string']],
+      'dry_run'=>['type'=>'boolean'],'confirm'=>['type'=>'boolean']],'required'=>['name']]],
+  'update_prospect' => ['description'=>'Update a CRM contact by stable id. Requires current version (optimistic concurrency) and confirm=true (explicit user approval of these exact fields). Absent fields are preserved; blank values are ignored so research cannot wipe verified data; suppression/DNC can only be strengthened, never cleared.',
+    'inputSchema'=>['type'=>'object','properties'=>['contact_id'=>['type'=>'integer'],'version'=>['type'=>'integer'],'fields'=>['type'=>'object'],'confirm'=>['type'=>'boolean']],'required'=>['contact_id','version']]],
+  'update_organization' => ['description'=>'Update a CRM organization by stable id. Requires confirm=true (explicit user approval). Absent fields are preserved; blank values are ignored.',
+    'inputSchema'=>['type'=>'object','properties'=>['org_id'=>['type'=>'integer'],'fields'=>['type'=>'object'],'confirm'=>['type'=>'boolean']],'required'=>['org_id']]],
+  'add_prospect_note' => ['description'=>'Append a dated research note to a prospect (sources + researched_at supported). REQUIRES confirm=true. Stored as research_note - distinct from calls/meetings/emails.',
+    'inputSchema'=>['type'=>'object','properties'=>[
+      'contact_id'=>['type'=>'integer'],'text'=>['type'=>'string'],
+      'sources'=>['type'=>'array','items'=>['type'=>'string']],'researched_at'=>['type'=>'string'],
+      'confirm'=>['type'=>'boolean']],'required'=>['contact_id','text']]],
 ];
 if ($method==='tools/list') $ok(['tools'=>array_map(function($n,$t){return ['name'=>$n]+$t;},array_keys($TOOLS),array_values($TOOLS))]);
 if ($method!=='tools/call') $fail('unsupported method');
@@ -152,4 +189,26 @@ if ($name==='check_eligibility') {
     } catch (Throwable $e) {}
     $rs = $pdo->query("SELECT email,eligible,eligible_reason,status,gmail_message_id,error,sheet_synced_at FROM marketing_batch_recipients WHERE batch_id='".$batch['id']."' ORDER BY id")->fetchAll(PDO::FETCH_ASSOC);
     $ok(['content'=>[['type'=>'text','text'=>json_encode(['batch'=>$batch,'recipients'=>$rs])]]]);
-} else $fail('unknown tool');
+} else {
+    // Prospect CRM tools (MySQL-backed; no sheet access, no sends).
+    $crmTools = [
+        'search_prospects' => 'searchProspects', 'get_prospect' => 'getProspect',
+        'get_organization' => 'getOrganization', 'list_organization_contacts' => 'listOrganizationContacts',
+        'check_prospect_duplicate' => 'checkProspectDuplicate', 'prepare_prospect' => 'prepareProspect',
+        'create_prospect' => 'createProspect', 'create_organization' => 'createOrganization',
+        'update_prospect' => 'updateProspect', 'update_organization' => 'updateOrganization',
+        'add_prospect_note' => 'addProspectNote',
+    ];
+    if (!isset($crmTools[$name])) $fail('unknown tool');
+    require_once __DIR__ . '/../marketing/McpCrmTools.php';
+    try {
+        $tools = new McpCrmTools($pdo, (string)$tokenRow['email']);
+        $result = $tools->{$crmTools[$name]}($a);
+        $ok(['content'=>[['type'=>'text','text'=>json_encode($result)]]]);
+    } catch (InvalidArgumentException $e) {
+        $fail($e->getMessage());
+    } catch (Throwable $e) {
+        error_log('[mcp-crm] ' . $name . ': ' . $e->getMessage());
+        $fail('tool failed');
+    }
+}
