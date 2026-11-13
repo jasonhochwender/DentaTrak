@@ -40,6 +40,7 @@ if (!$canAccess) {
 
 function h($v) { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
 function ma($k) { return t('marketing_admin.' . $k); }
+$crmReads = isFeatureEnabled('MARKETING_CRM_READS');
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo getHtmlLang(); ?>">
@@ -115,6 +116,40 @@ function ma($k) { return t('marketing_admin.' . $k); }
         .mo-hidden { display: none; }
         .mo-pager { display: flex; gap: 8px; align-items: center; margin-top: 12px; font-size: 0.82rem; color: #6b7280; }
         .mo-step-note { font-size: 0.78rem; color: #6b7280; margin-top: 6px; }
+        /* Phase 3 CRM */
+        .mo-sub { color: #6b7280; font-size: 0.75rem; }
+        .mo-sortable { cursor: pointer; user-select: none; }
+        .mo-sortable:hover { color: #1e40af; }
+        .mo-crm-check { width: 28px; text-align: center; }
+        .mo-crm-table td.mo-crm-check { vertical-align: middle; }
+        .mo-bulkbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 10px 0;
+                      padding: 10px 14px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; font-size: 0.85rem; }
+        .mo-bulkbar select, .mo-bulkbar input { padding: 6px 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.82rem; }
+        .mo-modal-back { position: fixed; inset: 0; background: rgba(17,24,39,0.45); z-index: 1200;
+                         display: flex; align-items: flex-start; justify-content: center; padding: 4vh 16px; overflow-y: auto; }
+        .mo-modal { background: #fff; border-radius: 12px; width: 100%; max-width: 720px;
+                    box-shadow: 0 20px 50px rgba(0,0,0,0.25); }
+        .mo-modal-head { display: flex; justify-content: space-between; align-items: center;
+                         padding: 16px 20px; border-bottom: 1px solid #e5e7eb; }
+        .mo-modal-head h3 { margin: 0; font-size: 1rem; }
+        .mo-modal-x { background: none; border: none; font-size: 1.5rem; line-height: 1; cursor: pointer; color: #6b7280; }
+        .mo-modal-body { padding: 16px 20px; max-height: 66vh; overflow-y: auto; }
+        .mo-modal-foot { padding: 12px 20px; border-top: 1px solid #e5e7eb; display: flex; gap: 10px; justify-content: flex-end; }
+        .mo-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px 14px; }
+        .mo-field { display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem; color: #374151; }
+        .mo-field input, .mo-field select, .mo-field textarea { padding: 8px 10px; border: 1px solid #d1d5db;
+            border-radius: 6px; font-size: 0.85rem; font-family: inherit; }
+        .mo-field textarea { resize: vertical; }
+        .mo-drawer { position: fixed; top: 0; right: 0; height: 100vh; width: min(560px, 96vw); background: #fff;
+                     z-index: 1100; box-shadow: -8px 0 30px rgba(0,0,0,0.18); overflow-y: auto; }
+        .mo-drawer-head { display: flex; justify-content: space-between; align-items: center;
+                          padding: 16px 20px; border-bottom: 1px solid #e5e7eb; position: sticky; top: 0; background: #fff; }
+        .mo-drawer-head h2 { margin: 0; font-size: 1.05rem; }
+        .mo-drawer-body { padding: 16px 20px 40px; }
+        .mo-events { list-style: none; margin: 8px 0 0; padding: 0; }
+        .mo-events li { border-left: 2px solid #e5e7eb; padding: 6px 0 6px 12px; margin-left: 4px; }
+        .mo-activity-add { display: flex; flex-direction: column; gap: 8px; margin: 10px 0; }
+        .mo-activity-add select, .mo-activity-add textarea { padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.85rem; font-family: inherit; }
         @media (max-width: 720px) {
             .mo-table { display: block; overflow-x: auto; }
             .mo-msg textarea { min-height: 160px; }
@@ -152,6 +187,61 @@ function ma($k) { return t('marketing_admin.' . $k); }
 
 <!-- ============ PROSPECTS ============ -->
 <section id="moTab-prospects" class="mo-pane mo-hidden">
+    <?php if ($crmReads): ?>
+    <div class="mo-toolbar">
+        <input type="search" id="moCrmQ" placeholder="<?php echo h(ma('search_placeholder')); ?>">
+        <select id="moCrmStatus">
+            <option value=""><?php echo h(ma('filter_all_status')); ?></option>
+            <option>Not Contacted</option><option>Sent</option><option>Do Not Contact</option>
+        </select>
+        <select id="moCrmPriority">
+            <option value=""><?php echo h(ma('filter_all_priority')); ?></option>
+            <option>1 - Highest Priority</option><option>2 - Strong Priority</option>
+            <option>3 - Worth Contacting</option><option>B - Enrich Next</option>
+        </select>
+        <input type="text" id="moCrmOrgType" placeholder="<?php echo h(ma('org_type_ph')); ?>" style="width:150px;">
+        <select id="moCrmEligible">
+            <option value=""><?php echo h(ma('filter_all_eligible')); ?></option>
+            <option value="initial">initial</option>
+            <option value="followup">follow-up</option>
+        </select>
+        <select id="moCrmFlag">
+            <option value=""><?php echo h(ma('filter_all_flags')); ?></option>
+            <option value="missing_contact"><?php echo h(ma('flag_missing_contact')); ?></option>
+            <option value="do_not_contact"><?php echo h(ma('flag_do_not_contact')); ?></option>
+            <option value="duplicate_org"><?php echo h(ma('flag_duplicate_org')); ?></option>
+        </select>
+        <select id="moCrmBucket">
+            <option value=""><?php echo h(ma('bucket_all')); ?></option>
+            <option value="due_today"><?php echo h(ma('bucket_due_today')); ?></option>
+            <option value="overdue"><?php echo h(ma('bucket_overdue')); ?></option>
+            <option value="upcoming"><?php echo h(ma('bucket_upcoming')); ?></option>
+            <option value="awaiting_response"><?php echo h(ma('bucket_awaiting_response')); ?></option>
+            <option value="not_contacted"><?php echo h(ma('bucket_not_contacted')); ?></option>
+            <option value="completed"><?php echo h(ma('bucket_completed')); ?></option>
+            <option value="excluded"><?php echo h(ma('bucket_excluded')); ?></option>
+        </select>
+        <label style="font-size:0.82rem;"><input type="checkbox" id="moCrmReviewOnly"> <?php echo h(ma('needs_review_filter')); ?></label>
+        <button class="mo-btn secondary" id="moCrmSearchBtn"><?php echo h(ma('search')); ?></button>
+        <button class="mo-btn" id="moCrmAdd"><?php echo h(ma('add_prospect')); ?></button>
+        <button class="mo-btn secondary" id="moCrmNewOrg"><?php echo h(ma('add_org')); ?></button>
+        <button class="mo-btn secondary" id="moCrmImportBtn"><?php echo h(ma('import_csv')); ?></button>
+        <button class="mo-btn secondary" id="moCrmExportBtn"><?php echo h(ma('export_csv')); ?></button>
+    </div>
+    <div class="mo-bulkbar mo-hidden" id="moBulkBar">
+        <strong id="moBulkCount"></strong>
+        <select id="moBulkPriority"><option value=""><?php echo h(ma('bulk_set_priority')); ?></option>
+            <option>1 - Highest Priority</option><option>2 - Strong Priority</option>
+            <option>3 - Worth Contacting</option><option>B - Enrich Next</option></select>
+        <input type="email" id="moBulkOwner" placeholder="<?php echo h(ma('bulk_owner_ph')); ?>" style="width:180px;">
+        <input type="text" id="moBulkTags" placeholder="<?php echo h(ma('bulk_tags_ph')); ?>" style="width:160px;">
+        <button class="mo-btn secondary small" id="moBulkCampaign"><?php echo h(ma('add_to_campaign')); ?></button>
+        <button class="mo-btn secondary small" id="moBulkExport"><?php echo h(ma('export_selected')); ?></button>
+        <button class="mo-btn secondary small" id="moBulkClear"><?php echo h(ma('clear_selection')); ?></button>
+    </div>
+    <div id="moCrmProspectList"></div>
+    <div class="mo-pager" id="moCrmPager"></div>
+    <?php else: ?>
     <div class="mo-toolbar">
         <input type="search" id="moProspectQ" placeholder="<?php echo h(ma('search_placeholder')); ?>">
         <select id="moProspectFlag">
@@ -166,6 +256,7 @@ function ma($k) { return t('marketing_admin.' . $k); }
             <option value="overdue"><?php echo h(ma('bucket_overdue')); ?></option>
             <option value="upcoming"><?php echo h(ma('bucket_upcoming')); ?></option>
             <option value="awaiting_response"><?php echo h(ma('bucket_awaiting_response')); ?></option>
+            <option value="not_contacted"><?php echo h(ma('bucket_not_contacted')); ?></option>
             <option value="completed"><?php echo h(ma('bucket_completed')); ?></option>
             <option value="excluded"><?php echo h(ma('bucket_excluded')); ?></option>
         </select>
@@ -173,6 +264,7 @@ function ma($k) { return t('marketing_admin.' . $k); }
     </div>
     <div id="moProspectList"></div>
     <div class="mo-pager" id="moProspectPager"></div>
+    <?php endif; ?>
 </section>
 
 <!-- ============ CAMPAIGNS ============ -->
@@ -187,7 +279,7 @@ function ma($k) { return t('marketing_admin.' . $k); }
             <h2 id="moCampTitle"></h2>
             <p class="mo-step-note" id="moCampMeta"></p>
             <div class="mo-warn mo-hidden" id="moCampApproveWarn"></div>
-            <div class="mo-toolbar">
+            <div class="mo-toolbar" id="moCampLegacyBar"<?php echo $crmReads ? ' style="display:none"' : ''; ?>>
                 <button class="mo-btn secondary" id="moCampBack"><?php echo h(ma('back_to_list')); ?></button>
                 <button class="mo-btn" id="moCampGenerate"><?php echo h(ma('generate_emails')); ?></button>
                 <button class="mo-btn secondary" id="moCampApprove"><?php echo h(ma('approve_and_send')); ?></button>
@@ -197,6 +289,21 @@ function ma($k) { return t('marketing_admin.' . $k); }
                 <button class="mo-btn secondary mo-hidden" id="moCampSheetSync"><?php echo h(ma('retry_sheet_sync')); ?></button>
                 <span class="mo-step-note" id="moCampStep"></span>
             </div>
+            <?php if ($crmReads): ?>
+            <div class="mo-toolbar" id="moCampCrmBar">
+                <button class="mo-btn secondary" id="moCampBackCrm"><?php echo h(ma('back_to_list')); ?></button>
+                <button class="mo-btn" id="moCampGenerateCrm"><?php echo h(ma('generate_emails')); ?></button>
+                <button class="mo-btn secondary" id="moCampAddRecipCrm"><?php echo h(ma('add_recipients')); ?></button>
+                <button class="mo-btn secondary" id="moCampEditCrm"><?php echo h(ma('edit_campaign')); ?></button>
+                <select id="moCampTplCrm" title="<?php echo h(ma('template')); ?>"></select>
+                <button class="mo-btn secondary" id="moCampApproveCrm"><?php echo h(ma('approve')); ?></button>
+                <button class="mo-btn mo-hidden" id="moCampSendCrm"><?php echo h(ma('send_campaign')); ?></button>
+                <button class="mo-btn danger mo-hidden" id="moCampRetryCrm"><?php echo h(ma('retry_failed')); ?></button>
+                <button class="mo-btn secondary mo-hidden" id="moCampThreadsCrm"><?php echo h(ma('recheck_threads')); ?></button>
+                <button class="mo-btn secondary mo-hidden" id="moCampReconcileCrm"><?php echo h(ma('reconcile_uncertain')); ?></button>
+                <span class="mo-step-note" id="moCampStepCrm"></span>
+            </div>
+            <?php endif; ?>
             <div id="moCampMessages" class="mo-msg-list"></div>
         </div>
     </div>
@@ -211,11 +318,12 @@ function ma($k) { return t('marketing_admin.' . $k); }
             <option value="overdue"><?php echo h(ma('bucket_overdue')); ?></option>
             <option value="upcoming"><?php echo h(ma('bucket_upcoming')); ?></option>
             <option value="awaiting_response"><?php echo h(ma('bucket_awaiting_response')); ?></option>
+            <option value="not_contacted"><?php echo h(ma('bucket_not_contacted')); ?></option>
             <option value="completed"><?php echo h(ma('bucket_completed')); ?></option>
             <option value="excluded"><?php echo h(ma('bucket_excluded')); ?></option>
         </select>
         <button class="mo-btn secondary" id="moFuLoad"><?php echo h(ma('load')); ?></button>
-        <button class="mo-btn" id="moFuCampaign"><?php echo h(ma('new_followup_campaign')); ?></button>
+        <button class="mo-btn" id="moFuCampaign"<?php echo $crmReads ? ' style="display:none"' : ''; ?>><?php echo h(ma('new_followup_campaign')); ?></button>
     </div>
     <div id="moFuList"></div>
 </section>
@@ -259,11 +367,18 @@ function ma($k) { return t('marketing_admin.' . $k); }
     </div>
 </section>
 
+<?php if ($crmReads): ?>
+<div id="moDrawer" class="mo-drawer mo-hidden" role="dialog" aria-label="Prospect detail"></div>
+<div id="moModal" class="mo-hidden"></div>
+<script src="<?= appAssetUrl('js/marketing-crm.js') ?>"></script>
+<?php endif; ?>
+
 <script>
 (function () {
     'use strict';
     var CSRF = <?php echo json_encode($csrfToken); ?>;
     var API = 'api/marketing-admin.php';
+    var CRM_READS = <?php echo json_encode($crmReads); ?>;
     var STR = {
         loadFailed: <?php echo json_encode(ma('load_failed')); ?>,
         sheetDown: <?php echo json_encode(ma('sheet_unavailable')); ?>,
@@ -368,8 +483,8 @@ function ma($k) { return t('marketing_admin.' . $k); }
     function loadTab(name) {
         clearMsgs();
         if (name === 'overview') loadOverview();
-        else if (name === 'prospects') loadProspects();
-        else if (name === 'campaigns') loadCampaigns();
+        else if (name === 'prospects') { if (CRM_READS && window.MOCrm) MOCrm.load(); else loadProspects(); }
+        else if (name === 'campaigns') { if (CRM_READS && window.MOCrm) MOCrm.loadCampaigns(); else loadCampaigns(); }
         else if (name === 'followups') loadFollowups('');
         else if (name === 'templates') loadTemplates();
         else if (name === 'history') loadHistory();
@@ -394,7 +509,7 @@ function ma($k) { return t('marketing_admin.' . $k); }
             });
             document.getElementById('moOvMetrics').innerHTML = html;
             var buckets = '';
-            ['due_today','overdue','upcoming','awaiting_response','completed','excluded'].forEach(function (b) {
+            ['due_today','overdue','upcoming','awaiting_response','not_contacted','completed','excluded'].forEach(function (b) {
                 buckets += '<span class="mo-pill ' + b + '">' + esc(b.replace(/_/g, ' ')) + ': ' + (o.followup_buckets[b] || 0) + '</span> ';
             });
             document.getElementById('moOvBuckets').innerHTML = buckets;
@@ -456,8 +571,11 @@ function ma($k) { return t('marketing_admin.' . $k); }
             document.getElementById('moPgNext').onclick = function () { state.prospectPage++; loadProspects(); };
         }).catch(function () { showErr(STR.loadFailed); });
     }
-    document.getElementById('moProspectSearch').addEventListener('click', function () { state.prospectPage = 1; loadProspects(); });
-    document.getElementById('moProspectQ').addEventListener('keydown', function (e) { if (e.key === 'Enter') { state.prospectPage = 1; loadProspects(); } });
+    // Sheet-mode prospect controls are absent when the CRM module is on.
+    if (!CRM_READS) {
+        document.getElementById('moProspectSearch').addEventListener('click', function () { state.prospectPage = 1; loadProspects(); });
+        document.getElementById('moProspectQ').addEventListener('keydown', function (e) { if (e.key === 'Enter') { state.prospectPage = 1; loadProspects(); } });
+    }
 
     function prospectDetail(email) {
         apiGet('prospect', { email: email }).then(function (d) {
@@ -518,6 +636,7 @@ function ma($k) { return t('marketing_admin.' . $k); }
         }).catch(function () { showErr(STR.loadFailed); });
     }
     document.getElementById('moNewCampaign').addEventListener('click', function () {
+        if (CRM_READS && window.MOCrm) { MOCrm.newCampaignWizard(); return; }
         var emails = prompt(<?php echo json_encode(ma('recipient_emails_prompt')); ?>);
         if (!emails) return;
         var name = prompt(<?php echo json_encode(ma('campaign_name_prompt')); ?>, 'Campaign ' + new Date().toISOString().slice(0, 10));
@@ -736,13 +855,19 @@ function ma($k) { return t('marketing_admin.' . $k); }
                     '<td>' + esc(fmtDate(p.followup_ts)) + ' <span class="mo-pill ' + p.bucket + '">' + esc(p.bucket.replace(/_/g, ' ')) + '</span></td>' +
                     '<td>' + esc(p.last_contact || '—') + '</td>' +
                     '<td>' + (p.eligible
-                        ? '<button class="mo-btn secondary small mo-fu-add" data-email="' + esc(p.email) + '">' + esc(<?php echo json_encode(ma('add_to_campaign')); ?>) + '</button>'
+                        ? '<button class="mo-btn secondary small mo-fu-add" data-email="' + esc(p.email) + '" data-cid="' + esc(p.id || '') + '">' + esc(<?php echo json_encode(ma('add_to_campaign')); ?>) + '</button>'
                         : '<span class="mo-msg-note">' + esc(STR.notEligibleFollowup) + '</span><br>' +
                           (p.followup_flags || []).map(function (f) { return '<span class="mo-flag duplicate_org">' + esc(f.replace(/_/g, ' ')) + '</span>'; }).join('')) + '</td></tr>';
             });
             host.innerHTML = html + '</tbody></table>';
             host.querySelectorAll('.mo-fu-add').forEach(function (b) {
-                b.addEventListener('click', function () { fuAddEmail(b.dataset.email); });
+                b.addEventListener('click', function () {
+                    if (CRM_READS && window.MOCrm && b.dataset.cid) {
+                        MOCrm.addContactsToCampaign([parseInt(b.dataset.cid, 10)], 'followup');
+                    } else {
+                        fuAddEmail(b.dataset.email);
+                    }
+                });
             });
         }).catch(function () { showErr(STR.loadFailed); });
     }
@@ -857,6 +982,191 @@ function ma($k) { return t('marketing_admin.' . $k); }
                 ha.innerHTML = ah + '</tbody></table>';
             }
         }).catch(function () { showErr(STR.loadFailed); });
+    }
+
+    // Phase 3 CRM module (only present when MARKETING_CRM_READS is on)
+    if (CRM_READS && window.MOCrm) {
+        MOCrm.init({
+            api: API, csrf: CSRF,
+            showErr: showErr, showOk: showOk,
+            str: {
+                loadFailed: STR.loadFailed, loading: <?php echo json_encode(ma('loading')); ?>,
+                noProspects: STR.noProspects, saved: <?php echo json_encode(ma('saved')); ?>,
+                savedWithWarnings: <?php echo json_encode(ma('saved_with_warnings')); ?>,
+                conflict: <?php echo json_encode(ma('conflict_reload')); ?>,
+                bulkDone: <?php echo json_encode(ma('bulk_done')); ?>,
+                selected: <?php echo json_encode(ma('selected_count')); ?>,
+                colOrg: <?php echo json_encode(ma('col_org')); ?>,
+                colContact: <?php echo json_encode(ma('col_contact')); ?>,
+                colEmail: <?php echo json_encode(ma('col_email')); ?>,
+                colStatus: <?php echo json_encode(ma('col_status')); ?>,
+                colPriority: <?php echo json_encode(ma('col_priority')); ?>,
+                colFollowup: <?php echo json_encode(ma('col_followup')); ?>,
+                colEligibility: <?php echo json_encode(ma('col_eligibility')); ?>,
+                colFlags: <?php echo json_encode(ma('col_flags')); ?>,
+                colType: <?php echo json_encode(ma('col_type')); ?>,
+                colTitle: <?php echo json_encode(ma('col_title')); ?>,
+                colPhone: <?php echo json_encode(ma('col_phone')); ?>,
+                colLocation: <?php echo json_encode(ma('col_location')); ?>,
+                colWebsite: <?php echo json_encode(ma('col_website')); ?>,
+                colDomain: <?php echo json_encode(ma('col_domain')); ?>,
+                colResponse: <?php echo json_encode(ma('col_response')); ?>,
+                colFit: <?php echo json_encode(ma('col_fit')); ?>,
+                colOwner: <?php echo json_encode(ma('col_owner')); ?>,
+                colSource: <?php echo json_encode(ma('col_source')); ?>,
+                colLastContact: <?php echo json_encode(ma('col_last_contact')); ?>,
+                colCampaign: <?php echo json_encode(ma('col_campaign')); ?>,
+                colMethod: <?php echo json_encode(ma('col_method')); ?>,
+                colNotes: <?php echo json_encode(ma('col_notes')); ?>,
+                colKind: <?php echo json_encode(ma('col_kind')); ?>,
+                colLine: <?php echo json_encode(ma('col_line')); ?>,
+                firstName: <?php echo json_encode(ma('first_name')); ?>,
+                lastName: <?php echo json_encode(ma('last_name')); ?>,
+                parentOrg: <?php echo json_encode(ma('parent_org')); ?>,
+                demoStatus: <?php echo json_encode(ma('demo_status')); ?>,
+                trialStatus: <?php echo json_encode(ma('trial_status')); ?>,
+                outcome: <?php echo json_encode(ma('outcome')); ?>,
+                objection: <?php echo json_encode(ma('objection_reason')); ?>,
+                eligible: <?php echo json_encode(ma('eligible_badge')); ?>,
+                excluded: <?php echo json_encode(ma('excluded_badge')); ?>,
+                needsReview: <?php echo json_encode(ma('needs_review_badge')); ?>,
+                markReviewed: <?php echo json_encode(ma('mark_reviewed')); ?>,
+                reviewResolved: <?php echo json_encode(ma('review_resolved')); ?>,
+                organization: <?php echo json_encode(ma('organization')); ?>,
+                editOrg: <?php echo json_encode(ma('edit_org')); ?>,
+                edit: <?php echo json_encode(ma('edit')); ?>,
+                prospect: <?php echo json_encode(ma('prospect')); ?>,
+                campaignMembership: <?php echo json_encode(ma('campaign_membership')); ?>,
+                sendHistory: <?php echo json_encode(ma('send_history')); ?>,
+                activity: <?php echo json_encode(ma('activity')); ?>,
+                activityPlaceholder: <?php echo json_encode(ma('activity_placeholder')); ?>,
+                activityRequired: <?php echo json_encode(ma('activity_required')); ?>,
+                activityAdded: <?php echo json_encode(ma('activity_added')); ?>,
+                addActivity: <?php echo json_encode(ma('add_activity')); ?>,
+                manualNotProof: <?php echo json_encode(ma('manual_not_proof')); ?>,
+                act_note: <?php echo json_encode(ma('act_note')); ?>,
+                act_call: <?php echo json_encode(ma('act_call')); ?>,
+                act_meeting: <?php echo json_encode(ma('act_meeting')); ?>,
+                act_manual_email: <?php echo json_encode(ma('act_manual_email')); ?>,
+                act_status_update: <?php echo json_encode(ma('act_status_update')); ?>,
+                editProspect: <?php echo json_encode(ma('edit_prospect')); ?>,
+                addProspect: <?php echo json_encode(ma('add_prospect')); ?>,
+                addOrg: <?php echo json_encode(ma('add_org')); ?>,
+                editOrgTitle: <?php echo json_encode(ma('edit_org_title')); ?>,
+                orgName: <?php echo json_encode(ma('org_name')); ?>,
+                orgSearchPh: <?php echo json_encode(ma('org_search_ph')); ?>,
+                orgTypePh: <?php echo json_encode(ma('org_type_ph')); ?>,
+                domainPh: <?php echo json_encode(ma('domain_ph')); ?>,
+                createNewOrg: <?php echo json_encode(ma('create_new_org')); ?>,
+                noOrg: <?php echo json_encode(ma('no_org')); ?>,
+                tagsPh: <?php echo json_encode(ma('tags_ph')); ?>,
+                save: <?php echo json_encode(ma('save')); ?>,
+                cancel: <?php echo json_encode(ma('cancel')); ?>,
+                maxRecipients: '10',
+                newDraftCampaign: <?php echo json_encode(ma('new_draft_campaign')); ?>,
+                campaignName: <?php echo json_encode(ma('campaign_name')); ?>,
+                campaignNamePh: <?php echo json_encode(ma('campaign_name_ph')); ?>,
+                kindInitial: <?php echo json_encode(ma('kind_initial_lbl')); ?>,
+                kindFollowup: <?php echo json_encode(ma('kind_followup_lbl')); ?>,
+                addToCampaignNote: <?php echo json_encode(ma('add_to_campaign_note')); ?>,
+                confirmAdd: <?php echo json_encode(ma('confirm_add')); ?>,
+                addToCampaign: <?php echo json_encode(ma('add_to_campaign')); ?>,
+                campaignAddDone: <?php echo json_encode(ma('campaign_add_done')); ?>,
+                previewNote: <?php echo json_encode(ma('campaign_preview_note')); ?>,
+                campaignNameRequired: <?php echo json_encode(ma('campaign_name_required')); ?>,
+                importNote: <?php echo json_encode(ma('import_note')); ?>,
+                preview: <?php echo json_encode(ma('preview')); ?>,
+                confirmImport: <?php echo json_encode(ma('confirm_import')); ?>,
+                importNoFile: <?php echo json_encode(ma('import_no_file')); ?>,
+                importCounts: <?php echo json_encode(ma('import_counts')); ?>,
+                importDone: <?php echo json_encode(ma('import_done')); ?>,
+                importCsv: <?php echo json_encode(ma('import_csv')); ?>,
+                disposition: <?php echo json_encode(ma('disposition')); ?>,
+                bulk_set_priority: <?php echo json_encode(ma('bulk_set_priority')); ?>,
+                bulk_owner_ph: <?php echo json_encode(ma('bulk_owner_ph')); ?>,
+                bulk_tags_ph: <?php echo json_encode(ma('bulk_tags_ph')); ?>,
+                add_to_campaign: <?php echo json_encode(ma('add_to_campaign')); ?>,
+                export_selected: <?php echo json_encode(ma('export_selected')); ?>,
+                clear_selection: <?php echo json_encode(ma('clear_selection')); ?>,
+                // Phase 4 campaign module
+                colName: <?php echo json_encode(ma('col_name')); ?>,
+                colKind: <?php echo json_encode(ma('col_kind')); ?>,
+                colStatus: <?php echo json_encode(ma('col_status')); ?>,
+                colRecipients: <?php echo json_encode(ma('col_recipients')); ?>,
+                colSent: <?php echo json_encode(ma('col_sent')); ?>,
+                colCreated: <?php echo json_encode(ma('col_created')); ?>,
+                approvedBy: <?php echo json_encode(ma('approved_by')); ?>,
+                approveWarn: <?php echo json_encode(ma('approve_warn')); ?>,
+                approveAndSend: <?php echo json_encode(ma('approve_and_send')); ?>,
+                approveOnly: <?php echo json_encode(ma('approve_only')); ?>,
+                stepEdit: <?php echo json_encode(ma('step_edit')); ?>,
+                tplDefault: <?php echo json_encode(ma('tpl_default_label')); ?>,
+                searchProspects: <?php echo json_encode(ma('search_prospects_ph')); ?>,
+                allEligibility: <?php echo json_encode(ma('all_eligibility')); ?>,
+                selectRecipients: <?php echo json_encode(ma('select_recipients')); ?>,
+                addSelected: <?php echo json_encode(ma('add_selected')); ?>,
+                selectedCount: <?php echo json_encode(ma('selected_count_label')); ?>,
+                overLimit: <?php echo json_encode(ma('over_recipient_limit')); ?>,
+                campaignName: <?php echo json_encode(ma('campaign_name')); ?>,
+                campaignNamePh: <?php echo json_encode(ma('campaign_name_ph')); ?>,
+                description: <?php echo json_encode(ma('description')); ?>,
+                stepDetails: <?php echo json_encode(ma('step_details')); ?>,
+                stepRecipients: <?php echo json_encode(ma('step_recipients')); ?>,
+                chooseRecipients: <?php echo json_encode(ma('choose_recipients')); ?>,
+                noRecipientsYet: <?php echo json_encode(ma('no_recipients_yet')); ?>,
+                createDraft: <?php echo json_encode(ma('create_draft')); ?>,
+                newCampaign: <?php echo json_encode(ma('new_campaign_wizard')); ?>,
+                campaignCreated: <?php echo json_encode(ma('campaign_created')); ?>,
+                campaignNameRequired: <?php echo json_encode(ma('campaign_name_required')); ?>,
+                addRecipients: <?php echo json_encode(ma('add_recipients')); ?>,
+                addedN: <?php echo json_encode(ma('added_count')); ?>,
+                editCampaign: <?php echo json_encode(ma('edit_campaign_title')); ?>,
+                confirmRemoveRecipient: <?php echo json_encode(ma('confirm_remove_recipient')); ?>,
+                removed: <?php echo json_encode(ma('recipient_removed')); ?>,
+                regen: <?php echo json_encode(ma('regen_message')); ?>,
+                remove: <?php echo json_encode(ma('remove_recipient')); ?>,
+                subjectPh: <?php echo json_encode(ma('subject_ph')); ?>,
+                preview: <?php echo json_encode(ma('preview')); ?>,
+                noContent: <?php echo json_encode(ma('no_content')); ?>,
+                edited: <?php echo json_encode(ma('edited')); ?>,
+                uncertainNote: <?php echo json_encode(ma('uncertain_note')); ?>,
+                markNotSent: <?php echo json_encode(ma('mark_not_sent')); ?>,
+                markSent: <?php echo json_encode(ma('mark_sent')); ?>,
+                confirmMarkNotSent: <?php echo json_encode(ma('confirm_mark_not_sent')); ?>,
+                confirmMarkSent: <?php echo json_encode(ma('confirm_mark_sent')); ?>,
+                confirm: <?php echo json_encode(ma('confirm_dialog_title')); ?>,
+                yes: <?php echo json_encode(ma('yes_btn')); ?>,
+                confirmApproveOnly: <?php echo json_encode(ma('confirm_approve_only')); ?>,
+                approvedNotSent: <?php echo json_encode(ma('approved_not_sent')); ?>,
+                confirmSendCampaign: <?php echo json_encode(ma('confirm_send_campaign')); ?>,
+                sendSummary: <?php echo json_encode(ma('send_summary')); ?>,
+                reconcileResult: <?php echo json_encode(ma('reconcile_result')); ?>,
+                generatedOk: <?php echo json_encode(ma('generated_ok')); ?>,
+                kindInitial: <?php echo json_encode(ma('kind_initial_lbl')); ?>,
+                kindFollowup: <?php echo json_encode(ma('kind_followup_lbl')); ?>,
+                template: <?php echo json_encode(ma('template')); ?>,
+                sendCampaign: <?php echo json_encode(ma('send_campaign')); ?>,
+                maxRecipients: <?php echo json_encode(ma('max_recipients_label')); ?>,
+                cancel: <?php echo json_encode(ma('cancel')); ?>,
+                save: <?php echo json_encode(ma('save')); ?>,
+                colLine: <?php echo json_encode(ma('col_line')); ?>,
+                importNote: <?php echo json_encode(ma('import_note')); ?>,
+                importNoFile: <?php echo json_encode(ma('import_no_file')); ?>,
+                importCounts: <?php echo json_encode(ma('import_counts')); ?>,
+                confirmImport: <?php echo json_encode(ma('confirm_import')); ?>,
+                importDone: <?php echo json_encode(ma('import_done')); ?>,
+                importCsv: <?php echo json_encode(ma('import_csv')); ?>,
+                disposition: <?php echo json_encode(ma('disposition')); ?>,
+                campaignAddDone: <?php echo json_encode(ma('campaign_add_done')); ?>,
+                previewNote: <?php echo json_encode(ma('campaign_preview_note')); ?>,
+                newDraftCampaign: <?php echo json_encode(ma('new_draft_campaign')); ?>,
+                addToCampaignNote: <?php echo json_encode(ma('add_to_campaign_note')); ?>,
+                confirmAdd: <?php echo json_encode(ma('confirm_add')); ?>,
+                addToCampaign: <?php echo json_encode(ma('add_to_campaign')); ?>,
+                campaignNameRequired2: <?php echo json_encode(ma('campaign_name_required')); ?>,
+                unmappedColumns: <?php echo json_encode(ma('unmapped_columns')); ?>
+            }
+        });
     }
 
     loadTab('overview');

@@ -221,7 +221,7 @@ switch ($action) {
         // feature-flags.php explicitly allows to be session-overridden in
         // dev/test may be set here; MARKETING_SENDING can never be.
         $flag = strtoupper(trim((string)($input['flag'] ?? '')));
-        $allowed = ['SHOW_NOTIFICATIONS', 'MARKETING_OUTREACH'];
+        $allowed = ['SHOW_NOTIFICATIONS', 'MARKETING_OUTREACH', 'MARKETING_CRM_READS'];
         if (!in_array($flag, $allowed, true)) {
             http_response_code(400);
             echo json_encode(['success' => false, 'message' => 'Flag not allowed']);

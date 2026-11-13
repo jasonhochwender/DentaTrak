@@ -26,6 +26,16 @@ $FEATURE_DEFAULTS = [
                                    // edit, prepare, approve). Grants NO
                                    // ability to deliver email.
                                    // Enable via env var only.
+    'MARKETING_CRM_READS' => false, // Marketing Outreach CRM (Phase 2):
+                                     // serve prospect reads from the
+                                     // marketing_contacts/marketing_orgs
+                                     // MySQL tables instead of the Google
+                                     // Sheet. Grants NO sending ability;
+                                     // send-time sheet pre-checks are
+                                     // unchanged. Enable via env var only
+                                     // after the Phase 1 import +
+                                     // reconciliation are verified in the
+                                     // target environment.
     'MARKETING_SENDING' => false,  // Marketing Sending: whether marketing
                                    // email may be delivered at all. Read
                                    // from the environment only by
@@ -142,7 +152,7 @@ function isFeatureEnabled($featureName) {
     // test fixtures.  This is never available in Cloud Run because the
     // override is keyed to a trusted server-side environment indicator,
     // not a user-controlled HTTP_HOST.
-    if (in_array($featureName, ['SHOW_NOTIFICATIONS', 'MARKETING_OUTREACH'], true) && session_status() === PHP_SESSION_ACTIVE) {
+    if (in_array($featureName, ['SHOW_NOTIFICATIONS', 'MARKETING_OUTREACH', 'MARKETING_CRM_READS'], true) && session_status() === PHP_SESSION_ACTIVE) {
         $currentEnv = $appConfig['current_environment'] ?? 'production';
         $isTestMode = in_array($currentEnv, ['development', 'test', 'local'], true)
             || getEnvVar('DENTATRAK_TEST_MODE', 'false') === 'true';

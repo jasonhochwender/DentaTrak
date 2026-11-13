@@ -42,6 +42,8 @@ require_once __DIR__ . '/feature-flags.php';
 require_once __DIR__ . '/ai-client.php';
 require_once __DIR__ . '/marketing/SuppressionService.php';
 require_once __DIR__ . '/marketing/ProspectDirectory.php';
+require_once __DIR__ . '/marketing/ProspectCrm.php';
+require_once __DIR__ . '/marketing/ProspectCrmAdmin.php';
 require_once __DIR__ . '/marketing/McpSheetSync.php';
 require_once __DIR__ . '/marketing/MarketingMailer.php';
 require_once __DIR__ . '/marketing/MarketingSendingPolicy.php';
@@ -219,6 +221,72 @@ function mo_directory(PDO $pdo): ProspectDirectory {
 }
 
 /**
+ * CRM (MySQL) prospect source - Phase 2. Enabled only by the
+ * MARKETING_CRM_READS env flag. When the flag is on but the CRM tables
+ * are missing the request fails closed (503) rather than silently
+ * falling back to the sheet, so a partial migration can never produce
+ * split-brain reads.
+ */
+function mo_crm(PDO $pdo): ?ProspectCrm {
+    if (!isFeatureEnabled('MARKETING_CRM_READS')) return null;
+    $crm = new ProspectCrm($pdo);
+    if (!$crm->available()) {
+        mo_fail('crm_not_migrated: run migrations/2026_11_13_marketing_crm.php and 2026_11_14_marketing_crm_phase2.php', 503);
+    }
+    return $crm;
+}
+
+/**
+ * CRM write layer (Phase 3). Only available when MARKETING_CRM_READS is
+ * on AND the Phase 3 migration has run; otherwise 503. Mutations are
+ * MySQL-only by design - the Sheet is never written here.
+ */
+function mo_crm_admin(PDO $pdo, string $actor): ProspectCrmAdmin {
+    $crm = mo_crm($pdo); // fails closed when flag on but tables missing
+    if ($crm === null) {
+        mo_fail('crm_disabled: MARKETING_CRM_READS is not enabled', 403);
+    }
+    try {
+        $pdo->query('SELECT version FROM marketing_contacts LIMIT 0');
+        $pdo->query('SELECT contact_id FROM marketing_campaign_recipients LIMIT 0');
+    } catch (Throwable $e) {
+        mo_fail('schema_not_migrated: run migrations/2026_11_15_marketing_crm_phase3.php', 503);
+    }
+    return new ProspectCrmAdmin($pdo, $actor);
+}
+
+/** Public prospect-list item shape (shared by sheet and CRM reads). */
+function mo_prospect_item(array $p): array {
+    return [
+        'row' => $p['row'],
+        // Phase 3: full fields map carries stable ids (contact_id/org_id),
+        // version, review flags and editable columns for the CRM UI.
+        'fields' => $p['fields'],
+        'email' => $p['fields']['email'],
+        'org' => $p['fields']['org'],
+        'parent_org' => $p['fields']['parent_org'],
+        'contact_name' => $p['contact_name'],
+        'title' => $p['fields']['title'],
+        'practice_type' => $p['fields']['practice_type'],
+        'fit' => $p['fields']['fit'],
+        'priority' => $p['fields']['priority'],
+        'status' => $p['fields']['status'],
+        'response' => $p['fields']['response'],
+        'last_contact' => $p['fields']['last_contact'],
+        'followup_date' => $p['followup_ts'] !== null ? gmdate('Y-m-d', $p['followup_ts']) : '',
+        'followup_ts' => $p['followup_ts'],
+        'campaign' => $p['fields']['campaign'],
+        'bucket' => $p['bucket'],
+        'flags' => $p['flags'],
+        'eligible' => $p['eligible'],
+        'eligible_initial' => !empty($p['eligibility']['initial']['ok']),
+        'initial_flags' => $p['eligibility']['initial']['flags'] ?? [],
+        'eligible_followup' => !empty($p['eligibility']['followup']['ok']),
+        'followup_flags' => $p['eligibility']['followup']['flags'] ?? [],
+    ];
+}
+
+/**
  * Load all prospects; returns [records, ?errorCode, directory|null].
  * Never throws - sheet/auth/db failures degrade to an empty list plus a
  * stable error-code string so the UI can distinguish "no prospects" from
@@ -238,11 +306,19 @@ function mo_load_prospects(PDO $pdo): array {
     }
 }
 
-/** Content hash binding approval to exact per-recipient content. */
+/**
+ * Content hash binding approval to exact campaign content. Covers the
+ * campaign identity (name/kind - both appear on sent mail and sheet
+ * write-backs), every recipient row's membership + rendered content,
+ * and resolved thread references. Any add/remove/edit changes it.
+ */
 function mo_content_hash(PDO $pdo, string $campaignId): string {
-    $rows = $pdo->prepare("SELECT id,subject,body_html,thread_rfc_message_id FROM marketing_campaign_recipients WHERE campaign_id=? ORDER BY id");
+    $c = $pdo->prepare("SELECT name,kind FROM marketing_campaigns WHERE id=?");
+    $c->execute([$campaignId]);
+    $meta = $c->fetch(PDO::FETCH_ASSOC) ?: ['name' => '', 'kind' => ''];
+    $rows = $pdo->prepare("SELECT id,contact_id,sheet_row,prospect_email,subject,body_html,thread_rfc_message_id FROM marketing_campaign_recipients WHERE campaign_id=? ORDER BY id");
     $rows->execute([$campaignId]);
-    return hash('sha256', json_encode($rows->fetchAll(PDO::FETCH_ASSOC)));
+    return hash('sha256', json_encode([$meta['name'], $meta['kind'], $rows->fetchAll(PDO::FETCH_ASSOC)]));
 }
 
 /** Render a template's placeholders for one prospect. */
@@ -358,8 +434,29 @@ function mo_template_fallback(array $prospect, string $kind, ?string $templateBo
 if ($method === 'GET') {
     switch ($action) {
         case 'overview': {
+            $crm = mo_crm($pdo);
+            if ($crm !== null) {
+                $oc = $crm->overviewCounts();
+                $campaigns = $pdo->query("SELECT status, COUNT(*) n FROM marketing_campaigns GROUP BY status")->fetchAll(PDO::FETCH_KEY_PAIR);
+                $sent30 = (int)$pdo->query("SELECT COUNT(*) FROM marketing_sends WHERE status='sent' AND sent_at >= UTC_TIMESTAMP() - INTERVAL 30 DAY")->fetchColumn();
+                $suppressed = (int)$pdo->query("SELECT COUNT(*) FROM marketing_suppressions")->fetchColumn();
+                mo_out(['success' => true, 'overview' => [
+                    'prospects_total' => $oc['prospects_total'],
+                    'prospects_eligible' => $oc['prospects_eligible'],
+                    'eligible_initial' => $oc['eligible_initial'],
+                    'eligible_followup' => $oc['eligible_followup'],
+                    'sending' => $sendingPolicy->summary(),
+                    'flags' => $oc['flags'],
+                    'followup_buckets' => $oc['followup_buckets'],
+                    'campaigns' => $campaigns,
+                    'sends_30d' => $sent30,
+                    'suppressions' => $suppressed,
+                    'sheet_error' => null,
+                    'source' => 'crm',
+                ]]);
+            }
             [$prospects, $sheetErr] = mo_load_prospects($pdo);
-            $buckets = ['due_today'=>0,'overdue'=>0,'upcoming'=>0,'awaiting_response'=>0,'completed'=>0,'excluded'=>0];
+            $buckets = ['due_today'=>0,'overdue'=>0,'upcoming'=>0,'awaiting_response'=>0,'not_contacted'=>0,'completed'=>0,'excluded'=>0];
             $eligible = 0; $flags = ['missing_contact'=>0,'do_not_contact'=>0,'duplicate_org'=>0];
             $eligInitial = 0; $eligFollowup = 0;
             foreach ($prospects as $p) {
@@ -387,6 +484,22 @@ if ($method === 'GET') {
             ]]);
         }
         case 'prospects': {
+            $crm = mo_crm($pdo);
+            if ($crm !== null) {
+                // Server-side search/filter/sort/pagination in SQL.
+                $res = $crm->search([
+                    'q' => $_GET['q'] ?? '', 'flag' => $_GET['flag'] ?? '', 'bucket' => $_GET['bucket'] ?? '',
+                    'status' => $_GET['status'] ?? '', 'priority' => $_GET['priority'] ?? '',
+                    'org_type' => $_GET['org_type'] ?? '', 'eligible' => $_GET['eligible'] ?? '',
+                    'review' => $_GET['review'] ?? '',
+                    'sort' => $_GET['sort'] ?? '', 'dir' => $_GET['dir'] ?? '',
+                    'page' => $_GET['page'] ?? 1, 'per' => $_GET['per'] ?? 50,
+                ]);
+                mo_out(['success' => true,
+                    'prospects' => array_map('mo_prospect_item', $res['rows']),
+                    'total' => $res['total'], 'page' => max(1, (int)($_GET['page'] ?? 1)), 'per' => min(200, max(1, (int)($_GET['per'] ?? 50))),
+                    'sheet_error' => null, 'source' => 'crm']);
+            }
             $q = strtolower(trim((string)($_GET['q'] ?? '')));
             $flag = (string)($_GET['flag'] ?? '');
             $bucket = (string)($_GET['bucket'] ?? '');
@@ -405,35 +518,48 @@ if ($method === 'GET') {
             }));
             $total = count($filtered);
             $slice = array_slice($filtered, ($page - 1) * $per, $per);
-            mo_out(['success' => true, 'prospects' => array_map(function ($p) {
-                return [
-                    'row' => $p['row'],
-                    'email' => $p['fields']['email'],
-                    'org' => $p['fields']['org'],
-                    'parent_org' => $p['fields']['parent_org'],
-                    'contact_name' => $p['contact_name'],
-                    'title' => $p['fields']['title'],
-                    'practice_type' => $p['fields']['practice_type'],
-                    'fit' => $p['fields']['fit'],
-                    'priority' => $p['fields']['priority'],
-                    'status' => $p['fields']['status'],
-                    'response' => $p['fields']['response'],
-                    'last_contact' => $p['fields']['last_contact'],
-                    'followup_date' => $p['followup_ts'] !== null ? gmdate('Y-m-d', $p['followup_ts']) : '',
-                    'followup_ts' => $p['followup_ts'],
-                    'campaign' => $p['fields']['campaign'],
-                    'bucket' => $p['bucket'],
-                    'flags' => $p['flags'],
-                    'eligible' => $p['eligible'],
-                    'eligible_initial' => !empty($p['eligibility']['initial']['ok']),
-                    'initial_flags' => $p['eligibility']['initial']['flags'] ?? [],
-                    'eligible_followup' => !empty($p['eligibility']['followup']['ok']),
-                    'followup_flags' => $p['eligibility']['followup']['flags'] ?? [],
-                ];
-            }, $slice), 'total' => $total, 'page' => $page, 'per' => $per,
+            mo_out(['success' => true, 'prospects' => array_map('mo_prospect_item', $slice), 'total' => $total, 'page' => $page, 'per' => $per,
                'sheet_error' => $sheetErr]);
         }
         case 'prospect': {
+            $crm = mo_crm($pdo);
+            if ($crm !== null) {
+                // Phase 3: detail by contact id (stable identity) or email.
+                $cid = (int)($_GET['id'] ?? 0);
+                $reqEmail = SuppressionService::normalizeEmail((string)($_GET['email'] ?? ''));
+                if ($cid <= 0 && $reqEmail === '') mo_fail('email or id required');
+                $p = $cid > 0 ? $crm->findById($cid) : $crm->findByEmail($reqEmail);
+                if (!$p) mo_fail('not found', 404);
+                $contactId = (int)($p['fields']['contact_id'] ?? 0);
+                $email = SuppressionService::normalizeEmail((string)$p['fields']['email']);
+                $hist = $pdo->prepare("SELECT campaign_ref,status,gmail_message_id,sent_at,created_at FROM marketing_sends WHERE email_normalized=? ORDER BY id DESC LIMIT 50");
+                $hist->execute([$email]);
+                // Activity timeline (CRM events) - manual entries are
+                // labeled distinctly from verified sends.
+                $ev = $pdo->prepare("SELECT event_type, details, actor, source, created_at FROM marketing_prospect_events
+                                     WHERE contact_id=? ORDER BY id DESC LIMIT 100");
+                $ev->execute([$contactId]);
+                $events = $ev->fetchAll(PDO::FETCH_ASSOC);
+                // Campaign memberships via stable contact_id (Phase 3) or
+                // legacy email match for sheet-era recipients.
+                $mc = $pdo->prepare("SELECT cr.campaign_id, c.name, c.kind, c.status, cr.status AS recipient_status, cr.sent_at
+                                     FROM marketing_campaign_recipients cr
+                                     JOIN marketing_campaigns c ON c.id=cr.campaign_id
+                                     WHERE cr.contact_id=? OR (cr.contact_id IS NULL AND cr.prospect_email=?)
+                                     ORDER BY cr.id DESC LIMIT 50");
+                $mc->execute([$contactId, $email]);
+                // Org detail for the drawer.
+                $orgId = $p['fields']['org_id'] ?? null;
+                $org = null;
+                if ($orgId) {
+                    $og = $pdo->prepare('SELECT id,name,org_type,domain,location,website,parent_org_id,status,tags FROM marketing_orgs WHERE id=?');
+                    $og->execute([(int)$orgId]);
+                    $org = $og->fetch(PDO::FETCH_ASSOC) ?: null;
+                }
+                mo_out(['success' => true, 'prospect' => $p, 'org' => $org,
+                    'events' => $events, 'campaigns' => $mc->fetchAll(PDO::FETCH_ASSOC),
+                    'history' => $hist->fetchAll(PDO::FETCH_ASSOC), 'source' => 'crm']);
+            }
             $email = SuppressionService::normalizeEmail((string)($_GET['email'] ?? ''));
             if ($email === '') mo_fail('email required');
             [, $sheetErr, $dir] = mo_load_prospects($pdo);
@@ -450,6 +576,22 @@ if ($method === 'GET') {
         }
         case 'followups': {
             $bucket = (string)($_GET['bucket'] ?? '');
+            $crm = mo_crm($pdo);
+            if ($crm !== null) {
+                $all = $crm->followups($bucket);
+                mo_out(['success' => true, 'followups' => array_map(function ($p) {
+                    return [
+                        'row' => $p['row'], 'id' => $p['id'] ?? null,
+                        'email' => $p['fields']['email'], 'org' => $p['fields']['org'],
+                        'contact_name' => $p['contact_name'], 'status' => $p['fields']['status'],
+                        'response' => $p['fields']['response'], 'followup_ts' => $p['followup_ts'],
+                        'last_contact' => $p['fields']['last_contact'], 'notes' => $p['fields']['notes'],
+                        'bucket' => $p['bucket'], 'flags' => $p['flags'],
+                        'eligible' => !empty($p['eligibility']['followup']['ok']),
+                        'followup_flags' => $p['eligibility']['followup']['flags'] ?? [],
+                    ];
+                }, $all), 'sheet_error' => null, 'source' => 'crm']);
+            }
             [$all, $sheetErr] = mo_load_prospects($pdo);
             $all = array_values(array_filter($all, function ($p) use ($bucket) {
                 return $bucket === '' ? in_array($p['bucket'], ['due_today','overdue','upcoming','awaiting_response'], true)
@@ -460,7 +602,8 @@ if ($method === 'GET') {
             });
             mo_out(['success' => true, 'followups' => array_map(function ($p) {
                 return [
-                    'row' => $p['row'], 'email' => $p['fields']['email'], 'org' => $p['fields']['org'],
+                    'row' => $p['row'], 'id' => $p['id'] ?? null,
+                    'email' => $p['fields']['email'], 'org' => $p['fields']['org'],
                     'contact_name' => $p['contact_name'], 'status' => $p['fields']['status'],
                     'response' => $p['fields']['response'], 'followup_ts' => $p['followup_ts'],
                     'last_contact' => $p['fields']['last_contact'], 'notes' => $p['fields']['notes'],
@@ -470,6 +613,55 @@ if ($method === 'GET') {
                     'followup_flags' => $p['eligibility']['followup']['flags'] ?? [],
                 ];
             }, $all), 'sheet_error' => $sheetErr]);
+        }
+        case 'orgs': {
+            $crm = mo_crm($pdo);
+            if ($crm === null) mo_fail('crm_disabled', 403);
+            $admin = new ProspectCrmAdmin($pdo, $userEmail);
+            $res = $admin->listOrgs([
+                'q' => $_GET['q'] ?? '', 'page' => $_GET['page'] ?? 1, 'per' => $_GET['per'] ?? 50,
+            ]);
+            mo_out(['success' => true, 'orgs' => $res['rows'], 'total' => $res['total'],
+                'page' => max(1, (int)($_GET['page'] ?? 1)), 'source' => 'crm']);
+        }
+        case 'org': {
+            $crm = mo_crm($pdo);
+            if ($crm === null) mo_fail('crm_disabled', 403);
+            $id = (int)($_GET['id'] ?? 0);
+            $org = $crm->orgById($id);
+            if (!$org) mo_fail('not found', 404);
+            // Parent + children for relationship display.
+            $parent = $org['parent_org_id'] ? $crm->orgById((int)$org['parent_org_id']) : null;
+            $ch = $pdo->prepare('SELECT id,name,org_type FROM marketing_orgs WHERE parent_org_id=? ORDER BY name');
+            $ch->execute([$id]);
+            mo_out(['success' => true, 'org' => $org, 'parent' => $parent,
+                'children' => $ch->fetchAll(PDO::FETCH_ASSOC),
+                'contacts' => array_map('mo_prospect_item', $crm->contactsForOrg($id)),
+                'source' => 'crm']);
+        }
+        case 'export': {
+            // CSV export - streams text/csv, not JSON. CRM flag required.
+            $crm = mo_crm($pdo);
+            if ($crm === null) mo_fail('crm_disabled', 403);
+            $admin = new ProspectCrmAdmin($pdo, $userEmail);
+            $ids = array_filter(array_map('intval', explode(',', (string)($_GET['ids'] ?? ''))));
+            $filters = [
+                'q' => $_GET['q'] ?? '', 'flag' => $_GET['flag'] ?? '', 'bucket' => $_GET['bucket'] ?? '',
+                'status' => $_GET['status'] ?? '', 'priority' => $_GET['priority'] ?? '',
+                'org_type' => $_GET['org_type'] ?? '', 'eligible' => $_GET['eligible'] ?? '',
+            ];
+            $rows = $admin->exportRows($filters, $ids ?: null);
+            mo_audit($pdo, $userEmail, 'prospect_export', null,
+                ['count' => count($rows), 'ids' => $ids ? count($ids) : null, 'filters' => $filters]);
+            header('Content-Type: text/csv; charset=utf-8');
+            header('Content-Disposition: attachment; filename="prospects-' . gmdate('Ymd-His') . '.csv"');
+            $out = fopen('php://output', 'w');
+            if ($rows) {
+                fputcsv($out, array_keys($rows[0]));
+                foreach ($rows as $r) fputcsv($out, $r);
+            }
+            fclose($out);
+            exit;
         }
         case 'campaigns': {
             $rows = $pdo->query("SELECT c.*, 
@@ -484,7 +676,7 @@ if ($method === 'GET') {
             $c->execute([$id]);
             $camp = $c->fetch(PDO::FETCH_ASSOC);
             if (!$camp) mo_fail('not found', 404);
-            $r = $pdo->prepare("SELECT id,sheet_row,prospect_email,prospect_org,prospect_contact,subject,body_html,status,skip_reason,is_edited,gmail_message_id,gmail_thread_id,error,sent_at,thread_status,thread_reason,thread_source,thread_subject,sheet_sync_status,sheet_sync_error,sheet_synced_at FROM marketing_campaign_recipients WHERE campaign_id=? ORDER BY id");
+            $r = $pdo->prepare("SELECT id,contact_id,sheet_row,prospect_email,prospect_org,prospect_contact,subject,body_html,status,skip_reason,is_edited,gmail_message_id,gmail_thread_id,error,sent_at,thread_status,thread_reason,thread_source,thread_subject,sheet_sync_status,sheet_sync_error,sheet_synced_at FROM marketing_campaign_recipients WHERE campaign_id=? ORDER BY id");
             $r->execute([$id]);
             mo_out(['success' => true, 'campaign' => $camp, 'recipients' => $r->fetchAll(PDO::FETCH_ASSOC),
                 'sending' => $sendingPolicy->summary()]);
@@ -519,19 +711,27 @@ switch ($action) {
         if (!$emails) mo_fail('no valid recipients');
         if (count($emails) > MO_MAX_RECIPIENTS) mo_fail('max ' . MO_MAX_RECIPIENTS . ' recipients per campaign');
 
-        // Resolve each email against the sheet; ineligible prospects are
-        // still recorded but flagged so the UI can show why.
-        [$sheetProspects, $sheetErr] = mo_load_prospects($pdo);
-        if ($sheetErr) mo_fail('prospect sheet unavailable: ' . $sheetErr, 503);
-        $prospects = [];
-        foreach ($sheetProspects as $p) $prospects[strtolower($p['fields']['email'])] = $p;
+        // Resolve each email against the prospect source (CRM when enabled,
+        // otherwise the sheet); ineligible prospects are still recorded but
+        // flagged so the UI can show why.
+        $crm = mo_crm($pdo);
+        if ($crm !== null) {
+            $crmMap = $crm->findByEmails($emails);
+            $sheetErr = null;
+        } else {
+            [$sheetProspects, $sheetErr] = mo_load_prospects($pdo);
+            if ($sheetErr) mo_fail('prospect sheet unavailable: ' . $sheetErr, 503);
+            $crmMap = [];
+            foreach ($sheetProspects as $p) $crmMap[strtolower($p['fields']['email'])] = $p;
+        }
+        $prospects = $crmMap;
 
         $id = mo_uuid();
         $pdo->prepare("INSERT INTO marketing_campaigns (id,name,kind,status,created_by,recipient_count) VALUES (?,?,?,'draft',?,?)")
             ->execute([$id, substr($name, 0, 160), $kind, $userEmail, count($emails)]);
         $ins = $pdo->prepare("INSERT INTO marketing_campaign_recipients
-            (campaign_id,sheet_row,prospect_email,prospect_org,prospect_contact,status,skip_reason)
-            VALUES (?,?,?,?,?,?,?)");
+            (campaign_id,contact_id,sheet_row,prospect_email,prospect_org,prospect_contact,status,skip_reason)
+            VALUES (?,?,?,?,?,?,?,?)");
         foreach ($emails as $e) {
             $p = $prospects[$e] ?? null;
             $reason = null; $status = 'draft';
@@ -543,7 +743,7 @@ switch ($action) {
                 $status = 'suppressed';
                 $reason = substr(implode(',', $p['eligibility'][$kind]['flags'] ?? ['ineligible']), 0, 190);
             }
-            $ins->execute([$id, $p['row'] ?? null, $e,
+            $ins->execute([$id, isset($p['id']) ? (int)$p['id'] : null, $p['row'] ?? null, $e,
                 substr((string)($p['fields']['org'] ?? ''), 0, 255),
                 substr((string)($p['contact_name'] ?? ''), 0, 255),
                 $status, $reason]);
@@ -561,25 +761,51 @@ switch ($action) {
         if (!in_array($camp['status'], ['draft', 'ready'], true)) mo_fail('campaign not editable');
         $ridFilter = array_map('intval', (array)($in['recipient_ids'] ?? []));
 
-        // Optional template for this kind
-        $tpl = $pdo->prepare("SELECT * FROM marketing_templates WHERE kind=? ORDER BY is_default DESC, id LIMIT 1");
-        $tpl->execute([$camp['kind']]);
-        $template = $tpl->fetch(PDO::FETCH_ASSOC) ?: null;
+        // Optional template: per-campaign override wins, else kind default.
+        if (!empty($camp['template_id'])) {
+            $tpl = $pdo->prepare("SELECT * FROM marketing_templates WHERE id=? AND kind=?");
+            $tpl->execute([(int)$camp['template_id'], $camp['kind']]);
+            $template = $tpl->fetch(PDO::FETCH_ASSOC) ?: null;
+        } else {
+            $tpl = $pdo->prepare("SELECT * FROM marketing_templates WHERE kind=? ORDER BY is_default DESC, id LIMIT 1");
+            $tpl->execute([$camp['kind']]);
+            $template = $tpl->fetch(PDO::FETCH_ASSOC) ?: null;
+        }
 
-        [$sheetProspects, $sheetErr] = mo_load_prospects($pdo);
-        if ($sheetErr) mo_fail('prospect sheet unavailable: ' . $sheetErr, 503);
-        $byEmail = [];
-        foreach ($sheetProspects as $p) $byEmail[strtolower($p['fields']['email'])] = $p;
+        $crm = mo_crm($pdo);
+        if ($crm !== null) {
+            $byEmail = null; // resolved per-campaign below
+            $sheetErr = null;
+        } else {
+            [$sheetProspects, $sheetErr] = mo_load_prospects($pdo);
+            if ($sheetErr) mo_fail('prospect sheet unavailable: ' . $sheetErr, 503);
+        }
 
         $rs = $pdo->prepare("SELECT * FROM marketing_campaign_recipients WHERE campaign_id=? AND status IN ('draft','ready','suppressed') ORDER BY id");
         $rs->execute([$cid]);
         $recips = $rs->fetchAll(PDO::FETCH_ASSOC);
+        if ($crm !== null) {
+            // One batch lookup for the whole campaign (last row wins on
+            // duplicate emails, matching the sheet map semantics).
+            $byEmail = $crm->findByEmails(array_map(static fn($r) => (string)$r['prospect_email'], $recips));
+        } else {
+            $byEmail = [];
+            foreach ($sheetProspects as $p) $byEmail[strtolower($p['fields']['email'])] = $p;
+        }
         $done = 0; $failed = []; $threads = [];
         $threadMailer = $camp['kind'] === 'followup' ? new MarketingMailer($pdo, $baseUrl) : null;
         foreach ($recips as $r) {
             if ($ridFilter && !in_array((int)$r['id'], $ridFilter, true)) continue;
             if ($r['status'] === 'suppressed') continue; // never generate for suppressed
-            $p = $byEmail[strtolower($r['prospect_email'])] ?? null;
+            // Stable contact_id is authoritative when present; email map is
+            // the sheet-mode fallback (and covers legacy recipients).
+            $p = null;
+            if ($crm !== null && !empty($r['contact_id'])) {
+                $p = $crm->findById((int)$r['contact_id']);
+            }
+            if ($p === null) {
+                $p = $byEmail[SuppressionService::normalizeEmail((string)$r['prospect_email'])] ?? null;
+            }
             if (!$p) { $failed[] = $r['prospect_email']; continue; }
             // Prior outreach context for follow-ups: last sent body excerpt
             $prior = '';
@@ -668,14 +894,24 @@ switch ($action) {
             $pend->execute([$cid]);
             $pending = $pend->fetchAll(PDO::FETCH_ASSOC);
             if ($pending) {
-                [, , $dirForNotes] = mo_load_prospects($pdo);
+                $crm = mo_crm($pdo);
+                $notesByEmail = [];
+                if ($crm !== null) {
+                    foreach ($crm->findByEmails(array_map(static fn($pr) => (string)$pr['prospect_email'], $pending)) as $e => $pp) {
+                        $notesByEmail[$e] = (string)($pp['fields']['notes'] ?? '');
+                    }
+                } else {
+                    [, , $dirForNotes] = mo_load_prospects($pdo);
+                    if ($dirForNotes !== null) {
+                        foreach ($pending as $pr) {
+                            $pp = $dirForNotes->findByEmail((string)$pr['prospect_email']);
+                            if ($pp) $notesByEmail[SuppressionService::normalizeEmail((string)$pr['prospect_email'])] = (string)($pp['fields']['notes'] ?? '');
+                        }
+                    }
+                }
                 $tm = new MarketingMailer($pdo, $baseUrl);
                 foreach ($pending as $pr) {
-                    $notes = '';
-                    if ($dirForNotes !== null) {
-                        $pp = $dirForNotes->findByEmail((string)$pr['prospect_email']);
-                        $notes = (string)($pp['fields']['notes'] ?? '');
-                    }
+                    $notes = $notesByEmail[SuppressionService::normalizeEmail((string)$pr['prospect_email'])] ?? '';
                     try { mo_resolve_thread($pdo, $tm, $pr, $notes, $cid); }
                     catch (Throwable $e) { error_log('[marketing-admin] thread resolve: ' . $e->getMessage()); }
                 }
@@ -717,22 +953,41 @@ switch ($action) {
         if ($claim->rowCount() !== 1) mo_fail('send already in progress', 409);
         $restoreStatus = $camp['status'] === 'approved' ? 'approved' : 'partial';
 
+        // CRM mode (MARKETING_CRM_READS): MySQL is authoritative for
+        // send-time verification and confirmed-send write-back. mo_crm()
+        // fails closed when the flag is on but the schema is missing, so a
+        // half-migrated CRM can never send unverified. Sheet mode is
+        // unchanged while the flag is off.
+        $crm = mo_crm($pdo);
+        $crmMode = $crm !== null;
+        $admin = $crmMode ? mo_crm_admin($pdo, $userEmail) : null;
+
         $sheet = null;
-        try { $sheet = new McpSheetSync(); $sheet->sheet(); } catch (Throwable $e) {
-            // Sheet unreachable: fail closed before any send so eligibility
-            // and status write-back stay honest.
-            $pdo->prepare("UPDATE marketing_campaigns SET status=? WHERE id=?")->execute([$restoreStatus, $cid]);
-            mo_fail('prospect sheet unreachable - send aborted', 502);
+        if (!$crmMode) {
+            try { $sheet = new McpSheetSync(); $sheet->sheet(); } catch (Throwable $e) {
+                // Sheet unreachable: fail closed before any send so eligibility
+                // and status write-back stay honest.
+                $pdo->prepare("UPDATE marketing_campaigns SET status=? WHERE id=?")->execute([$restoreStatus, $cid]);
+                mo_fail('prospect sheet unreachable - send aborted', 502);
+            }
         }
 
         // Outstanding sheet write-backs from earlier runs first (no mail).
-        $sheetRetry = mo_sheet_sync_pending($pdo, $sheet, $camp);
+        // In CRM mode there are none: recordSend() completes the write-back
+        // synchronously, so 'pending' rows are a sheet-era leftover only.
+        $sheetRetry = $crmMode ? ['synced' => 0, 'failed' => 0] : mo_sheet_sync_pending($pdo, $sheet, $camp);
 
         $rs = $pdo->prepare("SELECT * FROM marketing_campaign_recipients
             WHERE campaign_id=? AND status IN ('approved','failed','uncertain','sending') ORDER BY id LIMIT " . MO_MAX_RECIPIENTS);
         $rs->execute([$cid]);
         $recips = $rs->fetchAll(PDO::FETCH_ASSOC);
         $ref = mo_ref($cid);
+
+        // One batched CRM lookup for the whole send batch (no N+1).
+        $crmByEmail = [];
+        if ($crmMode) {
+            $crmByEmail = $crm->findByEmails(array_map(static fn($r) => (string)$r['prospect_email'], $recips));
+        }
 
         $sent = 0; $skipped = 0; $failed = 0; $uncertain = 0; $blocked = 0; $sheetFailed = 0; $results = [];
         foreach ($recips as $r) {
@@ -768,12 +1023,30 @@ switch ($action) {
             // reconciled; the sheet may legitimately show it as contacted.
             // Permanent exclusions still stop it.
             $resuming = in_array($r['status'], ['uncertain', 'sending'], true);
-            $pre = $sheet->preCheck($email, $camp['kind'], $ctx);
-            if (!$pre['ok'] && !($resuming && !$pre['hard'])) {
-                $pdo->prepare("UPDATE marketing_campaign_recipients SET status='skipped', skip_reason=?, error=? WHERE id=?")
-                    ->execute([substr(implode(',', $pre['flags']), 0, 190), 'sheet_precheck', $r['id']]);
-                $skipped++; $results[] = ['email' => $email, 'status' => 'skipped', 'reason' => implode(',', $pre['flags'])];
-                continue;
+            if ($crmMode) {
+                // Database-backed gate: annotated CRM record + suppression
+                // ctx. 'not_in_crm' mirrors the sheet's not_in_sheet.
+                $gate = $admin->sendPrecheck($crmByEmail[$email] ?? null, $camp['kind'], $resuming);
+                if ($gate['action'] === 'suppressed') {
+                    $pdo->prepare("UPDATE marketing_campaign_recipients SET status='suppressed', skip_reason=? WHERE id=?")
+                        ->execute([substr((string)$gate['reason'], 0, 190), $r['id']]);
+                    $skipped++; $results[] = ['email' => $email, 'status' => 'suppressed', 'reason' => $gate['reason']];
+                    continue;
+                }
+                if ($gate['action'] !== 'send') {
+                    $pdo->prepare("UPDATE marketing_campaign_recipients SET status='skipped', skip_reason=?, error=? WHERE id=?")
+                        ->execute([substr(implode(',', $gate['flags']), 0, 190), 'crm_precheck', $r['id']]);
+                    $skipped++; $results[] = ['email' => $email, 'status' => 'skipped', 'reason' => implode(',', $gate['flags'])];
+                    continue;
+                }
+            } else {
+                $pre = $sheet->preCheck($email, $camp['kind'], $ctx);
+                if (!$pre['ok'] && !($resuming && !$pre['hard'])) {
+                    $pdo->prepare("UPDATE marketing_campaign_recipients SET status='skipped', skip_reason=?, error=? WHERE id=?")
+                        ->execute([substr(implode(',', $pre['flags']), 0, 190), 'sheet_precheck', $r['id']]);
+                    $skipped++; $results[] = ['email' => $email, 'status' => 'skipped', 'reason' => implode(',', $pre['flags'])];
+                    continue;
+                }
             }
 
             // 2) Send via the shared mailer (ledger-idempotent, footer,
@@ -795,9 +1068,15 @@ switch ($action) {
 
             if ($st === 'sent') {
                 $row = mo_mark_recipient_sent($pdo, $r, (string)($res['message_id'] ?? ''), (string)($res['thread_id'] ?? ''));
-                // Sheet write-back for confirmed sends only; a failure is
-                // recorded and retried later without resending the email.
-                if (!mo_sheet_sync_one($pdo, $sheet, $row, $camp)) $sheetFailed++;
+                // Confirmed-send write-back. CRM mode updates MySQL
+                // synchronously (source of truth, no sheet required); a
+                // failure is recorded on the recipient row, never silently.
+                // Sheet mode queues the sheet write-back for later retry.
+                if ($crmMode) {
+                    if (!$admin->recordSend($row, $camp)) $sheetFailed++;
+                } elseif (!mo_sheet_sync_one($pdo, $sheet, $row, $camp)) {
+                    $sheetFailed++;
+                }
                 $sent++; $results[] = ['email' => $email, 'status' => 'sent', 'message_id' => $res['message_id'] ?? '',
                     'reconciled' => !empty($res['reconciled'])];
             } elseif ($st === 'skipped_suppressed') {
@@ -837,14 +1116,32 @@ switch ($action) {
         if (!$camp) mo_fail('not found', 404);
         if ($camp['kind'] !== 'followup') mo_fail('threading applies to follow-up campaigns only');
         if (!in_array($camp['status'], ['draft', 'ready'], true)) mo_fail('campaign locked');
-        [, $sheetErr2, $dir] = mo_load_prospects($pdo);
+        $crm = mo_crm($pdo);
+        $notesByEmail = [];
+        if ($crm !== null) {
+            $rs0 = $pdo->prepare("SELECT prospect_email FROM marketing_campaign_recipients WHERE campaign_id=? AND status IN ('draft','ready')");
+            $rs0->execute([$cid]);
+            foreach ($crm->findByEmails($rs0->fetchAll(PDO::FETCH_COLUMN)) as $e => $pp) {
+                $notesByEmail[$e] = (string)($pp['fields']['notes'] ?? '');
+            }
+            $sheetErr2 = null;
+        } else {
+            [, $sheetErr2, $dir] = mo_load_prospects($pdo);
+            if ($dir !== null) {
+                $rs0 = $pdo->prepare("SELECT prospect_email FROM marketing_campaign_recipients WHERE campaign_id=? AND status IN ('draft','ready')");
+                $rs0->execute([$cid]);
+                foreach ($rs0->fetchAll(PDO::FETCH_COLUMN) as $pe) {
+                    $pp = $dir->findByEmail((string)$pe);
+                    if ($pp) $notesByEmail[SuppressionService::normalizeEmail((string)$pe)] = (string)($pp['fields']['notes'] ?? '');
+                }
+            }
+        }
         $rs = $pdo->prepare("SELECT * FROM marketing_campaign_recipients WHERE campaign_id=? AND status IN ('draft','ready') ORDER BY id");
         $rs->execute([$cid]);
         $tm = new MarketingMailer($pdo, $baseUrl);
         $counts = [];
         foreach ($rs->fetchAll(PDO::FETCH_ASSOC) as $r) {
-            $notes = '';
-            if ($dir !== null) { $p = $dir->findByEmail((string)$r['prospect_email']); $notes = (string)($p['fields']['notes'] ?? ''); }
+            $notes = $notesByEmail[SuppressionService::normalizeEmail((string)$r['prospect_email'])] ?? '';
             $t = mo_resolve_thread($pdo, $tm, $r, $notes, $cid);
             $counts[$t['status']] = ($counts[$t['status']] ?? 0) + 1;
         }
@@ -863,13 +1160,20 @@ switch ($action) {
         $rs = $pdo->prepare("SELECT * FROM marketing_campaign_recipients WHERE campaign_id=? AND status='uncertain' ORDER BY id");
         $rs->execute([$cid]);
         $sheet = null;
+        $crmMode = mo_crm($pdo) !== null;
+        $admin = $crmMode ? mo_crm_admin($pdo, $userEmail) : null;
         $out = ['sent' => 0, 'not_sent' => 0, 'unknown' => 0]; $detail = [];
         foreach ($rs->fetchAll(PDO::FETCH_ASSOC) as $r) {
             $rec = $mailer->reconcile(mo_ref($cid), (string)$r['prospect_email']);
             if ($rec['outcome'] === 'sent') {
                 $row = mo_mark_recipient_sent($pdo, $r, (string)($rec['message_id'] ?? ''), (string)($rec['thread_id'] ?? ''));
-                try { $sheet = $sheet ?? new McpSheetSync(); mo_sheet_sync_one($pdo, $sheet, $row, $camp); }
-                catch (Throwable $e) { /* stays 'pending'; retry_sheet_sync recovers it */ }
+                if ($crmMode) {
+                    try { $admin->recordSend($row, $camp); }
+                    catch (Throwable $e) { /* stays 'pending'; safe to retry */ }
+                } else {
+                    try { $sheet = $sheet ?? new McpSheetSync(); mo_sheet_sync_one($pdo, $sheet, $row, $camp); }
+                    catch (Throwable $e) { /* stays 'pending'; retry_sheet_sync recovers it */ }
+                }
                 $out['sent']++;
             } elseif ($rec['outcome'] === 'not_sent' || ($rec['outcome'] === 'not_applicable' && ($rec['reason'] ?? '') === 'failed')) {
                 $pdo->prepare("UPDATE marketing_campaign_recipients SET status='failed', error='reconciled_not_sent' WHERE id=?")->execute([$r['id']]);
@@ -903,7 +1207,14 @@ switch ($action) {
         // The ledger row may already be settled (e.g. by reconcile).
         $mailer->resolveUncertain(mo_ref($cid), (string)$row['prospect_email'], $outcome, $msgId !== '' ? $msgId : null);
         if ($outcome === 'sent') {
-            mo_mark_recipient_sent($pdo, $row, preg_match('/^[A-Za-z0-9_-]{6,80}$/', $msgId) ? $msgId : '', '');
+            $sentRow = mo_mark_recipient_sent($pdo, $row, preg_match('/^[A-Za-z0-9_-]{6,80}$/', $msgId) ? $msgId : '', '');
+            if (mo_crm($pdo) !== null) {
+                $cc = $pdo->prepare("SELECT id,name,kind FROM marketing_campaigns WHERE id=?");
+                $cc->execute([$cid]);
+                $campRow = $cc->fetch(PDO::FETCH_ASSOC) ?: ['id' => $cid, 'name' => '', 'kind' => 'initial'];
+                try { mo_crm_admin($pdo, $userEmail)->recordSend($sentRow, $campRow); }
+                catch (Throwable $e) { error_log('[marketing-admin] crm recordSend: ' . $e->getMessage()); }
+            }
         } else {
             $pdo->prepare("UPDATE marketing_campaign_recipients SET status='failed', error='operator_confirmed_not_sent' WHERE id=?")->execute([$rid]);
         }
@@ -919,10 +1230,173 @@ switch ($action) {
         $c->execute([$cid]);
         $camp = $c->fetch(PDO::FETCH_ASSOC);
         if (!$camp) mo_fail('not found', 404);
+        if (mo_crm($pdo) !== null) {
+            // CRM mode writes back to MySQL synchronously at send time;
+            // there is no sheet queue to retry.
+            mo_audit($pdo, $userEmail, 'campaign_sheet_sync', $cid, ['synced' => 0, 'failed' => 0, 'crm' => true]);
+            mo_out(['success' => true, 'synced' => 0, 'failed' => 0, 'crm' => true]);
+        }
         try { $sheet = new McpSheetSync(); $sheet->sheet(); } catch (Throwable $e) { mo_fail('prospect sheet unreachable', 502); }
         $res = mo_sheet_sync_pending($pdo, $sheet, $camp);
         mo_audit($pdo, $userEmail, 'campaign_sheet_sync', $cid, $res);
         mo_out(['success' => true] + $res);
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Phase 3: CRM prospect/organization management (MySQL only)          */
+    /* ------------------------------------------------------------------ */
+
+    case 'prospect_create': {
+        $admin = mo_crm_admin($pdo, $userEmail);
+        try {
+            $r = $admin->createContact($in);
+        } catch (InvalidArgumentException $e) { mo_fail($e->getMessage()); }
+        mo_audit($pdo, $userEmail, 'prospect_create', null, ['contact_id' => $r['id']]);
+        mo_out(['success' => true, 'contact_id' => $r['id'], 'warnings' => $r['warnings'],
+            'review_reasons' => $r['review_reasons']]);
+    }
+
+    case 'prospect_update': {
+        $admin = mo_crm_admin($pdo, $userEmail);
+        $id = (int)($in['contact_id'] ?? 0);
+        $version = (int)($in['version'] ?? -1);
+        if ($id <= 0) mo_fail('contact_id required');
+        if ($version < 0) mo_fail('version required');
+        try {
+            $r = $admin->updateContact($id, $in, $version);
+        } catch (CrmConflict $e) { mo_fail($e->getMessage(), 409); }
+          catch (InvalidArgumentException $e) { mo_fail($e->getMessage()); }
+        mo_audit($pdo, $userEmail, 'prospect_update', null, ['contact_id' => $id, 'changed' => $r['changed']]);
+        mo_out(['success' => true, 'warnings' => $r['warnings'], 'changed' => $r['changed'], 'version' => $r['version']]);
+    }
+
+    case 'prospect_activity': {
+        $admin = mo_crm_admin($pdo, $userEmail);
+        $id = (int)($in['contact_id'] ?? 0);
+        $type = (string)($in['type'] ?? '');
+        $details = (string)($in['details'] ?? '');
+        if ($id <= 0) mo_fail('contact_id required');
+        try {
+            $admin->addActivity($id, $type, $details);
+        } catch (InvalidArgumentException $e) { mo_fail($e->getMessage()); }
+        mo_audit($pdo, $userEmail, 'prospect_activity', null, ['contact_id' => $id, 'type' => $type]);
+        mo_out(['success' => true]);
+    }
+
+    case 'prospect_review_resolve': {
+        $admin = mo_crm_admin($pdo, $userEmail);
+        $id = (int)($in['contact_id'] ?? 0);
+        if ($id <= 0) mo_fail('contact_id required');
+        try { $admin->resolveReview($id); }
+        catch (InvalidArgumentException $e) { mo_fail($e->getMessage()); }
+        mo_audit($pdo, $userEmail, 'prospect_review_resolve', null, ['contact_id' => $id]);
+        mo_out(['success' => true]);
+    }
+
+    case 'org_create': {
+        $admin = mo_crm_admin($pdo, $userEmail);
+        try { $r = $admin->createOrg($in); }
+        catch (InvalidArgumentException $e) { mo_fail($e->getMessage()); }
+        mo_audit($pdo, $userEmail, 'org_create', null, ['org_id' => $r['id']]);
+        mo_out(['success' => true, 'org_id' => $r['id'], 'warnings' => $r['warnings']]);
+    }
+
+    case 'org_update': {
+        $admin = mo_crm_admin($pdo, $userEmail);
+        $id = (int)($in['org_id'] ?? 0);
+        if ($id <= 0) mo_fail('org_id required');
+        try { $r = $admin->updateOrg($id, $in); }
+        catch (InvalidArgumentException $e) { mo_fail($e->getMessage()); }
+        mo_audit($pdo, $userEmail, 'org_update', null, ['org_id' => $id, 'changed' => $r['changed']]);
+        mo_out(['success' => true, 'warnings' => $r['warnings'], 'changed' => $r['changed']]);
+    }
+
+    case 'bulk_update': {
+        $admin = mo_crm_admin($pdo, $userEmail);
+        $ids = (array)($in['contact_ids'] ?? []);
+        $fields = (array)($in['fields'] ?? []);
+        try { $r = $admin->bulkUpdate($ids, $fields); }
+        catch (InvalidArgumentException $e) { mo_fail($e->getMessage()); }
+        mo_audit($pdo, $userEmail, 'bulk_update', null, ['count' => $r['updated'], 'fields' => array_keys($fields)]);
+        mo_out(['success' => true] + $r);
+    }
+
+    case 'campaign_add_recipients': {
+        $admin = mo_crm_admin($pdo, $userEmail);
+        $ids = (array)($in['contact_ids'] ?? []);
+        $cid = trim((string)($in['campaign_id'] ?? ''));
+        $newName = trim((string)($in['new_campaign_name'] ?? ''));
+        $kind = ($in['kind'] ?? 'initial') === 'followup' ? 'followup' : 'initial';
+        $dryRun = !empty($in['dry_run']);
+        try {
+            $r = $admin->addToCampaign($ids, $cid !== '' ? $cid : null,
+                $newName !== '' ? $newName : null, $kind, MO_MAX_RECIPIENTS, $dryRun);
+        } catch (InvalidArgumentException $e) { mo_fail($e->getMessage()); }
+        if (!$dryRun) {
+            mo_audit($pdo, $userEmail, 'campaign_add_recipients', $r['campaign_id'],
+                ['requested' => count($ids), 'added' => $r['added']]);
+        }
+        mo_out(['success' => true, 'campaign_id' => $r['campaign_id'], 'added' => $r['added'], 'results' => $r['results']]);
+    }
+
+    /* Phase 4: campaign wizard + management (CRM mode only). */
+
+    case 'campaign_create': {
+        $admin = mo_crm_admin($pdo, $userEmail);
+        $ids = array_values(array_filter(array_map('intval', (array)($in['contact_ids'] ?? [])), fn($i) => $i > 0));
+        try {
+            $r = $admin->createCampaign([
+                'name' => (string)($in['name'] ?? ''),
+                'kind' => (string)($in['kind'] ?? 'initial'),
+                'description' => $in['description'] ?? null,
+                'template_id' => $in['template_id'] ?? null,
+                'contact_ids' => $ids,
+            ], MO_MAX_RECIPIENTS);
+        } catch (InvalidArgumentException $e) { mo_fail($e->getMessage()); }
+        mo_audit($pdo, $userEmail, 'campaign_create', $r['campaign_id'],
+            ['name' => (string)($in['name'] ?? ''), 'kind' => (string)($in['kind'] ?? 'initial'), 'recipients' => $r['added']]);
+        mo_out(['success' => true, 'campaign_id' => $r['campaign_id'], 'added' => $r['added'], 'results' => $r['results']]);
+    }
+
+    case 'campaign_update': {
+        $admin = mo_crm_admin($pdo, $userEmail);
+        $cid = trim((string)($in['campaign_id'] ?? ''));
+        if ($cid === '') mo_fail('campaign_id required');
+        try { $r = $admin->updateCampaignMeta($cid, $in); }
+        catch (InvalidArgumentException $e) { mo_fail($e->getMessage()); }
+        mo_audit($pdo, $userEmail, 'campaign_update', $cid, ['changed' => $r['changed']]);
+        mo_out(['success' => true, 'changed' => $r['changed']]);
+    }
+
+    case 'campaign_recipient_remove': {
+        $admin = mo_crm_admin($pdo, $userEmail);
+        $cid = trim((string)($in['campaign_id'] ?? ''));
+        $rid = (int)($in['recipient_id'] ?? 0);
+        if ($cid === '' || $rid <= 0) mo_fail('campaign_id and recipient_id required');
+        try { $r = $admin->removeRecipient($cid, $rid); }
+        catch (InvalidArgumentException $e) { mo_fail($e->getMessage()); }
+        mo_audit($pdo, $userEmail, 'campaign_recipient_remove', $cid, ['recipient_id' => $rid]);
+        mo_out(['success' => true] + $r);
+    }
+
+    case 'import_preview': {
+        $admin = mo_crm_admin($pdo, $userEmail);
+        $csv = (string)($in['csv'] ?? '');
+        if ($csv === '') mo_fail('csv required');
+        try { $rows = $admin->previewImport($csv); }
+        catch (InvalidArgumentException $e) { mo_fail($e->getMessage()); }
+        mo_out(['success' => true, 'rows' => $rows, 'unmapped_columns' => $admin->unmappedColumns()]);
+    }
+
+    case 'import_commit': {
+        $admin = mo_crm_admin($pdo, $userEmail);
+        $records = (array)($in['records'] ?? []);
+        if (!$records) mo_fail('records required');
+        if (count($records) > ProspectCrmAdmin::MAX_IMPORT_ROWS) mo_fail('too many records');
+        try { $r = $admin->commitImport($records); }
+        catch (Throwable $e) { mo_fail('import failed: ' . $e->getMessage(), 500); }
+        mo_audit($pdo, $userEmail, 'import_commit', null, $r);
+        mo_out(['success' => true] + $r);
     }
 
     case 'template_save': {

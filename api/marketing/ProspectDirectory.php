@@ -43,6 +43,8 @@ final class ProspectDirectory
     }
 
     /** Header-name candidates, first match wins (case-insensitive). */
+    public static function cols(): array { return self::COLS; }
+
     private const COLS = [
         'email'          => ['Public Email', 'Email', 'Contact Email'],
         'org'            => ['Practice Name', 'Organization', 'Org', 'Company'],
@@ -50,7 +52,7 @@ final class ProspectDirectory
         'contact_name'   => ['Contact Name', 'Name', 'Full Name'],
         'contact_first'  => ['First Name'],
         'contact_last'   => ['Last Name'],
-        'title'          => ['Title', 'Contact Title', 'Role', 'Position'],
+        'title'          => ['Title', 'Contact Title', 'Contact Role', 'Role', 'Position'],
         'practice_type'  => ['Practice Type', 'Org Type', 'Type', 'Segment'],
         'fit'            => ['Fit', 'Fit Score', 'Lead Score'],
         'priority'       => ['Priority'],
@@ -112,6 +114,21 @@ final class ProspectDirectory
     /** Add computed flags + display helpers to raw prospect records. */
     private function annotate(array $records): array
     {
+        return self::annotateRecords($records, $this->sheet->eligibilityIndex(),
+            $this->suppression, $this->ledgerSentEmails());
+    }
+
+    /**
+     * Shared annotation used by BOTH the sheet directory and the CRM
+     * (MySQL) directory so flags, buckets, and eligibility are computed by
+     * exactly one implementation.
+     *
+     * @param array $records    prospect records ['row','fields','raw']
+     * @param array $eligIndex  OutreachEligibility::index() output
+     * @param array $ledgerSent map email_normalized(lower) => true
+     */
+    public static function annotateRecords(array $records, array $eligIndex, SuppressionService $suppression, array $ledgerSent): array
+    {
         // Index for duplicate-org detection: domain + parent org -> contacted rows
         $contactedDomains = [];
         $contactedParents = [];
@@ -128,8 +145,8 @@ final class ProspectDirectory
             if ($parent !== '') $contactedParents[$parent] = true;
         }
 
-        $index = $this->sheet->eligibilityIndex();
-        $ledger = $this->ledgerSentEmails();
+        $index = $eligIndex;
+        $ledger = $ledgerSent;
         foreach ($records as &$r) {
             $f = &$r['fields'];
             $email = strtolower(trim($f['email']));
@@ -143,11 +160,11 @@ final class ProspectDirectory
                     $flags[] = 'do_not_contact';
                 }
                 // Authoritative suppression store (email + org domain)
-                if ($this->suppression->isSuppressed($email)) {
+                if ($suppression->isSuppressed($email)) {
                     $flags[] = 'do_not_contact';
                 } else {
                     $orgRef = SuppressionService::orgRefForEmail($email);
-                    if ($orgRef !== null && $this->suppression->isOrgSuppressed($orgRef)) {
+                    if ($orgRef !== null && $suppression->isOrgSuppressed($orgRef)) {
                         $flags[] = 'do_not_contact';
                     }
                 }
@@ -156,29 +173,38 @@ final class ProspectDirectory
                 $dup = false;
                 if ($email !== '' && ($p = strrpos($email, '@')) !== false) {
                     $dup = isset($contactedDomains[substr($email, $p + 1)])
-                        && !$this->isContactedStatus($f['status']);
+                        && !self::isContactedStatus($f['status']);
                 }
                 $parent = strtolower(trim($f['parent_org']));
                 if (!$dup && $parent !== '' && isset($contactedParents[$parent])
-                    && !$this->isContactedStatus($f['status'])) {
+                    && !self::isContactedStatus($f['status'])) {
                     $dup = true;
                 }
                 if ($dup) $flags[] = 'duplicate_org';
             }
 
-            // Follow-up bucketing
-            $fu = $this->parseSheetDate($f['followup_date']);
+            // Follow-up bucketing. A follow-up requires credible evidence of
+            // prior outreach (same rule as OutreachEligibility): a confirmed
+            // ledger send, or a contacted status backed by a contact date or
+            // a recorded Gmail message id. A bare follow-up date on a
+            // never-contacted row is NOT an overdue follow-up.
+            $fu = self::parseSheetDate($f['followup_date']);
+            $contacted = self::isContactedStatus($f['status']);
+            $evidence = trim($f['first_contact']) !== '' || trim($f['last_contact']) !== ''
+                || OutreachEligibility::gmailIdsFromNotes((string)($f['notes'] ?? '')) !== [];
+            $priorOutreach = isset($ledger[$email]) || ($contacted && $evidence);
             $r['followup_ts'] = $fu;
-            $r['bucket'] = $this->bucketFor($f, $fu);
+            $r['prior_outreach'] = $priorOutreach;
+            $r['bucket'] = self::bucketFor($f, $fu, $priorOutreach);
             $r['flags'] = $flags;
             $r['contact_name'] = $f['contact_name'] !== '' ? $f['contact_name']
                 : trim($f['contact_first'] . ' ' . $f['contact_last']);
             // Per-kind eligibility from the shared rules.
-            $suppressed = $email !== '' && $this->suppression->isSuppressed($email);
+            $suppressed = $email !== '' && $suppression->isSuppressed($email);
             $orgRef = $email !== '' ? SuppressionService::orgRefForEmail($email) : null;
             $ctx = [
                 'suppressed' => $suppressed,
-                'org_suppressed' => !$suppressed && $orgRef !== null && $this->suppression->isOrgSuppressed($orgRef),
+                'org_suppressed' => !$suppressed && $orgRef !== null && $suppression->isOrgSuppressed($orgRef),
                 'ledger_sent' => isset($ledger[$email]),
             ];
             $r['eligibility'] = [
@@ -199,16 +225,22 @@ final class ProspectDirectory
         return $records;
     }
 
-    private function isContactedStatus(string $status): bool
+    private static function isContactedStatus(string $status): bool
     {
         return in_array(strtolower(trim($status)), ['sent', 'contacted', 'replied'], true);
     }
 
     /**
      * Follow-up buckets:
-     *  due_today | overdue | upcoming | awaiting_response | completed | excluded
+     *  due_today | overdue | upcoming | awaiting_response | not_contacted
+     *  | completed | excluded
+     *
+     * overdue/due_today/upcoming require priorOutreach (credible evidence
+     * of earlier contact); otherwise the row is 'not_contacted' (never
+     * contacted) or 'awaiting_response' (contacted status but the prior
+     * outreach cannot be evidenced).
      */
-    private function bucketFor(array $f, ?int $fuTs): string
+    private static function bucketFor(array $f, ?int $fuTs, bool $priorOutreach): string
     {
         $status = strtolower(trim($f['status']));
         $dnc = strtolower(trim($f['dnc'])) !== '' || strpos($status, 'do not contact') !== false;
@@ -219,9 +251,11 @@ final class ProspectDirectory
         if ($response !== '' && $response !== 'none' && $response !== 'no response') {
             return in_array($response, ['replied', 'interested', 'meeting booked'], true) ? 'completed' : 'awaiting_response';
         }
+        if (!$priorOutreach) {
+            return self::isContactedStatus($f['status']) ? 'awaiting_response' : 'not_contacted';
+        }
         if ($fuTs === null) {
-            // No follow-up date: awaiting response only if prior outreach exists
-            return $this->isContactedStatus($status) ? 'awaiting_response' : 'upcoming';
+            return 'awaiting_response';
         }
         $today = strtotime('today');
         if ($fuTs < $today) return 'overdue';
@@ -234,7 +268,7 @@ final class ProspectDirectory
      *  - 'M/D/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD', 'Mon D, YYYY', serial numbers.
      * Returns unix timestamp at midnight UTC or null.
      */
-    public function parseSheetDate(string $raw): ?int
+    public static function parseSheetDate(string $raw): ?int
     {
         $raw = trim($raw);
         if ($raw === '') return null;

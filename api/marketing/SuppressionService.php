@@ -11,7 +11,33 @@
  */
 final class SuppressionService
 {
+    /** Lazily-loaded full suppression sets (one query each per instance). */
+    private ?array $suppressedSet = null;
+    private ?array $orgSuppressedSet = null;
+
     public function __construct(private PDO $pdo) {}
+
+    private function suppressedSet(): array
+    {
+        if ($this->suppressedSet === null) {
+            $this->suppressedSet = [];
+            foreach ($this->pdo->query('SELECT email_normalized FROM marketing_suppressions')->fetchAll(PDO::FETCH_COLUMN) as $e) {
+                $this->suppressedSet[strtolower((string)$e)] = true;
+            }
+        }
+        return $this->suppressedSet;
+    }
+
+    private function orgSuppressedSet(): array
+    {
+        if ($this->orgSuppressedSet === null) {
+            $this->orgSuppressedSet = [];
+            foreach ($this->pdo->query('SELECT org_ref FROM marketing_org_suppressions')->fetchAll(PDO::FETCH_COLUMN) as $r) {
+                $this->orgSuppressedSet[strtolower((string)$r)] = true;
+            }
+        }
+        return $this->orgSuppressedSet;
+    }
 
     public static function normalizeEmail(string $email): string
     {
@@ -62,6 +88,7 @@ final class SuppressionService
             if (($e->errorInfo[1] ?? null) !== 1062) throw $e; // concurrent suppress: return winner
         }
         $row = $this->row($email);
+        if ($this->suppressedSet !== null) $this->suppressedSet[$email] = true;
         $this->enqueueSync((int) $row['id']);
         return ['email' => $email, 'already_suppressed' => false, 'suppression' => $row];
     }
@@ -84,7 +111,7 @@ final class SuppressionService
 
     public function isSuppressed(string $email): bool
     {
-        return $this->row($email) !== null;
+        return isset($this->suppressedSet()[self::normalizeEmail($email)]);
     }
 
     /** Stable org id = normalized email domain (e.g. "sagedentalnj.com"). */
@@ -107,15 +134,14 @@ final class SuppressionService
         $this->pdo->prepare(
             'INSERT INTO marketing_org_suppressions (org_ref,source,reason) VALUES (?,?,?)'
         )->execute([$orgRef, substr($source, 0, 60), $reason !== null ? substr($reason, 0, 200) : null]);
+        if ($this->orgSuppressedSet !== null) $this->orgSuppressedSet[$orgRef] = true;
         $s->execute([$orgRef]);
         return ['org_ref' => $orgRef, 'already_suppressed' => false, 'suppression' => $s->fetch(PDO::FETCH_ASSOC)];
     }
 
     public function isOrgSuppressed(string $orgRef): bool
     {
-        $s = $this->pdo->prepare('SELECT 1 FROM marketing_org_suppressions WHERE org_ref=?');
-        $s->execute([strtolower(trim($orgRef))]);
-        return $s->fetchColumn() !== false;
+        return isset($this->orgSuppressedSet()[strtolower(trim($orgRef))]);
     }
     /** Bounded batch eligibility check — only eligible:true may send. */
     public function eligibility(array $emails): array
