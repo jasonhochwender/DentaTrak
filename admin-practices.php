@@ -217,7 +217,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
         .practices-table th.col-usage,
         .practices-table td.col-usage {
             width: 24%;
-            min-width: 120px;
+            min-width: 140px;
         }
 
         .practices-table th.col-actions,
@@ -1371,12 +1371,10 @@ $userEmail = $_SESSION['user_email'] ?? '';
                 // Most recent login among the practice's members (account
                 // level — not proof of access to this specific practice).
                 const lastLoginRaw = practice.adoption?.last_login || null;
-                const lastLoginText = lastLoginRaw
-                    ? formatExactDateTime(lastLoginRaw)
-                    : t('admin_practices.no_recorded_login');
+                const lastLogin = formatPracticeLastLogin(lastLoginRaw);
                 const lastLoginTitle = lastLoginRaw
-                    ? t('admin_practices.last_login_member_hint')
-                    : '';
+                    ? escapeHtml(lastLogin.title + ' — ' + t('admin_practices.last_login_member_hint'))
+                    : escapeHtml(lastLogin.title);
 
                 const practiceNameRaw = practice.practice_name || practice.legal_name || t('admin_practices.unnamed');
                 const practiceName = escapeHtml(practiceNameRaw).replace(/'/g, "\\'");
@@ -1408,7 +1406,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
                     '</td>' +
                     '<td class="col-usage">' +
                         '<div class="usage-primary" title="' + usagePrimaryTitle + '">' + usagePrimaryText + '</div>' +
-                        '<div class="usage-secondary"' + (lastLoginTitle ? ' title="' + escapeHtml(lastLoginTitle) + '"' : '') + '>Last login ' + escapeHtml(lastLoginText) + '</div>' +
+                        '<div class="usage-secondary" title="' + lastLoginTitle + '">Last Login: ' + escapeHtml(lastLogin.text) + '</div>' +
                     '</td>' +
                     '<td class="col-actions" onclick="event.stopPropagation()">' +
                         '<button class="action-btn actions-toggle" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Actions for ' + practiceName + '" onclick="toggleActionsMenu(event, ' + practice.id + ')">' + t('admin_practices.table_actions') + '</button>' +
@@ -3091,6 +3089,34 @@ $userEmail = $_SESSION['user_email'] ?? '';
             }
 
             return { text: text, title: formatDateTime(dateStr) };
+        }
+
+        // Practice-list last-login: compact relative label ("Today",
+        // "Yesterday", "N days ago", "Never") computed on CALENDAR days
+        // in the viewer's timezone (same TZ the exact tooltip renders
+        // in), with the exact timestamp kept in the tooltip.
+        function formatPracticeLastLogin(dateStr) {
+            if (!dateStr || dateStr === '0000-00-00 00:00:00') {
+                return { text: 'Never', title: t('admin_practices.no_recorded_login') };
+            }
+            const date = parseDateUTC(dateStr);
+            if (!date || isNaN(date.getTime())) {
+                return { text: 'Never', title: 'Timestamp unavailable' };
+            }
+            const now = new Date();
+            now.setHours(0, 0, 0, 0);
+            const loginDay = new Date(date);
+            loginDay.setHours(0, 0, 0, 0);
+            const diffDays = Math.round((now.getTime() - loginDay.getTime()) / 86400000);
+            let text;
+            if (diffDays <= 0) {
+                text = 'Today';
+            } else if (diffDays === 1) {
+                text = 'Yesterday';
+            } else {
+                text = diffDays + ' days ago';
+            }
+            return { text: text, title: formatExactDateTime(dateStr) };
         }
 
         // Exact timestamp in the viewer's locale and timezone, e.g.
