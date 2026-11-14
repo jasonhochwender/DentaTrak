@@ -2,8 +2,9 @@
 /**
  * One-time Gmail send authorization - admin setup only.
  * Requires a logged-in SUPER USER session; issues a one-shot state nonce
- * and redirects to Google consent (gmail.send, offline -> durable
- * refresh token; requires consent screen in Production mode).
+ * and redirects to Google consent (gmail.send + gmail.readonly, offline
+ * -> durable refresh token; requires consent screen in Production mode).
+ * gmail.readonly lets follow-up campaigns verify original Gmail threads.
  */
 require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/session.php';
@@ -19,7 +20,7 @@ $params = [
     'client_id'     => $appConfig['google_client_id'],
     'redirect_uri'  => rtrim($appConfig['baseUrl'], '/') . '/api/google-auth-callback.php',
     'response_type' => 'code',
-    'scope'         => 'openid email https://www.googleapis.com/auth/gmail.send',
+    'scope'         => 'openid email https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/gmail.readonly',
     'access_type'   => 'offline',
     'prompt'        => 'consent select_account',
     'login_hint'    => $email,

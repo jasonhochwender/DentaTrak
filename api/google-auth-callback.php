@@ -67,7 +67,7 @@ if (isset($_GET['state']) && str_starts_with($_GET['state'], 'gmail_setup_')) {
         'content' => json_encode(['payload' => ['data' => base64_encode($rt)]]),
         'ignore_errors' => true]]));
     echo strpos((string)$r, '"name"') !== false
-        ? '<h1>Gmail send authorized</h1><p>Refresh token stored for ' . htmlspecialchars($granted) . '. This tab can be closed.</p>'
+        ? '<h1>Gmail authorized</h1><p>Refresh token stored for ' . htmlspecialchars($granted) . '. This tab can be closed.</p>'
         : '<h1>Secret write failed</h1><p>' . htmlspecialchars(substr((string)$r, 0, 200)) . '</p>';
     exit;
 }
