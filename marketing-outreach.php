@@ -141,13 +141,15 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
         .mo-modal-back { position: fixed; inset: 0; background: rgba(17,24,39,0.45); z-index: 1200;
                          display: flex; align-items: flex-start; justify-content: center; padding: 4vh 16px; overflow-y: auto; }
         .mo-modal { background: #fff; border-radius: 12px; width: 100%; max-width: 720px;
-                    box-shadow: 0 20px 50px rgba(0,0,0,0.25); }
-        .mo-modal-head { display: flex; justify-content: space-between; align-items: center;
+                    box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+                    display: flex; flex-direction: column; max-height: calc(100vh - 8vh - 16px); }
+        .mo-modal-head { display: flex; justify-content: space-between; align-items: center; flex: none;
                          padding: 16px 20px; border-bottom: 1px solid #e5e7eb; }
         .mo-modal-head h3 { margin: 0; font-size: 1rem; }
         .mo-modal-x { background: none; border: none; font-size: 1.5rem; line-height: 1; cursor: pointer; color: #6b7280; }
-        .mo-modal-body { padding: 16px 20px; max-height: 66vh; overflow-y: auto; }
-        .mo-modal-foot { padding: 12px 20px; border-top: 1px solid #e5e7eb; display: flex; gap: 10px; justify-content: flex-end; }
+        .mo-modal-body { padding: 16px 20px; overflow-y: auto; flex: 1 1 auto; min-height: 0; }
+        .mo-modal-foot { padding: 12px 20px; border-top: 1px solid #e5e7eb; flex: none;
+                         display: flex; gap: 10px; justify-content: flex-end; }
         .mo-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px 14px; }
         .mo-field { display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem; color: #374151; }
         .mo-field input, .mo-field select, .mo-field textarea { padding: 8px 10px; border: 1px solid #d1d5db;

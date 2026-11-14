@@ -49,16 +49,20 @@ final class MarketingFooter
         $u = htmlspecialchars($unsubscribeUrl, ENT_QUOTES, 'UTF-8');
         $year = gmdate('Y');
         $sep = ' <span style="color:#d1d5db;">&middot;</span> ';
-        $links = [];
+        // Two balanced rows: resources first, then privacy/contact.
+        $row1 = [];
         foreach (self::ARTICLES as $label => $url) {
-            $links[] = self::link($url, $label);
+            $row1[] = self::link($url, $label);
         }
-        $links[] = self::link(self::RESOURCES, 'All Resources');
-        $links[] = self::link(self::PRIVACY, 'Privacy Policy');
-        $links[] = self::link(self::CONTACT, 'Contact Us');
+        $row1[] = self::link(self::RESOURCES, 'All Resources');
+        $row2 = implode($sep, [
+            self::link(self::PRIVACY, 'Privacy Policy'),
+            self::link(self::CONTACT, 'Contact Us'),
+        ]);
         return '<div style="margin-top:32px;padding-top:16px;border-top:1px solid #e5e7eb;'
             . 'font-family:Arial,Helvetica,sans-serif;font-size:10pt;color:#9ca3af;line-height:1.6;text-align:center;">'
-            . implode($sep, $links) . '<br>'
+            . implode($sep, $row1)
+            . '<br><span style="display:inline-block;height:6px;"></span><br>' . $row2 . '<br>'
             . '&copy; ' . $year . ' ' . self::COPYRIGHT_HOLDER . '. All rights reserved.<br>'
             . self::ADDRESS_HTML . '<br>'
             . '<a href="' . self::SITE . '" style="text-decoration:none;">'

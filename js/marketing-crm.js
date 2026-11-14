@@ -47,6 +47,7 @@
         var m = $('moModal');
         m.innerHTML = '<div class="mo-modal-back" data-close="1"><div class="mo-modal" role="dialog" aria-modal="true">' + html + '</div></div>';
         m.classList.remove('mo-hidden');
+        document.body.style.overflow = 'hidden';
         m.querySelectorAll('[data-close]').forEach(function (el) {
             el.addEventListener('click', function (e) { if (e.target === el || el.dataset.close === '1' && e.target.closest('[data-close-btn]')) closeModal(); });
         });
@@ -56,6 +57,7 @@
     function closeModal() {
         $('moModal').classList.add('mo-hidden');
         $('moModal').innerHTML = '';
+        document.body.style.overflow = '';
         document.removeEventListener('keydown', escClose);
     }
     function modalShell(title, bodyHtml, actionsHtml) {
@@ -1017,8 +1019,8 @@
                 '<div><strong>' + esc(S('pvTo')) + ':</strong> ' + esc((d.to_name ? d.to_name + ' <' : '') + d.to_email + (d.to_name ? '>' : '')) + '</div>' +
                 '<div><strong>' + esc(S('pvSubject')) + ':</strong> ' + esc(d.subject) + '</div>' +
                 threadNote + '</div>' +
-                '<div id="pvHtml" style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;background:#fff;max-height:50vh;overflow:auto;"></div>' +
-                '<pre id="pvText" class="mo-hidden" style="white-space:pre-wrap;border:1px solid #e5e7eb;border-radius:8px;padding:16px;background:#fff;max-height:50vh;overflow:auto;font-size:12px;"></pre>' +
+                '<div id="pvHtml" style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;background:#fff;"></div>' +
+                '<pre id="pvText" class="mo-hidden" style="white-space:pre-wrap;border:1px solid #e5e7eb;border-radius:8px;padding:16px;background:#fff;font-size:12px;"></pre>' +
                 '<div class="mo-msg-note" style="margin-top:8px;">' + esc(S('pvManagedNote')) + ' ' + esc(S('pvUnsubPlaceholder')) + '</div>' +
                 '<div style="margin-top:8px;display:flex;gap:8px;">' +
                 '<button type="button" class="mo-btn secondary small" id="pvHtmlBtn">' + esc(S('pvHtmlTab')) + '</button>' +
