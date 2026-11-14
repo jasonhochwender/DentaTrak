@@ -359,12 +359,22 @@ function mo_generate_one(PDO $pdo, array $appConfig, array $prospect, string $ki
         return mo_template_fallback($prospect, $kind, $templateBody);
     }
 
+    $kindLabel = $kind === 'followup' ? 'follow-up' : 'initial outreach';
     $system = 'You are a concise, professional B2B copywriter for DentaTrak, dental lab case-tracking software. '
-        . 'Write cold outreach email copy only. No medical claims, no patient data, no hype. '
+        . 'Write ' . $kindLabel . ' email copy only. No medical claims, no patient data, no hype. '
         . 'Return ONLY a JSON object: {"subject": string, "body_html": string}. '
         . 'body_html is a short HTML fragment (p and ul/li allowed, inline styles only, no scripts, no footer, no unsubscribe link, no images). '
         . '2-4 short paragraphs max. Include one clear low-pressure call to action (a reply or a 15-minute demo). '
-        . 'Personalize using ONLY the prospect facts provided; never invent facts.';
+        . 'Personalize using ONLY the prospect facts provided; never invent facts, locations, practice details, or operational problems. '
+        . 'Tone: natural, professional, conversational - like a note from a knowledgeable colleague, not a sales pitch. '
+        . 'Position DentaTrak as helping improve visibility, coordination, and efficiency for dental labs and practices; '
+        . 'it complements practice-management software rather than replacing it. '
+        . 'Do NOT claim DentaTrak eliminates manual work, guarantees on-time case delivery, or produces specific outcomes. '
+        . 'Do NOT assume the recipient has a problem; acknowledge they may already use other software. '
+        . ($kind === 'followup'
+            ? 'This is a FOLLOW-UP: briefly reference the earlier note without pressure, add one small new reason to reply, '
+              . 'and keep it shorter than the initial email. Do not repeat the full pitch. '
+            : 'This is INITIAL outreach: introduce DentaTrak briefly and ask for a reply or short demo. ');
 
     $facts = [
         'organization' => $f['org'] ?? '',
@@ -917,13 +927,34 @@ switch ($action) {
                 }
             }
         }
+        // Follow-ups without a verified original Gmail thread would start
+        // NEW conversations. That fallback must be an explicit decision:
+        // approval requires allow_new_threads=true and records it on the
+        // campaign so the send path can enforce it durably.
+        $newThreads = 0;
+        if ($camp['kind'] === 'followup') {
+            $nt = $pdo->prepare("SELECT COUNT(*) FROM marketing_campaign_recipients
+                WHERE campaign_id=? AND status='ready' AND (thread_status IS NULL OR thread_status<>'resolved')");
+            $nt->execute([$cid]);
+            $newThreads = (int)$nt->fetchColumn();
+        }
+        if ($newThreads > 0 && empty($in['allow_new_threads'])) {
+            mo_fail('unresolved_threads: ' . $newThreads . ' follow-up(s) have no verified original '
+                . 'conversation and would start a new email thread. Review them, then approve again '
+                . 'with allow_new_threads=true to confirm.', 409);
+        }
+        if ($newThreads > 0) {
+            $pdo->prepare('UPDATE marketing_campaigns SET new_thread_ack=1 WHERE id=?')->execute([$cid]);
+        }
         $hash = mo_content_hash($pdo, $cid);
         $pdo->prepare("UPDATE marketing_campaigns SET status='approved', approved_by=?, approved_at=UTC_TIMESTAMP(), content_hash=? WHERE id=?")
             ->execute([$userEmail, $hash, $cid]);
         $pdo->prepare("UPDATE marketing_campaign_recipients SET status='approved' WHERE campaign_id=? AND status='ready'")
             ->execute([$cid]);
-        mo_audit($pdo, $userEmail, 'campaign_approve', $cid, ['recipients' => $sendable]);
-        mo_out(['success' => true, 'approved' => $sendable]);
+        mo_audit($pdo, $userEmail, 'campaign_approve', $cid,
+            ['recipients' => $sendable, 'new_threads' => $newThreads,
+             'allow_new_threads' => $newThreads > 0 ? !empty($in['allow_new_threads']) : null]);
+        mo_out(['success' => true, 'approved' => $sendable, 'new_threads' => $newThreads]);
     }
 
     case 'send': {
@@ -1052,10 +1083,19 @@ switch ($action) {
             // 2) Send via the shared mailer (ledger-idempotent, footer,
             //    RFC 8058). Follow-ups reply in the resolved conversation.
             $thread = null;
-            if ($camp['kind'] === 'followup' && ($r['thread_status'] ?? '') === 'resolved') {
-                $thread = ['thread_id' => (string)$r['gmail_thread_id'],
-                    'in_reply_to' => (string)$r['thread_rfc_message_id'],
-                    'references' => (string)$r['thread_references']];
+            if ($camp['kind'] === 'followup') {
+                if (($r['thread_status'] ?? '') === 'resolved') {
+                    $thread = ['thread_id' => (string)$r['gmail_thread_id'],
+                        'in_reply_to' => (string)$r['thread_rfc_message_id'],
+                        'references' => (string)$r['thread_references']];
+                } elseif ((int)($camp['new_thread_ack'] ?? 0) !== 1) {
+                    // Unthreaded follow-ups are a new conversation; they
+                    // require the explicit approval-time acknowledgment.
+                    $pdo->prepare("UPDATE marketing_campaign_recipients SET status='skipped', skip_reason='new_thread_not_acknowledged', error='new_thread_not_acknowledged' WHERE id=?")
+                        ->execute([$r['id']]);
+                    $skipped++; $results[] = ['email' => $email, 'status' => 'skipped', 'reason' => 'new_thread_not_acknowledged'];
+                    continue;
+                }
             }
             $res = $mailer->send([
                 'to' => $email, 'subject' => (string)$r['subject'],

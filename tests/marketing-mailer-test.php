@@ -116,8 +116,30 @@ $sendBody = null;
 foreach ($calls as $c) { if (strpos($c[1], '/messages/send') !== false) $sendBody = $c[2]; }
 $mime = json_decode((string)$sendBody, true)['raw'] ?? '';
 $mime = base64_decode(strtr($mime, '-_', '+/'));
-// The HTML part is itself base64 (Content-Transfer-Encoding); decode it.
-$mimeBody = base64_decode(substr($mime, strpos($mime, "\r\n\r\n") + 4));
+// MIME is multipart/alternative: extract and decode the text/html part.
+$parseParts = static function (string $mime): array {
+    $out = [];
+    if (!preg_match('/boundary="([^"]+)"/', $mime, $bm)) return $out;
+    $b = preg_quote($bm[1], '/');
+    if (preg_match_all('/--' . $b . "\r\n(.*?)\r\n\r\n(.*?)(?=\r\n--" . $b . ')/s', $mime, $parts)) {
+        foreach ($parts[1] as $i => $hdrs) {
+            $out[] = ['headers' => $hdrs, 'body' => base64_decode(preg_replace('/\s+/', '', $parts[2][$i]))];
+        }
+    }
+    return $out;
+};
+$mimeParts = $parseParts($mime);
+$mimeBody = ''; $mimeText = '';
+foreach ($mimeParts as $pt) {
+    if (strpos($pt['headers'], 'text/html') !== false) $mimeBody = (string)$pt['body'];
+    if (strpos($pt['headers'], 'text/plain') !== false) $mimeText = (string)$pt['body'];
+}
+ok('MIME is multipart/alternative with text+html parts',
+    strpos($mime, 'multipart/alternative') !== false && $mimeBody !== '' && $mimeText !== '');
+ok('plain-text part carries body + footer + unsubscribe',
+    strpos($mimeText, 'Body') !== false
+    && strpos($mimeText, 'unsubscribe here: https://dentatrak.com/unsubscribe.php?t=') !== false
+    && strpos($mimeText, 'PO Box 1') !== false);
 ok('MIME carries send-id header matching ledger key',
     strpos($mime, 'X-DentaTrak-Send-Id: ' . $row['idempotency_key']) !== false);
 ok('MIME carries List-Unsubscribe + one-click post', strpos($mime, 'List-Unsubscribe: <https://dentatrak.com/unsubscribe.php?t=') !== false

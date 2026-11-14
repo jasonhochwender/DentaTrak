@@ -7615,6 +7615,20 @@
         "confirm_dialog_title": "Please confirm",
         "yes_btn": "Yes",
         "max_recipients_label": "10",
-        "unmapped_columns": "Unmapped columns (ignored)"
+        "unmapped_columns": "Unmapped columns (ignored)",
+        "fmt_bold": "Bold",
+        "fmt_italic": "Italic",
+        "fmt_underline": "Underline",
+        "fmt_list": "Bullet list",
+        "fmt_clear": "Clear formatting",
+        "editor_hint": "Formatting is converted to email-safe HTML when you save. The footer and unsubscribe link are added automatically.",
+        "thread_reason_none": "No earlier email to this address was found in the connected Gmail account (sent mail or recorded sends).",
+        "thread_reason_ambiguous": "More than one prior conversation to this recipient was found, so none was chosen automatically.",
+        "thread_reason_unavailable": "Gmail could not be searched right now; the thread check could not run.",
+        "thread_reason_unverified": "A prior message is on record but could not be verified in Gmail (it may have been deleted or sent from a different account).",
+        "thread_reason_invalid": "The recipient email address is invalid.",
+        "thread_reason_action": "Use Resolve Threads to retry, or approve to send this as a new conversation.",
+        "new_threads_warn": "{n} follow-up(s) could not be matched to an original email conversation. Approving will send them as NEW emails, not replies.",
+        "new_threads_ack": "I understand these messages will start new email conversations rather than replies."
     }
 }

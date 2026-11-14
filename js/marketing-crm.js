@@ -838,6 +838,7 @@
             if (!d.success) { showErr(d.error || S('loadFailed')); return; }
             var c = d.campaign;
             campState.campaign = c;
+            campState.recipients = d.recipients || [];
             campState.sending = d.sending || null;
             var canSend = !!(campState.sending && campState.sending.enabled);
             var recips = d.recipients || [];
@@ -875,6 +876,22 @@
         }).catch(function (e) { if (e) console.warn('[MOCrm] campaign load', e); showErr(S('loadFailed')); });
     }
 
+    // Plain-language explanation for a follow-up thread status, including
+    // what the administrator can do about it.
+    function threadReasonText(reason) {
+        var map = {
+            no_prior_message_found: S('threadReasonNone'),
+            multiple_conversations_found: S('threadReasonAmbiguous'),
+            gmail_lookup_unavailable: S('threadReasonUnavailable'),
+            gmail_search_unavailable: S('threadReasonUnavailable'),
+            prior_message_not_found: S('threadReasonUnverified'),
+            prior_message_recipient_mismatch: S('threadReasonUnverified'),
+            prior_message_headers_incomplete: S('threadReasonUnverified'),
+            invalid_recipient: S('threadReasonInvalid')
+        };
+        return (map[reason] || S('threadReasonNone')) + ' ' + S('threadReasonAction');
+    }
+
     function renderCampMessages(recips, editable, camp) {
         var host = $('moCampMessages');
         host.innerHTML = '';
@@ -889,6 +906,9 @@
             var locked = r.thread_status === 'resolved';
             if (camp.kind === 'followup' && r.thread_status) {
                 flags += '<span class="mo-pill ' + (locked ? 'thread-resolved' : 'thread-new') + '">' + esc(r.thread_status.replace(/_/g, ' ')) + '</span> ';
+                if (!locked) {
+                    notes += '<div class="mo-msg-note">' + esc(threadReasonText(r.thread_reason)) + '</div>';
+                }
             }
             if (r.status === 'uncertain') {
                 notes += '<div class="mo-msg-note">' + esc(S('uncertainNote')) + '</div>' +
@@ -905,7 +925,17 @@
                 (r.error ? ' · <span style="color:#b91c1c;">' + esc(r.error) + '</span>' : '') + '</div>' + notes +
                 (canEdit
                     ? '<input type="text" class="mo-subj"' + (locked ? ' readonly' : '') + ' value="' + esc(r.subject || '') + '" placeholder="' + esc(S('subjectPh')) + '">' +
-                      '<textarea class="mo-body">' + esc(r.body_html || '') + '</textarea>' +
+                      '<div class="mo-rte">' +
+                      '<div class="mo-rte-bar" contenteditable="false">' +
+                      '<button type="button" data-fmt="bold" title="' + esc(S('fmtBold')) + '"><strong>B</strong></button>' +
+                      '<button type="button" data-fmt="italic" title="' + esc(S('fmtItalic')) + '"><em>I</em></button>' +
+                      '<button type="button" data-fmt="underline" title="' + esc(S('fmtUnderline')) + '"><u>U</u></button>' +
+                      '<button type="button" data-fmt="insertUnorderedList" title="' + esc(S('fmtList')) + '">&#8226;</button>' +
+                      '<button type="button" data-fmt="removeFormat" title="' + esc(S('fmtClear')) + '">&#x2715;</button>' +
+                      '</div>' +
+                      '<div class="mo-body-edit" contenteditable="true">' + (r.body_html || '') + '</div>' +
+                      '<div class="mo-rte-hint">' + esc(S('editorHint')) + '</div>' +
+                      '</div>' +
                       '<div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;">' +
                       '<button class="mo-btn small" data-act="save">' + esc(S('save')) + '</button>' +
                       '<button class="mo-btn secondary small" data-act="regen">' + esc(S('regen')) + '</button>' +
@@ -923,16 +953,30 @@
                     });
                 });
             });
+            // Rich-text editor wiring: formatting buttons, plain-text paste.
+            var bodyEdit = div.querySelector('.mo-body-edit');
+            div.querySelectorAll('.mo-rte-bar button[data-fmt]').forEach(function (fb) {
+                fb.addEventListener('mousedown', function (e) { e.preventDefault(); });
+                fb.addEventListener('click', function () {
+                    bodyEdit.focus();
+                    document.execCommand(fb.dataset.fmt, false, null);
+                });
+            });
+            bodyEdit.addEventListener('paste', function (e) {
+                e.preventDefault();
+                var text = (e.clipboardData || window.clipboardData).getData('text/plain');
+                document.execCommand('insertText', false, text);
+            });
             div.querySelectorAll('button[data-act]').forEach(function (b) {
                 b.addEventListener('click', function () {
                     var act = b.dataset.act;
                     if (act === 'preview') {
                         var pv = div.querySelector('.mo-preview');
                         pv.classList.toggle('mo-hidden');
-                        if (!pv.classList.contains('mo-hidden')) pv.innerHTML = div.querySelector('.mo-body').value || '';
+                        if (!pv.classList.contains('mo-hidden')) pv.innerHTML = bodyEdit.innerHTML || '';
                     } else if (act === 'save') {
                         apiPost('save_message', { campaign_id: campState.current, recipient_id: r.id,
-                            subject: div.querySelector('.mo-subj').value, body_html: div.querySelector('.mo-body').value })
+                            subject: div.querySelector('.mo-subj').value, body_html: bodyEdit.innerHTML })
                             .then(function (d2) { if (d2.success) { showOk(S('saved')); openCampaign(campState.current); } else showErr(d2.error); });
                     } else if (act === 'regen') {
                         apiPost('generate', { campaign_id: campState.current, recipient_ids: [r.id], force: true })
@@ -1014,13 +1058,52 @@
     function campApprove() {
         // Approve only - never sends. Sending is the separate Send button.
         var c = campState.current;
-        confirmModal(S('confirmApproveOnly'), function () {
-            apiPost('approve', { campaign_id: c }).then(function (d) {
-                if (!d.success) { showErr(d.error || S('loadFailed')); openCampaign(c); return; }
+        var camp = campState.campaign || {};
+        var recips = campState.recipients || [];
+        // Follow-ups that could not be matched to an original Gmail thread
+        // would start NEW conversations - that fallback needs an explicit,
+        // per-approval acknowledgment.
+        var newThreads = 0;
+        if (camp.kind === 'followup') {
+            recips.forEach(function (r) {
+                if (['draft', 'ready'].includes(r.status) && r.thread_status !== 'resolved') newThreads++;
+            });
+        }
+        var doApprove = function (allowNew) {
+            apiPost('approve', { campaign_id: c, allow_new_threads: allowNew }).then(function (d) {
+                if (!d.success) {
+                    showErr(d.error || S('loadFailed'));
+                    if (d.error && d.error.indexOf('unresolved_threads') === 0) {
+                        // Server requires the acknowledgment - offer it.
+                        ackNewThreadsModal(newThreads);
+                    } else openCampaign(c);
+                    return;
+                }
                 showOk(S('approvedNotSent'));
                 openCampaign(c);
             });
-        });
+        };
+        if (newThreads > 0) {
+            ackNewThreadsModal(newThreads, doApprove);
+            return;
+        }
+        confirmModal(S('confirmApproveOnly'), function () { doApprove(false); });
+    }
+
+    // Modal requiring an explicit checkbox before approving follow-ups
+    // that will start new email conversations.
+    function ackNewThreadsModal(count, onApprove) {
+        var body = '<p>' + esc(S('newThreadsWarn').replace('{n}', count)) + '</p>' +
+            '<label style="display:flex;gap:8px;align-items:flex-start;margin:10px 0;cursor:pointer;">' +
+            '<input type="checkbox" id="moAckNewThreads" style="margin-top:3px;">' +
+            '<span>' + esc(S('newThreadsAck')) + '</span></label>';
+        openModal(modalShell(S('confirm'), body,
+            '<button class="mo-btn" id="cfYes" disabled>' + esc(S('approve')) + '</button>' +
+            '<button class="mo-btn secondary" data-close-btn>' + esc(S('cancel')) + '</button>'));
+        var yes = $('cfYes');
+        var cb = $('moAckNewThreads');
+        if (cb) cb.addEventListener('change', function () { yes.disabled = !cb.checked; });
+        yes.onclick = function () { closeModal(); onApprove(true); };
     }
     function campRetry() {
         var c = campState.current;

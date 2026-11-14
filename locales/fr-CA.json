@@ -7615,6 +7615,20 @@
         "confirm_dialog_title": "Veuillez confirmer",
         "yes_btn": "Oui",
         "max_recipients_label": "10",
-        "unmapped_columns": "Colonnes non mappées (ignorées)"
+        "unmapped_columns": "Colonnes non mappées (ignorées)",
+        "fmt_bold": "Gras",
+        "fmt_italic": "Italique",
+        "fmt_underline": "Souligné",
+        "fmt_list": "Liste à puces",
+        "fmt_clear": "Effacer le formatage",
+        "editor_hint": "Le formatage est converti en HTML sécuritaire pour le courriel à l’enregistrement. Le pied de page et le lien de désabonnement sont ajoutés automatiquement.",
+        "thread_reason_none": "Aucun courriel antérieur à cette adresse n’a été trouvé dans le compte Gmail connecté (envoyés ou envois consignés).",
+        "thread_reason_ambiguous": "Plusieurs conversations antérieures avec ce destinataire ont été trouvées; aucune n’a été choisie automatiquement.",
+        "thread_reason_unavailable": "Gmail n’a pas pu être consulté pour le moment; la vérification du fil n’a pas pu être effectuée.",
+        "thread_reason_unverified": "Un message antérieur est consigné mais n’a pas pu être vérifié dans Gmail (il a peut-être été supprimé ou envoyé depuis un autre compte).",
+        "thread_reason_invalid": "L’adresse courriel du destinataire est invalide.",
+        "thread_reason_action": "Utilisez « Résoudre les fils » pour réessayer, ou approuvez pour envoyer ceci comme nouvelle conversation.",
+        "new_threads_warn": "{n} suivi(s) n’ont pas pu être associés à une conversation courriel originale. L’approbation les enverra comme de NOUVEAUX courriels, pas comme réponses.",
+        "new_threads_ack": "Je comprends que ces messages démarreront de nouvelles conversations courriel plutôt que des réponses."
     }
 }

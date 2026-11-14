@@ -105,6 +105,16 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
             width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid #d1d5db;
             border-radius: 6px; font-size: 0.85rem; font-family: inherit; }
         .mo-msg textarea { min-height: 220px; font-family: ui-monospace, monospace; font-size: 0.8rem; }
+        .mo-rte { border: 1px solid #d1d5db; border-radius: 6px; overflow: hidden; }
+        .mo-rte-bar { display: flex; gap: 4px; padding: 6px 8px; background: #f9fafb; border-bottom: 1px solid #e5e7eb; }
+        .mo-rte-bar button { min-width: 30px; height: 28px; padding: 0 8px; border: 1px solid #d1d5db; border-radius: 5px;
+                             background: #fff; font-size: 0.8rem; cursor: pointer; color: #374151; }
+        .mo-rte-bar button:hover { background: #eef2ff; border-color: #1e40af; }
+        .mo-body-edit { min-height: 200px; max-height: 480px; overflow-y: auto; padding: 12px 14px;
+                        font-size: 0.9rem; line-height: 1.55; outline: none; }
+        .mo-body-edit:focus { box-shadow: inset 0 0 0 2px #1e40af33; }
+        .mo-body-edit ul { margin: 6px 0 6px 22px; }
+        .mo-rte-hint { font-size: 0.72rem; color: #9ca3af; padding: 6px 10px; background: #f9fafb; border-top: 1px solid #e5e7eb; }
         .mo-preview { border: 1px dashed #d1d5db; border-radius: 8px; padding: 14px; background: #fafafa;
                       font-size: 0.85rem; max-height: 320px; overflow: auto; }
         .mo-detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
@@ -1180,7 +1190,21 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
                 confirmAdd: <?php echo json_encode(ma('confirm_add')); ?>,
                 addToCampaign: <?php echo json_encode(ma('add_to_campaign')); ?>,
                 campaignNameRequired2: <?php echo json_encode(ma('campaign_name_required')); ?>,
-                unmappedColumns: <?php echo json_encode(ma('unmapped_columns')); ?>
+                unmappedColumns: <?php echo json_encode(ma('unmapped_columns')); ?>,
+                fmtBold: <?php echo json_encode(ma('fmt_bold')); ?>,
+                fmtItalic: <?php echo json_encode(ma('fmt_italic')); ?>,
+                fmtUnderline: <?php echo json_encode(ma('fmt_underline')); ?>,
+                fmtList: <?php echo json_encode(ma('fmt_list')); ?>,
+                fmtClear: <?php echo json_encode(ma('fmt_clear')); ?>,
+                editorHint: <?php echo json_encode(ma('editor_hint')); ?>,
+                threadReasonNone: <?php echo json_encode(ma('thread_reason_none')); ?>,
+                threadReasonAmbiguous: <?php echo json_encode(ma('thread_reason_ambiguous')); ?>,
+                threadReasonUnavailable: <?php echo json_encode(ma('thread_reason_unavailable')); ?>,
+                threadReasonUnverified: <?php echo json_encode(ma('thread_reason_unverified')); ?>,
+                threadReasonInvalid: <?php echo json_encode(ma('thread_reason_invalid')); ?>,
+                threadReasonAction: <?php echo json_encode(ma('thread_reason_action')); ?>,
+                newThreadsWarn: <?php echo json_encode(ma('new_threads_warn')); ?>,
+                newThreadsAck: <?php echo json_encode(ma('new_threads_ack')); ?>
             }
         });
     }

@@ -7615,6 +7615,20 @@
         "confirm_dialog_title": "Conferma",
         "yes_btn": "Sì",
         "max_recipients_label": "10",
-        "unmapped_columns": "Colonne non mappate (ignorate)"
+        "unmapped_columns": "Colonne non mappate (ignorate)",
+        "fmt_bold": "Grassetto",
+        "fmt_italic": "Corsivo",
+        "fmt_underline": "Sottolineato",
+        "fmt_list": "Elenco puntato",
+        "fmt_clear": "Rimuovi formattazione",
+        "editor_hint": "La formattazione viene convertita in HTML sicuro per le email al salvataggio. Piè di pagina e link di disdetta vengono aggiunti automaticamente.",
+        "thread_reason_none": "Nessuna email precedente a questo indirizzo è stata trovata nell’account Gmail collegato (inviate o invii registrati).",
+        "thread_reason_ambiguous": "Sono state trovate più conversazioni precedenti con questo destinatario; nessuna è stata scelta automaticamente.",
+        "thread_reason_unavailable": "Impossibile cercare in Gmail al momento; la verifica del thread non ha potuto essere eseguita.",
+        "thread_reason_unverified": "Un messaggio precedente è registrato ma non ha potuto essere verificato in Gmail (potrebbe essere stato eliminato o inviato da un altro account).",
+        "thread_reason_invalid": "L’indirizzo email del destinatario non è valido.",
+        "thread_reason_action": "Usa «Risolvi thread» per riprovare, oppure approva per inviare come nuova conversazione.",
+        "new_threads_warn": "{n} follow-up non hanno potuto essere associati a una conversazione email originale. L’approvazione li invierà come email NUOVE, non come risposte.",
+        "new_threads_ack": "Comprendo che questi messaggi avvieranno nuove conversazioni email anziché risposte."
     }
 }

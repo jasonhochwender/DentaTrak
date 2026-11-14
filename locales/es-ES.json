@@ -7615,6 +7615,20 @@
         "confirm_dialog_title": "Confirme",
         "yes_btn": "Sí",
         "max_recipients_label": "10",
-        "unmapped_columns": "Columnas sin asignar (ignoradas)"
+        "unmapped_columns": "Columnas sin asignar (ignoradas)",
+        "fmt_bold": "Negrita",
+        "fmt_italic": "Cursiva",
+        "fmt_underline": "Subrayado",
+        "fmt_list": "Lista con viñetas",
+        "fmt_clear": "Quitar formato",
+        "editor_hint": "El formato se convierte en HTML seguro para correo al guardar. El pie y el enlace de baja se añaden automáticamente.",
+        "thread_reason_none": "No se encontró ningún correo anterior a esta dirección en la cuenta de Gmail conectada (enviados o registros).",
+        "thread_reason_ambiguous": "Se encontraron varias conversaciones previas con este destinatario; no se eligió ninguna automáticamente.",
+        "thread_reason_unavailable": "No se pudo buscar en Gmail ahora mismo; la comprobación de hilo no pudo ejecutarse.",
+        "thread_reason_unverified": "Hay un mensaje previo registrado pero no se pudo verificar en Gmail (puede haberse eliminado o enviado desde otra cuenta).",
+        "thread_reason_invalid": "La dirección de correo del destinatario no es válida.",
+        "thread_reason_action": "Use «Resolver hilos» para reintentar, o apruebe para enviar esto como una conversación nueva.",
+        "new_threads_warn": "{n} seguimiento(s) no pudieron asociarse a una conversación de correo original. Al aprobar se enviarán como correos NUEVOS, no como respuestas.",
+        "new_threads_ack": "Entiendo que estos mensajes iniciarán nuevas conversaciones de correo en lugar de respuestas."
     }
 }

@@ -458,7 +458,7 @@ final class MarketingMailer
     private function buildMime(string $to, string $subject, string $html, string $unsubscribeUrl, string $key, array $thread): string
     {
         $hdr = MarketingFooter::headers($unsubscribeUrl);
-        $lines = [
+        $head = [
             'To: ' . $to,
             'Subject: ' . self::encodeHeader($subject),
             'MIME-Version: 1.0',
@@ -466,12 +466,47 @@ final class MarketingMailer
             'List-Unsubscribe: ' . $hdr['List-Unsubscribe'],
             'List-Unsubscribe-Post: ' . $hdr['List-Unsubscribe-Post'],
         ];
-        if ($thread['in_reply_to'] !== '') $lines[] = 'In-Reply-To: ' . $thread['in_reply_to'];
-        if ($thread['references'] !== '') $lines[] = 'References: ' . $thread['references'];
-        $lines[] = 'Content-Type: text/html; charset=UTF-8';
-        $lines[] = 'Content-Transfer-Encoding: base64';
-        return implode("\r\n", $lines) . "\r\n\r\n"
-            . chunk_split(base64_encode($html . MarketingFooter::html($unsubscribeUrl)), 76, "\r\n");
+        if ($thread['in_reply_to'] !== '') $head[] = 'In-Reply-To: ' . $thread['in_reply_to'];
+        if ($thread['references'] !== '') $head[] = 'References: ' . $thread['references'];
+
+        // multipart/alternative: plain-text first (better deliverability
+        // and accessibility), HTML second. The compliance footer and the
+        // recipient unsubscribe link are appended to BOTH parts here at
+        // send time - they can never be removed by editing campaign
+        // content.
+        $boundary = 'dtk_' . bin2hex(random_bytes(12));
+        $textBody = self::htmlToText($html) . MarketingFooter::text($unsubscribeUrl);
+        $htmlBody = $html . MarketingFooter::html($unsubscribeUrl);
+        $mime = implode("\r\n", array_merge($head, [
+            'Content-Type: multipart/alternative; boundary="' . $boundary . '"',
+            '',
+            '--' . $boundary,
+            'Content-Type: text/plain; charset=UTF-8',
+            'Content-Transfer-Encoding: base64',
+            '',
+            chunk_split(base64_encode($textBody), 76, "\r\n"),
+            '--' . $boundary,
+            'Content-Type: text/html; charset=UTF-8',
+            'Content-Transfer-Encoding: base64',
+            '',
+            chunk_split(base64_encode($htmlBody), 76, "\r\n"),
+            '--' . $boundary . '--',
+            '',
+        ]));
+        return $mime;
+    }
+
+    /** Best-effort HTML -> plain text for the multipart text part. */
+    private static function htmlToText(string $html): string
+    {
+        $t = str_replace(['</p>', '</div>', '</li>', '<br>', '<br/>', '<br />'], "\n", $html);
+        $t = preg_replace('#<li[^>]*>#i', "\n- ", $t);
+        $t = preg_replace('#<li[^>]*>\s*#i', "- ", $t);
+        $t = strip_tags($t);
+        $t = html_entity_decode($t, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $t = preg_replace("/\r\n?/", "\n", $t);
+        $t = preg_replace("/\n{3,}/", "\n\n", $t);
+        return trim($t) . "\n";
     }
 
     /** Validate threading inputs; anything malformed is dropped. */
