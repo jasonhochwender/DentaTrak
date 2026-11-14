@@ -164,6 +164,7 @@ screenshots/
 !/tests/marketing-crm-campaigns-e2e-test.js
 !/tests/marketing-crm-ux-e2e-test.js
 !/tests/marketing-mcp-crm-test.php
+!/tests/marketing-signature-test.php
 !/tests/landing-page-refresh-test.js
 !/tests/lab-insights-recs-test.php
 !/tests/lab-quality-test.php

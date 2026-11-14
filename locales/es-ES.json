@@ -7637,6 +7637,20 @@
         "threads_unverifiable": "{n} no verificable(s)",
         "threads_sheet_error": "notas de prospectos no disponibles",
         "threads_none": "No hay destinatarios que comprobar",
-        "thread_send_unverified": "Se encontró una conversación existente de Gmail, pero Gmail no pudo confirmar que el mensaje original se enviara (sin etiqueta SENT). La respuesta seguirá en el hilo correcto."
+        "thread_send_unverified": "Se encontró una conversación existente de Gmail, pero Gmail no pudo confirmar que el mensaje original se enviara (sin etiqueta SENT). La respuesta seguirá en el hilo correcto.",
+        "preview_final": "Vista previa del correo final",
+        "pv_from": "De",
+        "pv_to": "Para",
+        "pv_subject": "Asunto",
+        "pv_threading": "Respondiendo en una conversación existente de Gmail: {s} — mensaje original del {d}.",
+        "pv_managed_note": "La firma, el pie de empresa y el enlace de baja se añaden automáticamente al enviar y no se pueden editar aquí.",
+        "pv_unsub_placeholder": "El enlace de baja mostrado es un marcador de posición sin función; al enviar se genera un enlace único para cada destinatario.",
+        "pv_html_tab": "HTML",
+        "pv_text_tab": "Texto plano",
+        "sender_signature": "Firma del remitente",
+        "sig_hint": "Se añade a cada correo de marketing al enviar, después de tu mensaje y antes del pie de empresa. Si un mensaje ya contiene este nombre y título, la firma no se añade dos veces.",
+        "sig_name": "Nombre",
+        "sig_title_lbl": "Cargo",
+        "sig_detail_lbl": "Línea adicional (opcional)"
     }
 }

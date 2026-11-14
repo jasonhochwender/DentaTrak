@@ -325,6 +325,7 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
                 <button class="mo-btn danger mo-hidden" id="moCampRetryCrm"><?php echo h(ma('retry_failed')); ?></button>
                 <button class="mo-btn secondary mo-hidden" id="moCampThreadsCrm"><?php echo h(ma('recheck_threads')); ?></button>
                 <button class="mo-btn secondary mo-hidden" id="moCampReconcileCrm"><?php echo h(ma('reconcile_uncertain')); ?></button>
+                <button class="mo-btn secondary" id="moCampSigCrm"><?php echo h(ma('sender_signature')); ?></button>
                 <span class="mo-step-note" id="moCampStepCrm"></span>
             </div>
             <?php endif; ?>
@@ -1153,6 +1154,20 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
                 remove: <?php echo json_encode(ma('remove_recipient')); ?>,
                 subjectPh: <?php echo json_encode(ma('subject_ph')); ?>,
                 preview: <?php echo json_encode(ma('preview')); ?>,
+                previewFinal: <?php echo json_encode(ma('preview_final')); ?>,
+                pvFrom: <?php echo json_encode(ma('pv_from')); ?>,
+                pvTo: <?php echo json_encode(ma('pv_to')); ?>,
+                pvSubject: <?php echo json_encode(ma('pv_subject')); ?>,
+                pvThreading: <?php echo json_encode(ma('pv_threading')); ?>,
+                pvManagedNote: <?php echo json_encode(ma('pv_managed_note')); ?>,
+                pvUnsubPlaceholder: <?php echo json_encode(ma('pv_unsub_placeholder')); ?>,
+                pvHtmlTab: <?php echo json_encode(ma('pv_html_tab')); ?>,
+                pvTextTab: <?php echo json_encode(ma('pv_text_tab')); ?>,
+                senderSignature: <?php echo json_encode(ma('sender_signature')); ?>,
+                sigHint: <?php echo json_encode(ma('sig_hint')); ?>,
+                sigName: <?php echo json_encode(ma('sig_name')); ?>,
+                sigTitleLbl: <?php echo json_encode(ma('sig_title_lbl')); ?>,
+                sigDetailLbl: <?php echo json_encode(ma('sig_detail_lbl')); ?>,
                 noContent: <?php echo json_encode(ma('no_content')); ?>,
                 edited: <?php echo json_encode(ma('edited')); ?>,
                 uncertainNote: <?php echo json_encode(ma('uncertain_note')); ?>,

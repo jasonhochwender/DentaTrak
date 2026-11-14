@@ -38,6 +38,7 @@
  */
 require_once __DIR__ . '/SuppressionService.php';
 require_once __DIR__ . '/MarketingFooter.php';
+require_once __DIR__ . '/MarketingSignature.php';
 require_once __DIR__ . '/MarketingSendingPolicy.php';
 
 final class MarketingMailer
@@ -470,13 +471,14 @@ final class MarketingMailer
         if ($thread['references'] !== '') $head[] = 'References: ' . $thread['references'];
 
         // multipart/alternative: plain-text first (better deliverability
-        // and accessibility), HTML second. The compliance footer and the
-        // recipient unsubscribe link are appended to BOTH parts here at
-        // send time - they can never be removed by editing campaign
-        // content.
+        // and accessibility), HTML second. composeParts appends the sender
+        // signature (deduplicated) and the compliance footer + recipient
+        // unsubscribe link to BOTH parts here at send time - they can
+        // never be removed by editing campaign content.
         $boundary = 'dtk_' . bin2hex(random_bytes(12));
-        $textBody = self::htmlToText($html) . MarketingFooter::text($unsubscribeUrl);
-        $htmlBody = $html . MarketingFooter::html($unsubscribeUrl);
+        $parts = $this->composeParts($html, $unsubscribeUrl);
+        $textBody = $parts['text'];
+        $htmlBody = $parts['html'];
         $mime = implode("\r\n", array_merge($head, [
             'Content-Type: multipart/alternative; boundary="' . $boundary . '"',
             '',
@@ -494,6 +496,22 @@ final class MarketingMailer
             '',
         ]));
         return $mime;
+    }
+
+    /**
+     * Final assembled message parts for preview and send - the SAME
+     * assembly path, so what the admin reviews is what recipients get.
+     * Signature is appended (deduplicated), then the managed footer with
+     * the supplied unsubscribe URL.
+     * @return array{html: string, text: string}
+     */
+    public function composeParts(string $html, string $unsubscribeUrl): array
+    {
+        $body = MarketingSignature::applyToHtml($html, MarketingSignature::load($this->pdo));
+        return [
+            'html' => $body . MarketingFooter::html($unsubscribeUrl),
+            'text' => self::htmlToText($body) . MarketingFooter::text($unsubscribeUrl),
+        ];
     }
 
     /** Best-effort HTML -> plain text for the multipart text part. */

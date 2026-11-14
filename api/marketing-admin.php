@@ -49,6 +49,7 @@ require_once __DIR__ . '/marketing/MarketingMailer.php';
 require_once __DIR__ . '/marketing/MarketingSendingPolicy.php';
 require_once __DIR__ . '/marketing/OutreachEligibility.php';
 require_once __DIR__ . '/marketing/OutreachThreadResolver.php';
+require_once __DIR__ . '/marketing/MarketingSignature.php';
 require_once __DIR__ . '/marketing/SheetSyncException.php';
 setSecurityHeaders();
 header('Content-Type: application/json');
@@ -88,7 +89,7 @@ $sendingPolicy = new MarketingSendingPolicy();
 // Both marketing migrations must have run; fail closed with a clear
 // message rather than half-working against an old schema.
 try {
-    $pdo->query('SELECT thread_status, sheet_sync_status FROM marketing_campaign_recipients LIMIT 0');
+    $pdo->query('SELECT thread_status, sheet_sync_status, thread_date FROM marketing_campaign_recipients LIMIT 0');
     $pdo->query('SELECT idempotency_key, attempts FROM marketing_sends LIMIT 0');
 } catch (Throwable $e) {
     mo_fail('schema_not_migrated: run migrations/2026_11_03_marketing_admin.php and 2026_11_12_marketing_send_hardening.php', 503);
@@ -124,9 +125,10 @@ function mo_resolve_thread(PDO $pdo, MarketingMailer $mailer, array $recipient, 
         OutreachEligibility::gmailIdsFromNotes($sheetNotes), mo_ref($campaignId));
     $ok = $t['status'] === 'resolved';
     $sql = 'UPDATE marketing_campaign_recipients SET thread_status=?, thread_reason=?, thread_source=?,
-        thread_subject=?, thread_rfc_message_id=?, thread_references=?, gmail_thread_id=?';
+        thread_subject=?, thread_date=?, thread_rfc_message_id=?, thread_references=?, gmail_thread_id=?';
     $args = [$t['status'], $t['reason'] !== '' ? substr($t['reason'], 0, 80) : null, $ok ? $t['source'] : null,
-        $ok ? substr($t['subject'], 0, 500) : null, $ok ? $t['rfc_message_id'] : null,
+        $ok ? substr($t['subject'], 0, 500) : null, $ok ? substr((string)($t['date'] ?? ''), 0, 40) : null,
+        $ok ? $t['rfc_message_id'] : null,
         $ok ? $t['references'] : null, $ok ? $t['thread_id'] : null];
     if ($ok) { $sql .= ', subject=?'; $args[] = substr($t['subject'], 0, 500); }
     $args[] = $recipient['id'];
@@ -316,9 +318,16 @@ function mo_content_hash(PDO $pdo, string $campaignId): string {
     $c = $pdo->prepare("SELECT name,kind FROM marketing_campaigns WHERE id=?");
     $c->execute([$campaignId]);
     $meta = $c->fetch(PDO::FETCH_ASSOC) ?: ['name' => '', 'kind' => ''];
-    $rows = $pdo->prepare("SELECT id,contact_id,sheet_row,prospect_email,subject,body_html,thread_rfc_message_id FROM marketing_campaign_recipients WHERE campaign_id=? ORDER BY id");
+    $rows = $pdo->prepare("SELECT id,contact_id,sheet_row,prospect_email,subject,body_html,thread_status,gmail_thread_id,thread_rfc_message_id,thread_references,thread_subject,thread_date FROM marketing_campaign_recipients WHERE campaign_id=? ORDER BY id");
     $rows->execute([$campaignId]);
-    return hash('sha256', json_encode([$meta['name'], $meta['kind'], $rows->fetchAll(PDO::FETCH_ASSOC)]));
+    // Material delivery content is part of what was approved: the sender
+    // signature config and the managed footer template. Dynamic
+    // unsubscribe tokens are per-send and intentionally excluded.
+    $env = [
+        MarketingSignature::fingerprint(MarketingSignature::load($pdo)),
+        hash('sha256', MarketingFooter::html('__preview__')),
+    ];
+    return hash('sha256', json_encode([$meta['name'], $meta['kind'], $rows->fetchAll(PDO::FETCH_ASSOC), $env]));
 }
 
 /** Render a template's placeholders for one prospect. */
@@ -686,9 +695,10 @@ if ($method === 'GET') {
             $c->execute([$id]);
             $camp = $c->fetch(PDO::FETCH_ASSOC);
             if (!$camp) mo_fail('not found', 404);
-            $r = $pdo->prepare("SELECT id,contact_id,sheet_row,prospect_email,prospect_org,prospect_contact,subject,body_html,status,skip_reason,is_edited,gmail_message_id,gmail_thread_id,error,sent_at,thread_status,thread_reason,thread_source,thread_subject,sheet_sync_status,sheet_sync_error,sheet_synced_at FROM marketing_campaign_recipients WHERE campaign_id=? ORDER BY id");
+            $r = $pdo->prepare("SELECT id,contact_id,sheet_row,prospect_email,prospect_org,prospect_contact,subject,body_html,status,skip_reason,is_edited,gmail_message_id,gmail_thread_id,error,sent_at,thread_status,thread_reason,thread_source,thread_subject,thread_date,sheet_sync_status,sheet_sync_error,sheet_synced_at FROM marketing_campaign_recipients WHERE campaign_id=? ORDER BY id");
             $r->execute([$id]);
             mo_out(['success' => true, 'campaign' => $camp, 'recipients' => $r->fetchAll(PDO::FETCH_ASSOC),
+                'signature' => MarketingSignature::load($pdo),
                 'sending' => $sendingPolicy->summary()]);
         }
         case 'templates': {
@@ -881,6 +891,69 @@ switch ($action) {
             ->execute([$cid]);
         mo_audit($pdo, $userEmail, 'message_edit', $cid, ['recipient_id' => $rid]);
         mo_out(['success' => true]);
+    }
+
+    case 'preview_message': {
+        // Read-only: assembles the EXACT parts send() would produce -
+        // signature + managed footer - using a clearly nonfunctional
+        // unsubscribe placeholder. No tokens are issued, nothing is
+        // written, and approval state is untouched.
+        $cid = (string)($in['campaign_id'] ?? '');
+        $rid = (int)($in['recipient_id'] ?? 0);
+        $r = $pdo->prepare("SELECT id,campaign_id,prospect_email,prospect_contact,subject,body_html,status,
+            thread_status,thread_subject,thread_date FROM marketing_campaign_recipients WHERE id=? AND campaign_id=?");
+        $r->execute([$rid, $cid]);
+        $row = $r->fetch(PDO::FETCH_ASSOC);
+        if (!$row) mo_fail('not found', 404);
+
+        // Optional unsaved editor content may be previewed; it goes through
+        // the same sanitizer as save_message.
+        $subject = array_key_exists('subject', $in)
+            ? substr(trim((string)$in['subject']), 0, 500)
+            : (string)$row['subject'];
+        $body = array_key_exists('body_html', $in)
+            ? mo_sanitize_html((string)$in['body_html'])
+            : (string)$row['body_html'];
+        if ($body === '') mo_fail('no message content');
+
+        $mailer = new MarketingMailer($pdo, $baseUrl);
+        $placeholder = $baseUrl . '/unsubscribe.php?t=preview';
+        $parts = $mailer->composeParts($body, $placeholder);
+
+        // Sender identity comes from the connected Gmail account; the
+        // display name is whatever that account sends as (not settable
+        // via the API), so show the address honestly.
+        $from = '';
+        try {
+            $prof = $mailer->gmailGet('/profile');
+            $from = (string)($prof['data']['emailAddress'] ?? '');
+        } catch (Throwable $e) { /* shown as unknown below */ }
+
+        mo_out(['success' => true,
+            'from' => $from !== '' ? $from : 'connected Gmail account',
+            'to_name' => (string)($row['prospect_contact'] ?? ''),
+            'to_email' => (string)$row['prospect_email'],
+            'subject' => $subject,
+            'html' => $parts['html'],
+            'text' => $parts['text'],
+            'unsub_placeholder' => true,
+            'signature' => MarketingSignature::load($pdo),
+            'thread' => [
+                'status' => (string)($row['thread_status'] ?? ''),
+                'subject' => (string)($row['thread_subject'] ?? ''),
+                'date' => (string)($row['thread_date'] ?? ''),
+                'evidence' => ($row['thread_reason'] ?? '') === 'transmission_unverified' ? 'unverified' : 'verified',
+            ]]);
+    }
+
+    case 'save_signature': {
+        $sig = MarketingSignature::save($pdo, [
+            'name'   => (string)($in['name'] ?? ''),
+            'title'  => (string)($in['title'] ?? ''),
+            'detail' => (string)($in['detail'] ?? ''),
+        ]);
+        mo_audit($pdo, $userEmail, 'signature_save', null, $sig);
+        mo_out(['success' => true, 'signature' => $sig]);
     }
 
     case 'approve': {

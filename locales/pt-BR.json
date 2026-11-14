@@ -7637,6 +7637,20 @@
         "threads_unverifiable": "{n} não verificável(is)",
         "threads_sheet_error": "notas de prospects indisponíveis",
         "threads_none": "Nenhum destinatário para verificar",
-        "thread_send_unverified": "Uma conversa existente do Gmail foi encontrada, mas o Gmail não pôde confirmar que a mensagem original foi enviada (sem marcador SENT). A resposta ainda aparecerá na conversa correta."
+        "thread_send_unverified": "Uma conversa existente do Gmail foi encontrada, mas o Gmail não pôde confirmar que a mensagem original foi enviada (sem marcador SENT). A resposta ainda aparecerá na conversa correta.",
+        "preview_final": "Pré-visualização do e-mail final",
+        "pv_from": "De",
+        "pv_to": "Para",
+        "pv_subject": "Assunto",
+        "pv_threading": "Respondendo em uma conversa existente do Gmail: {s} — mensagem original de {d}.",
+        "pv_managed_note": "Assinatura, rodapé da empresa e link de cancelamento são adicionados automaticamente no envio e não podem ser editados aqui.",
+        "pv_unsub_placeholder": "O link de cancelamento exibido é um marcador de posição sem função; um link único é gerado para cada destinatário no envio.",
+        "pv_html_tab": "HTML",
+        "pv_text_tab": "Texto simples",
+        "sender_signature": "Assinatura do remetente",
+        "sig_hint": "Anexada a cada e-mail de marketing no envio, após sua mensagem e antes do rodapé da empresa. Se uma mensagem já contiver este nome e cargo, a assinatura não é adicionada duas vezes.",
+        "sig_name": "Nome",
+        "sig_title_lbl": "Cargo",
+        "sig_detail_lbl": "Linha adicional (opcional)"
     }
 }

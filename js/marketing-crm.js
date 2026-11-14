@@ -841,6 +841,7 @@
             campState.campaign = c;
             campState.recipients = d.recipients || [];
             campState.sending = d.sending || null;
+            campState.signature = d.signature || null;
             var canSend = !!(campState.sending && campState.sending.enabled);
             var recips = d.recipients || [];
             var editable = (c.status === 'draft' || c.status === 'ready');
@@ -942,10 +943,11 @@
                       '<div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;">' +
                       '<button class="mo-btn small" data-act="save">' + esc(S('save')) + '</button>' +
                       '<button class="mo-btn secondary small" data-act="regen">' + esc(S('regen')) + '</button>' +
-                      '<button class="mo-btn secondary small" data-act="preview">' + esc(S('preview')) + '</button>' +
+                      '<button class="mo-btn secondary small" data-act="preview">' + esc(S('previewFinal')) + '</button>' +
                       (canRemove ? '<button class="mo-btn danger small" data-act="remove">' + esc(S('remove')) + '</button>' : '') + '</div>' +
                       '<div class="mo-preview mo-hidden" style="margin-top:8px;"></div>'
-                    : '<div class="mo-preview">' + (r.body_html || '<em>' + esc(S('noContent')) + '</em>') + '</div>');
+                    : '<div class="mo-preview">' + (r.body_html || '<em>' + esc(S('noContent')) + '</em>') + '</div>' +
+                      '<div style="margin-top:6px;"><button class="mo-btn secondary small" data-act="preview">' + esc(S('previewFinal')) + '</button></div>');
             host.appendChild(div);
             div.querySelectorAll('button[data-resolve]').forEach(function (b) {
                 b.addEventListener('click', function () {
@@ -974,9 +976,9 @@
                 b.addEventListener('click', function () {
                     var act = b.dataset.act;
                     if (act === 'preview') {
-                        var pv = div.querySelector('.mo-preview');
-                        pv.classList.toggle('mo-hidden');
-                        if (!pv.classList.contains('mo-hidden')) pv.innerHTML = bodyEdit.innerHTML || '';
+                        var subjEl = div.querySelector('.mo-subj');
+                        previewEmail(r, subjEl ? subjEl.value : (r.subject || ''),
+                            bodyEdit ? bodyEdit.innerHTML : (r.body_html || ''));
                     } else if (act === 'save') {
                         apiPost('save_message', { campaign_id: campState.current, recipient_id: r.id,
                             subject: div.querySelector('.mo-subj').value, body_html: bodyEdit.innerHTML })
@@ -994,6 +996,68 @@
             });
         });
         if (!recips.length) host.innerHTML = '<div class="pa-card mo-sub">' + esc(S('noRecipientsYet')) + '</div>';
+    }
+
+    // Full final-email preview: the server assembles the exact parts the
+    // send path produces (signature + managed footer + placeholder
+    // unsubscribe). Read-only - nothing is saved or approved.
+    function previewEmail(r, subject, bodyHtml) {
+        apiPost('preview_message', { campaign_id: campState.current, recipient_id: r.id,
+            subject: subject, body_html: bodyHtml }).then(function (d) {
+            if (!d.success) { showErr(d.error || S('loadFailed')); return; }
+            var threadNote = '';
+            if (d.thread && d.thread.status === 'resolved' && d.thread.subject) {
+                threadNote = '<div class="mo-msg-note">' + esc(S('pvThreading')
+                    .replace('{s}', d.thread.subject).replace('{d}', d.thread.date || '')) +
+                    (d.thread.evidence === 'unverified' ? ' ' + esc(S('threadSendUnverified')) : '') + '</div>';
+            }
+            openModal(modalShell(S('previewFinal'),
+                '<div class="mo-preview-meta" style="margin-bottom:10px;">' +
+                '<div><strong>' + esc(S('pvFrom')) + ':</strong> ' + esc(d.from) + '</div>' +
+                '<div><strong>' + esc(S('pvTo')) + ':</strong> ' + esc((d.to_name ? d.to_name + ' <' : '') + d.to_email + (d.to_name ? '>' : '')) + '</div>' +
+                '<div><strong>' + esc(S('pvSubject')) + ':</strong> ' + esc(d.subject) + '</div>' +
+                threadNote + '</div>' +
+                '<div id="pvHtml" style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;background:#fff;max-height:50vh;overflow:auto;"></div>' +
+                '<pre id="pvText" class="mo-hidden" style="white-space:pre-wrap;border:1px solid #e5e7eb;border-radius:8px;padding:16px;background:#fff;max-height:50vh;overflow:auto;font-size:12px;"></pre>' +
+                '<div class="mo-msg-note" style="margin-top:8px;">' + esc(S('pvManagedNote')) + ' ' + esc(S('pvUnsubPlaceholder')) + '</div>' +
+                '<div style="margin-top:8px;display:flex;gap:8px;">' +
+                '<button type="button" class="mo-btn secondary small" id="pvHtmlBtn">' + esc(S('pvHtmlTab')) + '</button>' +
+                '<button type="button" class="mo-btn secondary small" id="pvTextBtn">' + esc(S('pvTextTab')) + '</button></div>',
+                '<button class="mo-btn secondary" data-close-btn>' + esc(S('cancel')) + '</button>'));
+            $('pvHtml').innerHTML = d.html;
+            $('pvText').textContent = d.text;
+            var showHtml = function () {
+                $('pvHtml').classList.remove('mo-hidden'); $('pvText').classList.add('mo-hidden');
+            };
+            var showText = function () {
+                $('pvHtml').classList.add('mo-hidden'); $('pvText').classList.remove('mo-hidden');
+            };
+            $('pvHtmlBtn').onclick = showHtml;
+            $('pvTextBtn').onclick = showText;
+            showHtml();
+        });
+    }
+
+    // Sender signature editor - stored server-side, appended to every
+    // marketing email at send time (deduplicated against bodies that
+    // already sign off).
+    function openSignatureModal() {
+        var s = campState.signature || {};
+        openModal(modalShell(S('senderSignature'),
+            '<p class="mo-sub" style="margin-top:0;">' + esc(S('sigHint')) + '</p>' +
+            field(S('sigName'), '<input id="sigName" maxlength="120" value="' + esc(s.name || '') + '">') +
+            field(S('sigTitleLbl'), '<input id="sigTitle" maxlength="160" value="' + esc(s.title || '') + '">') +
+            field(S('sigDetailLbl'), '<input id="sigDetail" maxlength="200" value="' + esc(s.detail || '') + '">'),
+            '<button class="mo-btn" id="sigSave">' + esc(S('save')) + '</button>' +
+            '<button class="mo-btn secondary" data-close-btn>' + esc(S('cancel')) + '</button>'));
+        $('sigSave').onclick = function () {
+            apiPost('save_signature', { name: $('sigName').value, title: $('sigTitle').value, detail: $('sigDetail').value })
+                .then(function (d) {
+                    if (!d.success) { showErr(d.error || S('loadFailed')); return; }
+                    campState.signature = d.signature;
+                    closeModal(); showOk(S('saved'));
+                });
+        };
     }
 
     function confirmModal(msg, onYes) {
@@ -1216,6 +1280,7 @@
             if ($('moCampRetryCrm')) $('moCampRetryCrm').onclick = campRetry;
             if ($('moCampThreadsCrm')) $('moCampThreadsCrm').onclick = campThreads;
             if ($('moCampReconcileCrm')) $('moCampReconcileCrm').onclick = campReconcile;
+            if ($('moCampSigCrm')) $('moCampSigCrm').onclick = openSignatureModal;
             if ($('moCampTplCrm')) $('moCampTplCrm').onchange = function () {
                 if (!campState.campaign) return;
                 apiPost('campaign_update', { campaign_id: campState.campaign.id, template_id: this.value || null })

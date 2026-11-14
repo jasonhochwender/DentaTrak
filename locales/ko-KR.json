@@ -7637,6 +7637,20 @@
         "threads_unverifiable": "{n}개 확인 불가",
         "threads_sheet_error": "잠재 고객 메모를 사용할 수 없음",
         "threads_none": "확인할 수신자가 없습니다",
-        "thread_send_unverified": "기존 Gmail 대화를 찾았지만 원본 메시지가 실제로 전송되었는지 확인할 수 없습니다(SENT 라벨 없음). 답장은 여전히 올바른 스레드에 표시됩니다."
+        "thread_send_unverified": "기존 Gmail 대화를 찾았지만 원본 메시지가 실제로 전송되었는지 확인할 수 없습니다(SENT 라벨 없음). 답장은 여전히 올바른 스레드에 표시됩니다.",
+        "preview_final": "최종 이메일 미리보기",
+        "pv_from": "보낸 사람",
+        "pv_to": "받는 사람",
+        "pv_subject": "제목",
+        "pv_threading": "기존 Gmail 대화에 회신 중: {s} — 원본 메시지 날짜 {d}.",
+        "pv_managed_note": "서명, 회사 푸터, 수신 거부 링크는 발송 시 자동으로 추가되며 여기서 편집할 수 없습니다.",
+        "pv_unsub_placeholder": "표시된 수신 거부 링크는 작동하지 않는 미리보기 자리표시자입니다. 발송 시 수신자마다 고유 링크가 생성됩니다.",
+        "pv_html_tab": "HTML",
+        "pv_text_tab": "일반 텍스트",
+        "sender_signature": "보낸 사람 서명",
+        "sig_hint": "메시지 본문 다음, 회사 푸터 이전에 모든 마케팅 이메일에 발송 시 추가됩니다. 메시지에 이미 이 이름과 직함이 포함되어 있으면 서명이 중복 추가되지 않습니다.",
+        "sig_name": "이름",
+        "sig_title_lbl": "직함",
+        "sig_detail_lbl": "추가 줄 (선택 사항)"
     }
 }

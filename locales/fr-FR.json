@@ -7637,6 +7637,20 @@
         "threads_unverifiable": "{n} non vérifiable(s)",
         "threads_sheet_error": "notes de prospects indisponibles",
         "threads_none": "Aucun destinataire à vérifier",
-        "thread_send_unverified": "Une conversation Gmail existante a été trouvée, mais Gmail n'a pas pu confirmer que le message original avait été envoyé (aucune étiquette SENT). La réponse restera dans le bon fil."
+        "thread_send_unverified": "Une conversation Gmail existante a été trouvée, mais Gmail n'a pas pu confirmer que le message original avait été envoyé (aucune étiquette SENT). La réponse restera dans le bon fil.",
+        "preview_final": "Aperçu de l'e-mail final",
+        "pv_from": "De",
+        "pv_to": "À",
+        "pv_subject": "Objet",
+        "pv_threading": "Réponse dans une conversation Gmail existante : {s} — message original du {d}.",
+        "pv_managed_note": "La signature, le pied de page de l'entreprise et le lien de désabonnement sont ajoutés automatiquement à l'envoi et ne peuvent pas être modifiés ici.",
+        "pv_unsub_placeholder": "Le lien de désabonnement affiché est un espace réservé sans fonction; un lien unique est généré pour chaque destinataire à l'envoi.",
+        "pv_html_tab": "HTML",
+        "pv_text_tab": "Texte brut",
+        "sender_signature": "Signature de l'expéditeur",
+        "sig_hint": "Ajoutée à chaque e-mail marketing à l'envoi, après votre message et avant le pied de page de l'entreprise. Si un message contient déjà ce nom et ce titre, la signature n'est pas ajoutée deux fois.",
+        "sig_name": "Nom",
+        "sig_title_lbl": "Titre",
+        "sig_detail_lbl": "Ligne supplémentaire (facultatif)"
     }
 }

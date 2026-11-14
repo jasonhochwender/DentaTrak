@@ -7637,6 +7637,20 @@
         "threads_unverifiable": "{n} non verificabile/i",
         "threads_sheet_error": "note dei prospect non disponibili",
         "threads_none": "Nessun destinatario da verificare",
-        "thread_send_unverified": "È stata trovata una conversazione Gmail esistente, ma Gmail non ha potuto confermare che il messaggio originale fosse stato inviato (nessuna etichetta SENT). La risposta resterà nel thread corretto."
+        "thread_send_unverified": "È stata trovata una conversazione Gmail esistente, ma Gmail non ha potuto confermare che il messaggio originale fosse stato inviato (nessuna etichetta SENT). La risposta resterà nel thread corretto.",
+        "preview_final": "Anteprima email finale",
+        "pv_from": "Da",
+        "pv_to": "A",
+        "pv_subject": "Oggetto",
+        "pv_threading": "Risposta in una conversazione Gmail esistente: {s} — messaggio originale del {d}.",
+        "pv_managed_note": "Firma, piè di pagina aziendale e link di disiscrizione vengono aggiunti automaticamente all'invio e non possono essere modificati qui.",
+        "pv_unsub_placeholder": "Il link di disiscrizione mostrato è un segnaposto non funzionante; all'invio viene generato un link univoco per ogni destinatario.",
+        "pv_html_tab": "HTML",
+        "pv_text_tab": "Testo semplice",
+        "sender_signature": "Firma del mittente",
+        "sig_hint": "Aggiunta a ogni email marketing all'invio, dopo il tuo messaggio e prima del piè di pagina aziendale. Se un messaggio contiene già questo nome e titolo, la firma non viene aggiunta due volte.",
+        "sig_name": "Nome",
+        "sig_title_lbl": "Titolo",
+        "sig_detail_lbl": "Riga aggiuntiva (facoltativa)"
     }
 }

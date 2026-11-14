@@ -7637,6 +7637,20 @@
         "threads_unverifiable": "{n} nicht verifizierbar",
         "threads_sheet_error": "Prospect-Notizen nicht verfügbar",
         "threads_none": "Keine Empfänger zu prüfen",
-        "thread_send_unverified": "Eine bestehende Gmail-Unterhaltung wurde gefunden, aber Gmail konnte nicht bestätigen, dass die Originalnachricht gesendet wurde (kein SENT-Label). Die Antwort wird weiterhin korrekt eingefügt."
+        "thread_send_unverified": "Eine bestehende Gmail-Unterhaltung wurde gefunden, aber Gmail konnte nicht bestätigen, dass die Originalnachricht gesendet wurde (kein SENT-Label). Die Antwort wird weiterhin korrekt eingefügt.",
+        "preview_final": "Finale E-Mail-Vorschau",
+        "pv_from": "Von",
+        "pv_to": "An",
+        "pv_subject": "Betreff",
+        "pv_threading": "Antwort in bestehender Gmail-Unterhaltung: {s} — Originalnachricht vom {d}.",
+        "pv_managed_note": "Signatur, Firmenfußzeile und Abmeldelink werden beim Versand automatisch angehängt und können hier nicht bearbeitet werden.",
+        "pv_unsub_placeholder": "Der angezeigte Abmeldelink ist ein nicht funktionierender Platzhalter; beim Versand wird für jeden Empfänger ein eindeutiger Link erzeugt.",
+        "pv_html_tab": "HTML",
+        "pv_text_tab": "Nur Text",
+        "sender_signature": "Absender-Signatur",
+        "sig_hint": "Wird jeder Marketing-E-Mail beim Versand angehängt, nach Ihrer Nachricht und vor der Firmenfußzeile. Enthält eine Nachricht bereits diesen Namen und Titel, wird die Signatur nicht doppelt hinzugefügt.",
+        "sig_name": "Name",
+        "sig_title_lbl": "Titel",
+        "sig_detail_lbl": "Zusätzliche Zeile (optional)"
     }
 }

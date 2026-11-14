@@ -7637,6 +7637,20 @@
         "threads_unverifiable": "{n} unverifiable",
         "threads_sheet_error": "prospect notes unavailable",
         "threads_none": "No recipients to check",
-        "thread_send_unverified": "Matched an existing Gmail conversation, but Gmail could not confirm the original message was sent (no SENT label). The reply will still thread correctly."
+        "thread_send_unverified": "Matched an existing Gmail conversation, but Gmail could not confirm the original message was sent (no SENT label). The reply will still thread correctly.",
+        "preview_final": "Preview Final Email",
+        "pv_from": "From",
+        "pv_to": "To",
+        "pv_subject": "Subject",
+        "pv_threading": "Replying in existing Gmail conversation: {s} — original message dated {d}.",
+        "pv_managed_note": "Signature, company footer and unsubscribe link are added automatically at send time and cannot be edited here.",
+        "pv_unsub_placeholder": "The unsubscribe link shown is a nonfunctional preview placeholder; a unique link is generated for each recipient at send time.",
+        "pv_html_tab": "HTML",
+        "pv_text_tab": "Plain text",
+        "sender_signature": "Sender signature",
+        "sig_hint": "Appended to every marketing email at send time, after your message and before the company footer. If a message already contains this name and title, the signature is not added twice.",
+        "sig_name": "Name",
+        "sig_title_lbl": "Title",
+        "sig_detail_lbl": "Additional line (optional)"
     }
 }

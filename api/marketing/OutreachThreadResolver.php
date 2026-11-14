@@ -263,7 +263,7 @@ final class OutreachThreadResolver
     {
         $r = ($this->gmailGet)('/messages/' . rawurlencode($messageId), [
             'format' => 'metadata',
-            'metadataHeaders' => ['To', 'Subject', 'Message-ID', 'References'],
+            'metadataHeaders' => ['To', 'Subject', 'Message-ID', 'References', 'Date'],
         ]);
         if ($r['status'] === 404) return ['ok' => false, 'reason' => 'prior_message_not_found'];
         if ($r['status'] !== 200) return ['ok' => false, 'reason' => 'gmail_lookup_unavailable'];
@@ -287,6 +287,7 @@ final class OutreachThreadResolver
             'rfc_message_id' => $rfcId,
             'references' => $refs,
             'subject' => self::replySubject($h['subject'] ?? ''),
+            'date' => substr($h['date'] ?? '', 0, 80),
         ]];
     }
 }
