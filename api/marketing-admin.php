@@ -1158,13 +1158,14 @@ switch ($action) {
         if (!in_array($camp['status'], ['draft', 'ready'], true)) mo_fail('campaign locked');
         $crm = mo_crm($pdo);
         $notesByEmail = [];
+        $dir = null;
+        $sheetErr2 = null;
         if ($crm !== null) {
             $rs0 = $pdo->prepare("SELECT prospect_email FROM marketing_campaign_recipients WHERE campaign_id=? AND status IN ('draft','ready')");
             $rs0->execute([$cid]);
             foreach ($crm->findByEmails($rs0->fetchAll(PDO::FETCH_COLUMN)) as $e => $pp) {
                 $notesByEmail[$e] = (string)($pp['fields']['notes'] ?? '');
             }
-            $sheetErr2 = null;
         } else {
             [, $sheetErr2, $dir] = mo_load_prospects($pdo);
             if ($dir !== null) {

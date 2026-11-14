@@ -8,7 +8,25 @@
  */
 if (PHP_SAPI !== 'cli') exit("cli only\n");
 require_once __DIR__ . '/../api/appConfig.php';
-global $pdo;
+require_once __DIR__ . '/../api/marketing/MarketingMailer.php';
+global $pdo, $appConfig;
+
+// --gmail-probe: report whether the Gmail read path works in this
+// environment (status codes only - no tokens, no message content).
+if (in_array('--gmail-probe', $argv, true)) {
+    $m = new MarketingMailer($pdo, (string)($appConfig['baseUrl'] ?? ''));
+    $at = $m->accessToken();
+    echo 'access_token: ' . ($at ? 'obtained' : 'FAILED') . "\n";
+    if ($at) {
+        $r = $m->gmailGet('/messages', ['q' => 'in:sent', 'maxResults' => 1]);
+        echo 'messages.list status: ' . var_export($r['status'], true)
+            . ' results=' . count($r['data']['messages'] ?? []) . "\n";
+        if ($r['status'] !== 200) {
+            echo 'error: ' . substr(json_encode($r['data']['error'] ?? $r['data']), 0, 300) . "\n";
+        }
+    }
+    exit(0);
+}
 
 $mask = static function (?string $email): string {
     $email = (string)$email;
