@@ -700,7 +700,7 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
     }
     function sheetErrorText(code) { return (code && STR.sheetErrs[code]) || STR.sheetDown; }
     function showErr(m) { var e = document.getElementById('moGlobalError'); e.textContent = m; e.classList.remove('mo-hidden'); }
-    function showOk(m) { var e = document.getElementById('moGlobalOk'); e.textContent = m; e.classList.remove('mo-hidden'); setTimeout(function(){ e.classList.add('mo-hidden'); }, 6000); }
+    function showOk(m) { var e = document.getElementById('moGlobalOk'); e.textContent = m; e.classList.remove('mo-hidden'); document.getElementById('moGlobalError').classList.add('mo-hidden'); setTimeout(function(){ e.classList.add('mo-hidden'); }, 6000); }
     function clearMsgs() { document.getElementById('moGlobalError').classList.add('mo-hidden'); document.getElementById('moGlobalOk').classList.add('mo-hidden'); }
 
     function apiGet(action, params) {

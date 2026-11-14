@@ -1034,19 +1034,23 @@
                 });
             });
             // Rich-text editor wiring: formatting buttons, plain-text paste.
+            // Only exists for editable recipients - approved/sent campaigns
+            // render the read-only branch with no .mo-body-edit element.
             var bodyEdit = div.querySelector('.mo-body-edit');
-            div.querySelectorAll('.mo-rte-bar button[data-fmt]').forEach(function (fb) {
-                fb.addEventListener('mousedown', function (e) { e.preventDefault(); });
-                fb.addEventListener('click', function () {
-                    bodyEdit.focus();
-                    document.execCommand(fb.dataset.fmt, false, null);
+            if (bodyEdit) {
+                div.querySelectorAll('.mo-rte-bar button[data-fmt]').forEach(function (fb) {
+                    fb.addEventListener('mousedown', function (e) { e.preventDefault(); });
+                    fb.addEventListener('click', function () {
+                        bodyEdit.focus();
+                        document.execCommand(fb.dataset.fmt, false, null);
+                    });
                 });
-            });
-            bodyEdit.addEventListener('paste', function (e) {
-                e.preventDefault();
-                var text = (e.clipboardData || window.clipboardData).getData('text/plain');
-                document.execCommand('insertText', false, text);
-            });
+                bodyEdit.addEventListener('paste', function (e) {
+                    e.preventDefault();
+                    var text = (e.clipboardData || window.clipboardData).getData('text/plain');
+                    document.execCommand('insertText', false, text);
+                });
+            }
             div.querySelectorAll('button[data-act]').forEach(function (b) {
                 b.addEventListener('click', function () {
                     var act = b.dataset.act;
@@ -1079,7 +1083,10 @@
     function previewEmail(r, subject, bodyHtml) {
         apiPost('preview_message', { campaign_id: campState.current, recipient_id: r.id,
             subject: subject, body_html: bodyHtml }).then(function (d) {
-            if (!d.success) { showErr(d.error || S('loadFailed')); return; }
+            if (!d.success) {
+                var err = (d.error === 'bad_response' || d.error === 'request_failed') ? S('loadFailed') : (d.error || S('loadFailed'));
+                showErr(err); return;
+            }
             var threadNote = '';
             if (d.thread && d.thread.status === 'resolved' && d.thread.subject) {
                 threadNote = '<div class="mo-msg-note">' + esc(S('pvThreading')
@@ -1110,7 +1117,7 @@
             $('pvHtmlBtn').onclick = showHtml;
             $('pvTextBtn').onclick = showText;
             showHtml();
-        });
+        }).catch(function () { showErr(S('loadFailed')); });
     }
 
     // Sender signature editor - stored server-side, appended to every
