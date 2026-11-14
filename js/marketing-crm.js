@@ -1296,6 +1296,22 @@
     window.MOCrm = {
         load: load,
         loadCampaigns: loadCampaigns,
+        // Deep-link from the dashboard: set prospect filters without
+        // loading; the caller switches tabs (loadTab triggers load()).
+        openProspects: function (f) {
+            f = f || {};
+            state.page = 1; state.selected = {};
+            state.q = f.q || ''; state.status = f.status || ''; state.priority = f.priority || '';
+            state.org_type = f.org_type || ''; state.eligible = f.eligible || '';
+            state.flag = f.flag || ''; state.bucket = f.bucket || ''; state.review = f.review ? 1 : 0;
+            var map = { moCrmQ: 'q', moCrmStatus: 'status', moCrmPriority: 'priority',
+                moCrmOrgType: 'org_type', moCrmEligible: 'eligible', moCrmFlag: 'flag', moCrmBucket: 'bucket' };
+            Object.keys(map).forEach(function (id) {
+                var el = $(id); if (el) el.value = state[map[id]] || '';
+            });
+            var qt = $('moCrmQ'); if (qt) qt.value = state.q;
+            var ro = $('moCrmReviewOnly'); if (ro) ro.checked = !!state.review;
+        },
         newCampaignWizard: newCampaignWizard,
         openCampaign: openCampaign,
         addContactsToCampaign: function (ids, kind) { openCampaignAdd(ids, kind); },

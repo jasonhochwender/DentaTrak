@@ -180,6 +180,50 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
             .mo-table { display: block; overflow-x: auto; }
             .mo-msg textarea { min-height: 160px; }
         }
+        /* ---------- performance dashboard ---------- */
+        .mo-dash-filters select, .mo-dash-filters input[type="date"] {
+            padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.85rem; }
+        .mo-dash-note { font-size: 0.75rem; color: #6b7280; margin: -8px 0 14px; }
+        .mo-dash-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; margin-bottom: 16px; }
+        .mo-dash-wide { grid-column: 1 / -1; }
+        .mo-kpi { cursor: pointer; transition: box-shadow .15s ease; }
+        .mo-kpi:hover { box-shadow: 0 0 0 2px #1e40af33; }
+        .mo-kpi:hover .pa-metric-value { color: #1e40af; }
+        .mo-kpi .pa-metric-note { font-size: 0.72rem; color: #6b7280; margin-top: 2px; }
+        .mo-kpi.na { cursor: default; }
+        .mo-kpi.na:hover { box-shadow: none; }
+        .mo-hbar { display: grid; grid-template-columns: minmax(80px, 170px) 1fr 48px; gap: 8px;
+                   align-items: center; padding: 5px 6px; margin: 0 -6px; border-radius: 6px;
+                   font-size: 0.82rem; cursor: pointer; }
+        .mo-hbar:hover { background: #f8fafc; }
+        .mo-hbar-label { color: #374151; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .mo-hbar:hover .mo-hbar-label { color: #1e40af; }
+        .mo-hbar-track { background: #f3f4f6; border-radius: 5px; height: 14px; overflow: hidden; }
+        .mo-hbar-fill { height: 100%; background: #1e40af; border-radius: 5px; min-width: 2px; }
+        .mo-hbar-fill.alt { background: #0ea5e9; } .mo-hbar-fill.good { background: #10b981; }
+        .mo-hbar-fill.warn { background: #f59e0b; } .mo-hbar-fill.bad { background: #ef4444; }
+        .mo-hbar-fill.muted { background: #9ca3af; }
+        .mo-hbar-n { text-align: right; font-variant-numeric: tabular-nums; color: #374151; font-weight: 600; }
+        .mo-chart { width: 100%; height: 190px; display: block; }
+        .mo-chart .axis { font-size: 10px; fill: #6b7280; }
+        .mo-chart .grid { stroke: #f3f4f6; }
+        .mo-chart .bar-sent { fill: #1e40af; }
+        .mo-chart .bar-failed { fill: #ef4444; }
+        .mo-chart .bar-uncertain { fill: #f59e0b; }
+        .mo-chart .dot { fill: #0ea5e9; }
+        .mo-legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 0.75rem; color: #6b7280; margin-top: 6px; }
+        .mo-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; }
+        .mo-attn { display: flex; flex-direction: column; }
+        .mo-attn-row { display: flex; justify-content: space-between; align-items: center; gap: 10px;
+                       padding: 8px 10px; margin: 0 -10px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; }
+        .mo-attn-row:hover { background: #f8fafc; }
+        .mo-attn-row .k { color: #374151; }
+        .mo-attn-n { font-weight: 700; font-variant-numeric: tabular-nums; color: #1f2937; }
+        .mo-attn-row.zero { opacity: 0.45; cursor: default; }
+        .mo-attn-row.zero:hover { background: none; }
+        .mo-seg-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 20px 24px; }
+        .mo-seg-title { font-size: 0.78rem; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; }
+        .mo-empty-note { color: #9ca3af; font-size: 0.8rem; padding: 8px 0; }
     </style>
 </head>
 <?php paAdminChrome('marketing', ma('title'), ma('subtitle')); ?>
@@ -197,18 +241,64 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
     <button class="mo-tab" data-tab="history" role="tab"><?php echo h(ma('tab_history')); ?></button>
 </div>
 
-<!-- ============ OVERVIEW ============ -->
+<!-- ============ OVERVIEW / PERFORMANCE DASHBOARD ============ -->
 <section id="moTab-overview" class="mo-pane">
-    <div class="pa-grid" id="moOvMetrics"></div>
-    <div class="pa-card">
-        <h2><?php echo h(ma('ov_followups_title')); ?></h2>
-        <div id="moOvBuckets" class="mo-toolbar"></div>
+    <div class="mo-toolbar" id="moDashFilters">
+        <select id="moDashDays" aria-label="<?php echo h(ma('dash_period')); ?>">
+            <option value="7"><?php echo h(ma('dash_last7')); ?></option>
+            <option value="30" selected><?php echo h(ma('dash_last30')); ?></option>
+            <option value="90"><?php echo h(ma('dash_last90')); ?></option>
+            <option value="custom"><?php echo h(ma('dash_custom')); ?></option>
+        </select>
+        <span id="moDashCustom" class="mo-hidden">
+            <input type="date" id="moDashFrom" aria-label="<?php echo h(ma('dash_from')); ?>">
+            <input type="date" id="moDashTo" aria-label="<?php echo h(ma('dash_to')); ?>">
+        </span>
+        <select id="moDashCampaign"><option value=""><?php echo h(ma('dash_all_campaigns')); ?></option></select>
+        <select id="moDashKind">
+            <option value=""><?php echo h(ma('dash_all_types')); ?></option>
+            <option value="initial"><?php echo h(ma('kind_initial_lbl')); ?></option>
+            <option value="followup"><?php echo h(ma('kind_followup_lbl')); ?></option>
+        </select>
+        <select id="moDashOrgType"><option value=""><?php echo h(ma('dash_all_orgtypes')); ?></option></select>
+        <select id="moDashLocation"><option value=""><?php echo h(ma('dash_all_locations')); ?></option></select>
+        <button type="button" class="mo-btn secondary small" id="moDashReset"><?php echo h(ma('dash_reset')); ?></button>
     </div>
-    <div class="pa-card">
-        <h2><?php echo h(ma('ov_flags_title')); ?></h2>
-        <div id="moOvFlags"></div>
-        <p class="mo-step-note" id="moOvSheetNote"></p>
+    <p class="mo-dash-note" id="moDashNote"></p>
+
+    <div class="pa-grid" id="moDashKpis"></div>
+
+    <div class="mo-dash-grid">
+        <div class="pa-card mo-dash-wide">
+            <h2><?php echo h(ma('dash_chart_title')); ?></h2>
+            <div id="moDashChart"></div>
+            <div class="mo-legend" id="moDashLegend"></div>
+            <p class="mo-step-note" id="moDashChartNote"></p>
+        </div>
+        <div class="pa-card">
+            <h2><?php echo h(ma('dash_pipe_title')); ?></h2>
+            <div id="moDashPipe"></div>
+            <p class="mo-step-note" id="moDashPipeNote"></p>
+        </div>
     </div>
+
+    <div class="mo-dash-grid">
+        <div class="pa-card mo-dash-wide">
+            <h2><?php echo h(ma('dash_camp_title')); ?></h2>
+            <div id="moDashCamps"></div>
+        </div>
+        <div class="pa-card">
+            <h2><?php echo h(ma('dash_attn_title')); ?></h2>
+            <div id="moDashAttn"></div>
+        </div>
+    </div>
+
+    <div class="pa-card">
+        <h2><?php echo h(ma('dash_seg_title')); ?></h2>
+        <div class="mo-seg-cols" id="moDashSegs"></div>
+        <p class="mo-step-note" id="moDashSegNote"></p>
+    </div>
+    <p class="mo-step-note" id="moDashDefs"></p>
 </section>
 
 <!-- ============ PROSPECTS ============ -->
@@ -452,9 +542,82 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
         sheetSyncResult: <?php echo json_encode(ma('sheet_sync_result')); ?>,
         reconcileResult: <?php echo json_encode(ma('reconcile_result')); ?>,
         notEligibleFollowup: <?php echo json_encode(ma('not_eligible_followup')); ?>,
-        cancelled: <?php echo json_encode(ma('cancelled')); ?>
+        cancelled: <?php echo json_encode(ma('cancelled')); ?>,
+        bucketLabels: {
+            not_contacted: <?php echo json_encode(ma('bucket_not_contacted')); ?>,
+            awaiting_response: <?php echo json_encode(ma('bucket_awaiting_response')); ?>,
+            due_today: <?php echo json_encode(ma('bucket_due_today')); ?>,
+            overdue: <?php echo json_encode(ma('bucket_overdue')); ?>,
+            upcoming: <?php echo json_encode(ma('bucket_upcoming')); ?>,
+            completed: <?php echo json_encode(ma('bucket_completed')); ?>,
+            excluded: <?php echo json_encode(ma('bucket_excluded')); ?>
+        },
+        dash: {
+            period: <?php echo json_encode(ma('dash_period')); ?>,
+            rangeNote: <?php echo json_encode(ma('dash_range_note')); ?>,
+            vsPrior: <?php echo json_encode(ma('dash_vs_prior')); ?>,
+            kProspects: <?php echo json_encode(ma('dash_k_prospects')); ?>,
+            kContactable: <?php echo json_encode(ma('dash_k_contactable')); ?>,
+            kSent: <?php echo json_encode(ma('dash_k_sent')); ?>,
+            kReplies: <?php echo json_encode(ma('dash_k_replies')); ?>,
+            kRate: <?php echo json_encode(ma('dash_k_rate')); ?>,
+            kAwaiting: <?php echo json_encode(ma('dash_k_awaiting')); ?>,
+            kDue: <?php echo json_encode(ma('dash_k_due')); ?>,
+            kRecorded: <?php echo json_encode(ma('dash_k_recorded')); ?>,
+            tProspects: <?php echo json_encode(ma('dash_t_prospects')); ?>,
+            tContactable: <?php echo json_encode(ma('dash_t_contactable')); ?>,
+            tSent: <?php echo json_encode(ma('dash_t_sent')); ?>,
+            tReplies: <?php echo json_encode(ma('dash_t_replies')); ?>,
+            tRate: <?php echo json_encode(ma('dash_t_rate')); ?>,
+            tAwaiting: <?php echo json_encode(ma('dash_t_awaiting')); ?>,
+            tDue: <?php echo json_encode(ma('dash_t_due')); ?>,
+            tRecorded: <?php echo json_encode(ma('dash_t_recorded')); ?>,
+            chartEmpty: <?php echo json_encode(ma('dash_chart_empty')); ?>,
+            chartNote: <?php echo json_encode(ma('dash_chart_note')); ?>,
+            legSent: <?php echo json_encode(ma('dash_leg_sent')); ?>,
+            legFailed: <?php echo json_encode(ma('dash_leg_failed')); ?>,
+            legUncertain: <?php echo json_encode(ma('dash_leg_uncertain')); ?>,
+            legAllTime: <?php echo json_encode(ma('dash_leg_alltime')); ?>,
+            pipeNote: <?php echo json_encode(ma('dash_pipe_note')); ?>,
+            campEmpty: <?php echo json_encode(ma('dash_camp_empty')); ?>,
+            campRepliesNa: <?php echo json_encode(ma('dash_camp_replies_na')); ?>,
+            attnNone: <?php echo json_encode(ma('dash_attn_none')); ?>,
+            aOverdue: <?php echo json_encode(ma('dash_a_overdue')); ?>,
+            aDue: <?php echo json_encode(ma('dash_a_due')); ?>,
+            aAwaiting: <?php echo json_encode(ma('dash_a_awaiting')); ?>,
+            aUpcoming: <?php echo json_encode(ma('dash_a_upcoming')); ?>,
+            aReview: <?php echo json_encode(ma('dash_a_review')); ?>,
+            aMissing: <?php echo json_encode(ma('dash_a_missing')); ?>,
+            aDnc: <?php echo json_encode(ma('dash_a_dnc')); ?>,
+            aDup: <?php echo json_encode(ma('dash_a_dup')); ?>,
+            aRecorded: <?php echo json_encode(ma('dash_a_recorded')); ?>,
+            aDrafts: <?php echo json_encode(ma('dash_a_drafts')); ?>,
+            aReady: <?php echo json_encode(ma('dash_a_ready')); ?>,
+            aApproved: <?php echo json_encode(ma('dash_a_approved')); ?>,
+            aProblems: <?php echo json_encode(ma('dash_a_problems')); ?>,
+            segNote: <?php echo json_encode(ma('dash_seg_note')); ?>,
+            defs: <?php echo json_encode(ma('dash_defs')); ?>,
+            chartTitle: <?php echo json_encode(ma('dash_chart_title')); ?>,
+            allCampaigns: <?php echo json_encode(ma('dash_all_campaigns')); ?>,
+            allOrgtypes: <?php echo json_encode(ma('dash_all_orgtypes')); ?>,
+            allLocations: <?php echo json_encode(ma('dash_all_locations')); ?>,
+            campName: <?php echo json_encode(ma('dash_camp_name')); ?>,
+            campKind: <?php echo json_encode(ma('dash_camp_kind')); ?>,
+            campStatus: <?php echo json_encode(ma('dash_camp_status')); ?>,
+            campRecips: <?php echo json_encode(ma('dash_camp_recips')); ?>,
+            campSent: <?php echo json_encode(ma('dash_camp_sent')); ?>,
+            campIssues: <?php echo json_encode(ma('dash_camp_issues')); ?>,
+            campLast: <?php echo json_encode(ma('dash_camp_last')); ?>,
+            campOpen: <?php echo json_encode(ma('dash_camp_open')); ?>,
+            segOrgType: <?php echo json_encode(ma('dash_seg_orgtype')); ?>,
+            segStatus: <?php echo json_encode(ma('dash_seg_status')); ?>,
+            segPriority: <?php echo json_encode(ma('dash_seg_priority')); ?>,
+            segLocation: <?php echo json_encode(ma('dash_seg_location')); ?>,
+            segSource: <?php echo json_encode(ma('dash_seg_source')); ?>
+        }
     };
     var state = { prospectPage: 1, currentCampaign: null, templates: [] };
+    function $(id) { return document.getElementById(id); }
 
     function esc(s) {
         return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -517,8 +680,142 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
         else if (name === 'history') loadHistory();
     }
 
-    // ---------- overview ----------
-    function loadOverview() {
+    // ---------- overview / performance dashboard ----------
+    var dashFilters = { days: '30', from: '', to: '', campaign: '', kind: '', org_type: '', location: '' };
+    var dashWired = false;
+
+    function dashParams() {
+        var p = { days: dashFilters.days, campaign_id: dashFilters.campaign, kind: dashFilters.kind,
+            org_type: dashFilters.org_type, location: dashFilters.location };
+        if (dashFilters.days === 'custom') { p.from = dashFilters.from; p.to = dashFilters.to; }
+        return p;
+    }
+    function dashWire() {
+        if (dashWired) return; dashWired = true;
+        var on = function () { loadOverview(); };
+        $('moDashDays').addEventListener('change', function () {
+            dashFilters.days = this.value;
+            $('moDashCustom').classList.toggle('mo-hidden', this.value !== 'custom');
+            if (this.value === 'custom') { setCustomDefaults(); return; }
+            on();
+        });
+        $('moDashFrom').addEventListener('change', function () { dashFilters.from = this.value; on(); });
+        $('moDashTo').addEventListener('change', function () { dashFilters.to = this.value; on(); });
+        $('moDashCampaign').addEventListener('change', function () { dashFilters.campaign = this.value; on(); });
+        $('moDashKind').addEventListener('change', function () { dashFilters.kind = this.value; on(); });
+        $('moDashOrgType').addEventListener('change', function () { dashFilters.org_type = this.value; on(); });
+        $('moDashLocation').addEventListener('change', function () { dashFilters.location = this.value; on(); });
+        $('moDashReset').addEventListener('click', function () {
+            dashFilters = { days: '30', from: '', to: '', campaign: '', kind: '', org_type: '', location: '' };
+            $('moDashDays').value = '30'; $('moDashCustom').classList.add('mo-hidden');
+            ['moDashCampaign','moDashKind','moDashOrgType','moDashLocation'].forEach(function (id) { $(id).value = ''; });
+            on();
+        });
+    }
+    function setCustomDefaults() {
+        var to = new Date(), from = new Date(Date.now() - 29 * 864e5);
+        var iso = function (d) { return d.toISOString().slice(0, 10); };
+        if (!$('moDashFrom').value) $('moDashFrom').value = iso(from);
+        if (!$('moDashTo').value) $('moDashTo').value = iso(to);
+        dashFilters.from = $('moDashFrom').value; dashFilters.to = $('moDashTo').value;
+        if (dashFilters.from && dashFilters.to) loadOverview();
+    }
+    function dashGoTab(tab) {
+        var t = document.querySelector('.mo-tab[data-tab="' + tab + '"]');
+        if (t) t.click();
+    }
+    function dashProspects(f) {
+        if (window.MOCrm && MOCrm.openProspects) MOCrm.openProspects(f || {});
+        dashGoTab('prospects');
+    }
+    function dashCampaigns() { dashGoTab('campaigns'); }
+    function dashHistory() { dashGoTab('history'); }
+
+    function dashKpi(label, value, note, tip, onClick) {
+        return '<div class="pa-metric mo-kpi' + (onClick ? '' : ' na') + '"' +
+            (tip ? ' title="' + esc(tip) + '"' : '') + (onClick ? ' data-act="' + esc(onClick) + '"' : '') + '>' +
+            '<div class="pa-metric-value">' + esc(value) + '</div>' +
+            '<div class="pa-metric-label">' + esc(label) + '</div>' +
+            (note ? '<div class="pa-metric-note">' + esc(note) + '</div>' : '') + '</div>';
+    }
+
+    // Stacked daily/weekly bars drawn as inline SVG (no chart dependency).
+    function dashChartSvg(series, from, to) {
+        var days = Math.round((new Date(to) - new Date(from)) / 864e5) + 1;
+        var weekly = days > 31;
+        var buckets = {}; var order = [];
+        var t = new Date(from + 'T00:00:00Z').getTime();
+        var end = new Date(to + 'T00:00:00Z').getTime();
+        for (var d = t; d <= end; d += 864e5) {
+            var dt = new Date(d);
+            var key = weekly
+                ? new Date(dt.getTime() - ((dt.getUTCDay() + 6) % 7) * 864e5).toISOString().slice(0, 10)
+                : dt.toISOString().slice(0, 10);
+            if (!buckets[key]) { buckets[key] = { sent: 0, failed: 0, uncertain: 0 }; order.push(key); }
+        }
+        Object.keys(series).forEach(function (day) {
+            var wk = weekly ? (function (ds) {
+                var x = new Date(ds + 'T00:00:00Z');
+                return new Date(x.getTime() - ((x.getUTCDay() + 6) % 7) * 864e5).toISOString().slice(0, 10);
+            })(day) : day;
+            var b = buckets[wk]; if (!b) return;
+            ['sent', 'failed', 'uncertain'].forEach(function (s) { b[s] += (series[day][s] || 0); });
+        });
+        var host = $('moDashChart');
+        var W = Math.max(320, host.clientWidth || 720), H = 190;
+        var m = { l: 36, r: 8, t: 10, b: 24 };
+        var iw = W - m.l - m.r, ih = H - m.t - m.b;
+        var max = 1;
+        order.forEach(function (k) { var s = buckets[k]; max = Math.max(max, s.sent + s.failed + s.uncertain); });
+        var niceMax = Math.max(1, Math.ceil(max / 4) * 4);
+        var bw = iw / order.length;
+        var barW = Math.max(2, Math.min(weekly ? 22 : 14, bw * 0.62));
+        var svg = '<svg class="mo-chart" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(STR.dash.chartTitle) + '">';
+        for (var g = 0; g <= 4; g++) {
+            var y = m.t + ih - (ih * g / 4), val = Math.round(niceMax * g / 4);
+            svg += '<line class="grid" x1="' + m.l + '" y1="' + y + '" x2="' + (W - m.r) + '" y2="' + y + '"/>' +
+                '<text class="axis" x="' + (m.l - 6) + '" y="' + (y + 3) + '" text-anchor="end">' + val + '</text>';
+        }
+        order.forEach(function (k, i) {
+            var s = buckets[k], x = m.l + i * bw + (bw - barW) / 2, yBase = m.t + ih;
+            var total = s.sent + s.failed + s.uncertain;
+            if (total > 0) {
+                var hh = total / niceMax * ih;
+                var y = yBase - hh, acc = 0;
+                [['sent', 'bar-sent'], ['failed', 'bar-failed'], ['uncertain', 'bar-uncertain']].forEach(function (seg) {
+                    var h = s[seg[0]] / niceMax * ih;
+                    if (h <= 0) return;
+                    svg += '<rect class="' + seg[1] + '" x="' + x.toFixed(1) + '" y="' + (yBase - acc - h).toFixed(1) +
+                        '" width="' + barW.toFixed(1) + '" height="' + h.toFixed(1) + '" rx="1">' +
+                        '<title>' + esc(k + ': ' + seg[0] + ' ' + s[seg[0]]) + '</title></rect>';
+                    acc += h;
+                });
+            }
+            if (i % Math.ceil(order.length / 8) === 0 || i === order.length - 1) {
+                svg += '<text class="axis" x="' + (m.l + i * bw + bw / 2).toFixed(1) + '" y="' + (H - 8) +
+                    '" text-anchor="middle">' + esc(k.slice(5)) + '</text>';
+            }
+        });
+        return svg + '</svg>';
+    }
+
+    function dashHbars(rows) {
+        // rows: [{label, n, tip, act}]
+        var max = 1; rows.forEach(function (r) { max = Math.max(max, r.n); });
+        return rows.map(function (r) {
+            var pct = r.n > 0 ? Math.max(2, Math.round(r.n / max * 100)) : 0;
+            return '<div class="mo-hbar"' + (r.act ? ' data-act="' + esc(r.act) + '"' : '') +
+                (r.tip ? ' title="' + esc(r.tip) + '"' : '') + '>' +
+                '<span class="mo-hbar-label">' + esc(r.label) + '</span>' +
+                '<span class="mo-hbar-track"><span class="mo-hbar-fill ' + (r.cls || '') +
+                '" style="width:' + pct + '%"></span></span>' +
+                '<span class="mo-hbar-n">' + r.n + '</span></div>';
+        }).join('');
+    }
+
+    // Sheet-mode fallback: the dashboard requires the CRM; show the
+    // legacy aggregate view instead.
+    function legacyOverview() {
         apiGet('overview').then(function (d) {
             if (!d.success) { showErr(d.error || STR.loadFailed); return; }
             var o = d.overview, html = '';
@@ -534,18 +831,223 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
             metrics.forEach(function (m) {
                 html += '<div class="pa-metric"><div class="pa-metric-value">' + esc(m[1]) + '</div><div class="pa-metric-label">' + esc(m[0]) + '</div></div>';
             });
-            document.getElementById('moOvMetrics').innerHTML = html;
+            $('moDashKpis').innerHTML = html;
+            $('moDashNote').textContent = o.sheet_error ? sheetErrorText(o.sheet_error) : '';
             var buckets = '';
             ['due_today','overdue','upcoming','awaiting_response','not_contacted','completed','excluded'].forEach(function (b) {
                 buckets += '<span class="mo-pill ' + b + '">' + esc(b.replace(/_/g, ' ')) + ': ' + (o.followup_buckets[b] || 0) + '</span> ';
             });
-            document.getElementById('moOvBuckets').innerHTML = buckets;
+            $('moDashPipe').innerHTML = buckets;
+            $('moDashPipeNote').textContent = '';
             var fl = '';
             ['missing_contact','do_not_contact','duplicate_org'].forEach(function (f) {
                 fl += '<span class="mo-flag ' + f + '">' + esc(f.replace(/_/g, ' ')) + ': ' + (o.flags[f] || 0) + '</span> ';
             });
-            document.getElementById('moOvFlags').innerHTML = fl || '—';
-            document.getElementById('moOvSheetNote').textContent = o.sheet_error ? sheetErrorText(o.sheet_error) : '';
+            $('moDashAttn').innerHTML = fl || '—';
+            $('moDashChart').innerHTML = ''; $('moDashLegend').innerHTML = ''; $('moDashChartNote').innerHTML = '';
+            $('moDashCamps').innerHTML = ''; $('moDashSegs').innerHTML = '';
+            $('moDashSegNote').innerHTML = ''; $('moDashDefs').innerHTML = '';
+            $('moDashFilters').classList.add('mo-hidden');
+        }).catch(function () { showErr(STR.loadFailed); });
+    }
+
+    function loadOverview() {
+        if (!CRM_READS) { legacyOverview(); return; }
+        dashWire();
+        var host = $('moDashKpis');
+        host.innerHTML = '<div class="pa-metric"><div class="pa-metric-value">…</div></div>';
+        apiGet('dashboard', dashParams()).then(function (d) {
+            if (!d.success) { showErr(d.error || STR.loadFailed); return; }
+            var db = d.dashboard, p = db.prospect, s = db.sends;
+            renderSending(db.sending || null);
+
+            // Range note + filter option sync (only when options change).
+            var r = db.range;
+            $('moDashNote').textContent = STR.dash.rangeNote
+                .replace('{from}', r.from).replace('{to}', r.to);
+            var fill = function (id, opts, blank) {
+                var el = $(id), cur = el.value, html = '<option value="">' + esc(blank) + '</option>';
+                opts.forEach(function (o) { html += '<option value="' + esc(o.v) + '">' + esc(o.l) + '</option>'; });
+                el.innerHTML = html; el.value = opts.some(function (o) { return o.v === cur; }) ? cur : '';
+            };
+            fill('moDashCampaign', (db.campaign_options || []).map(function (c) {
+                return { v: c.id, l: c.name + ' (' + c.kind + ')' };
+            }), STR.dash.allCampaigns);
+            $('moDashCampaign').value = dashFilters.campaign;
+            fill('moDashOrgType', (db.filter_options.org_types || []).map(function (t) { return { v: t, l: t }; }), STR.dash.allOrgtypes);
+            $('moDashOrgType').value = dashFilters.org_type;
+            fill('moDashLocation', (db.filter_options.locations || []).map(function (t) { return { v: t, l: t }; }), STR.dash.allLocations);
+            $('moDashLocation').value = dashFilters.location;
+            $('moDashKind').value = dashFilters.kind;
+            $('moDashDays').value = dashFilters.days;
+            $('moDashCustom').classList.toggle('mo-hidden', dashFilters.days !== 'custom');
+            if (dashFilters.days === 'custom') { $('moDashFrom').value = dashFilters.from; $('moDashTo').value = dashFilters.to; }
+            // Drop stale filter values that no longer exist in the options.
+            [['moDashCampaign','campaign'],['moDashOrgType','org_type'],['moDashLocation','location'],['moDashKind','kind']]
+                .forEach(function (pr) {
+                    var el = $(pr[0]);
+                    if (el && el.value !== dashFilters[pr[1]]) dashFilters[pr[1]] = el.value;
+                });
+
+            // ---- KPI cards ----
+            var b = p.followup_buckets, delta = s.period - s.prior;
+            var deltaTxt = (delta === 0 ? '±0' : (delta > 0 ? '+' : '') + delta) + ' ' + STR.dash.vsPrior;
+            var kpis = [
+                dashKpi(STR.dash.kProspects, p.prospects_total, STR.dash.tProspects, null, 'prospects'),
+                dashKpi(STR.dash.kContactable, p.prospects_eligible, STR.dash.tContactable, null,
+                    'prospects:{"eligible":"contactable"}'),
+                dashKpi(STR.dash.kSent, s.period, deltaTxt, STR.dash.tSent,
+                    'sent'),
+                dashKpi(STR.dash.kReplies, '—', null, STR.dash.tReplies, null),
+                dashKpi(STR.dash.kRate, '—', null, STR.dash.tRate, null),
+                dashKpi(STR.dash.kAwaiting, b.awaiting_response, null, STR.dash.tAwaiting,
+                    'bucket:awaiting_response'),
+                dashKpi(STR.dash.kDue, b.due_today + b.overdue, null, STR.dash.tDue,
+                    'bucket:overdue'),
+                dashKpi(STR.dash.kRecorded, p.attention.recorded_responses, null, STR.dash.tRecorded,
+                    'prospects')
+            ];
+            host.innerHTML = kpis.join('');
+            host.querySelectorAll('.mo-kpi[data-act]').forEach(function (el) {
+                el.addEventListener('click', function () {
+                    var a = el.dataset.act, i = a.indexOf(':');
+                    var kind = i < 0 ? a : a.slice(0, i), arg = i < 0 ? '' : a.slice(i + 1);
+                    if (kind === 'prospects') {
+                        dashProspects(arg ? JSON.parse(arg) : {});
+                    } else if (kind === 'bucket') dashProspects({ bucket: arg });
+                    else if (kind === 'sent') dashHistory();
+                });
+            });
+
+            // ---- activity chart ----
+            var anySends = Object.keys(s.series).length > 0;
+            $('moDashChart').innerHTML = anySends ? dashChartSvg(s.series, r.from, r.to)
+                : '<div class="mo-empty-note">' + esc(STR.dash.chartEmpty) + '</div>';
+            $('moDashLegend').innerHTML =
+                '<span><i style="background:#1e40af"></i>' + esc(STR.dash.legSent) + ' (' + s.ledger_total + ' ' + esc(STR.dash.legAllTime || 'all time') + ')</span>' +
+                '<span><i style="background:#ef4444"></i>' + esc(STR.dash.legFailed) + '</span>' +
+                '<span><i style="background:#f59e0b"></i>' + esc(STR.dash.legUncertain) + ' (' + s.ledger_problems + ')</span>';
+            $('moDashChartNote').textContent = STR.dash.chartNote;
+
+            // ---- pipeline (mutually exclusive buckets) ----
+            var bk = STR.bucketLabels || {};
+            var pipeRows = [
+                { k: 'not_contacted', label: bk.not_contacted, cls: 'muted', act: 'bucket:not_contacted' },
+                { k: 'awaiting_response', label: bk.awaiting_response, cls: 'warn', act: 'bucket:awaiting_response' },
+                { k: 'due_today', label: bk.due_today, cls: 'bad', act: 'bucket:due_today' },
+                { k: 'overdue', label: bk.overdue, cls: 'bad', act: 'bucket:overdue' },
+                { k: 'upcoming', label: bk.upcoming, cls: 'alt', act: 'bucket:upcoming' },
+                { k: 'completed', label: bk.completed, cls: 'good', act: 'bucket:completed' },
+                { k: 'excluded', label: bk.excluded, cls: 'muted', act: 'bucket:excluded' }
+            ].map(function (x) { return { label: x.label, n: b[x.k] || 0, cls: x.cls, act: 'bucket:' + x.k }; });
+            $('moDashPipe').innerHTML = dashHbars(pipeRows);
+            $('moDashPipe').querySelectorAll('.mo-hbar[data-act]').forEach(function (el) {
+                el.addEventListener('click', function () {
+                    dashProspects({ bucket: el.dataset.act.split(':')[1] });
+                });
+            });
+            $('moDashPipeNote').textContent = STR.dash.pipeNote;
+
+            // ---- campaign performance ----
+            var camps = db.campaigns || [];
+            if (!camps.length) {
+                $('moDashCamps').innerHTML = '<div class="mo-empty-note">' + esc(STR.dash.campEmpty) + '</div>';
+            } else {
+                var ch = '<table class="mo-table"><thead><tr><th>' + esc(STR.dash.campName) + '</th><th>' +
+                    esc(STR.dash.campKind) + '</th><th>' + esc(STR.dash.campStatus) + '</th><th>' +
+                    esc(STR.dash.campRecips) + '</th><th>' + esc(STR.dash.campSent) + '</th><th>' +
+                    esc(STR.dash.campIssues) + '</th><th>' + esc(STR.dash.campLast) + '</th><th></th></tr></thead><tbody>';
+                camps.forEach(function (c) {
+                    var last = c.last_activity_at || c.last_sent_at || '';
+                    ch += '<tr><td><strong>' + esc(c.name) + '</strong></td>' +
+                        '<td>' + esc(c.kind) + '</td>' +
+                        '<td><span class="mo-pill ' + esc(c.status) + '">' + esc(c.status) + '</span></td>' +
+                        '<td>' + (c.recipients || 0) + '</td>' +
+                        '<td>' + (c.sent || 0) + '</td>' +
+                        '<td>' + ((c.problems || 0) > 0 ? '<span class="mo-pill failed">' + c.problems + '</span>' : '0') + '</td>' +
+                        '<td class="mo-sub">' + esc(last ? last.slice(0, 10) : '—') + '</td>' +
+                        '<td><button type="button" class="mo-btn secondary small" data-camp="' + esc(c.id) + '">' +
+                        esc(STR.dash.campOpen) + '</button></td></tr>';
+                });
+                $('moDashCamps').innerHTML = ch + '</tbody></table>';
+                $('moDashCamps').querySelectorAll('[data-camp]').forEach(function (btn) {
+                    btn.addEventListener('click', function () {
+                        dashCampaigns();
+                        if (window.MOCrm && MOCrm.openCampaign) setTimeout(function () { MOCrm.openCampaign(btn.dataset.camp); }, 60);
+                    });
+                });
+            }
+
+            // ---- needs attention ----
+            var cs = db.campaign_status || {}, att = p.attention;
+            var attnRows = [
+                { label: STR.dash.aOverdue, n: b.overdue || 0, act: 'bucket:overdue' },
+                { label: STR.dash.aDue, n: b.due_today || 0, act: 'bucket:due_today' },
+                { label: STR.dash.aAwaiting, n: b.awaiting_response || 0, act: 'bucket:awaiting_response' },
+                { label: STR.dash.aUpcoming, n: b.upcoming || 0, act: 'bucket:upcoming' },
+                { label: STR.dash.aReview, n: att.needs_review, act: 'review' },
+                { label: STR.dash.aMissing, n: att.missing_contact, act: 'flag:missing_contact' },
+                { label: STR.dash.aDnc, n: att.do_not_contact, act: 'flag:do_not_contact' },
+                { label: STR.dash.aDup, n: att.duplicate_org, act: 'flag:duplicate_org' },
+                { label: STR.dash.aRecorded, n: att.recorded_responses, act: 'prospects' },
+                { label: STR.dash.aDrafts, n: (cs.draft || 0), act: 'campaigns' },
+                { label: STR.dash.aReady, n: (cs.ready || 0), act: 'campaigns' },
+                { label: STR.dash.aApproved, n: (cs.approved || 0), act: 'campaigns' },
+                { label: STR.dash.aProblems, n: s.ledger_problems, act: 'history' }
+            ];
+            var anyAttn = attnRows.some(function (x) { return x.n > 0; });
+            $('moDashAttn').innerHTML = anyAttn ? attnRows.map(function (x) {
+                return '<div class="mo-attn-row' + (x.n > 0 ? '' : ' zero') + '"' +
+                    (x.n > 0 ? ' data-act="' + x.act + '"' : '') + '>' +
+                    '<span class="k">' + esc(x.label) + '</span><span class="mo-attn-n">' + x.n + '</span></div>';
+            }).join('') : '<div class="mo-empty-note">' + esc(STR.dash.attnNone) + '</div>';
+            $('moDashAttn').querySelectorAll('.mo-attn-row[data-act]').forEach(function (el) {
+                el.addEventListener('click', function () {
+                    var a = el.dataset.act;
+                    if (a.indexOf('bucket:') === 0) dashProspects({ bucket: a.slice(7) });
+                    else if (a === 'review') dashProspects({ review: 1 });
+                    else if (a.indexOf('flag:') === 0) dashProspects({ flag: a.slice(5) });
+                    else if (a === 'prospects') dashProspects({});
+                    else if (a === 'campaigns') dashCampaigns();
+                    else if (a === 'history') dashHistory();
+                });
+            });
+
+            // ---- segmentation (inventory; respects org_type/state filters) ----
+            function segRows(map, clickKind) {
+                var max = 1, keys = Object.keys(map || {});
+                keys.forEach(function (k) { max = Math.max(max, map[k]); });
+                if (!keys.length) return '<div class="mo-empty-note">—</div>';
+                return keys.map(function (k) {
+                    var pct = Math.max(2, Math.round(map[k] / max * 100));
+                    var act = '';
+                    if (clickKind === 'org_type') act = ' data-seg="' + esc(k) + '"';
+                    else if (clickKind === 'status') act = ' data-seg-status="' + esc(k) + '"';
+                    else if (clickKind === 'priority') act = ' data-seg-priority="' + esc(k) + '"';
+                    return '<div class="mo-hbar"' + act + ' title="' + esc(k) + '">' +
+                        '<span class="mo-hbar-label">' + esc(k || '—') + '</span>' +
+                        '<span class="mo-hbar-track"><span class="mo-hbar-fill alt" style="width:' + pct + '%"></span></span>' +
+                        '<span class="mo-hbar-n">' + map[k] + '</span></div>';
+                }).join('');
+            }
+            var sg = p.segments || {};
+            $('moDashSegs').innerHTML =
+                '<div><div class="mo-seg-title">' + esc(STR.dash.segOrgType) + '</div>' + segRows(sg.org_type, 'org_type') + '</div>' +
+                '<div><div class="mo-seg-title">' + esc(STR.dash.segStatus) + '</div>' + segRows(sg.status, 'status') + '</div>' +
+                '<div><div class="mo-seg-title">' + esc(STR.dash.segPriority) + '</div>' + segRows(sg.priority, 'priority') + '</div>' +
+                '<div><div class="mo-seg-title">' + esc(STR.dash.segLocation) + '</div>' + segRows(sg.location) + '</div>' +
+                '<div><div class="mo-seg-title">' + esc(STR.dash.segSource) + '</div>' + segRows(sg.source) + '</div>';
+            $('moDashSegs').querySelectorAll('[data-seg]').forEach(function (el) {
+                el.addEventListener('click', function () { dashProspects({ org_type: el.dataset.seg }); });
+            });
+            $('moDashSegs').querySelectorAll('[data-seg-status]').forEach(function (el) {
+                el.addEventListener('click', function () { dashProspects({ status: el.dataset.segStatus }); });
+            });
+            $('moDashSegs').querySelectorAll('[data-seg-priority]').forEach(function (el) {
+                el.addEventListener('click', function () { dashProspects({ priority: el.dataset.segPriority }); });
+            });
+            $('moDashSegNote').textContent = STR.dash.segNote;
+            $('moDashDefs').textContent = STR.dash.defs;
         }).catch(function () { showErr(STR.loadFailed); });
     }
 

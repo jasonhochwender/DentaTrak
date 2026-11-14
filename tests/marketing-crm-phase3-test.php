@@ -342,6 +342,26 @@ $revIds = array_map(static fn($r) => (int)($r['fields']['contact_id'] ?? 0), $re
 ok('review=1 filter returns flagged contacts', in_array($c6['id'], $revIds, true));
 ok('review=1 excludes resolved contact', !in_array($c2['id'], $revIds, true));
 
+/* ---------------- 10b. dashboard aggregates ---------------- */
+$dashAll = $crm->dashboard([]);
+ok('dashboard totals present', $dashAll['prospects_total'] > 0
+    && isset($dashAll['followup_buckets']['overdue'], $dashAll['flags']['missing_contact']));
+ok('dashboard segments populated', isset($dashAll['segments']['org_type'], $dashAll['segments']['location'])
+    && $dashAll['replies_tracked'] === false);
+$dashNc = $crm->dashboard(['location' => 'durham']);
+ok('dashboard location filter narrows', $dashNc['prospects_total'] > 0
+    && $dashNc['prospects_total'] < $dashAll['prospects_total']);
+$dashTy = $crm->dashboard(['org_type' => 'orthodontics']);
+$dashNp = $crm->dashboard(['org_type' => 'nonexistent-type-xyz']);
+ok('dashboard org_type filter', $dashTy['prospects_total'] >= 0 && $dashNp['prospects_total'] === 0);
+ok('dashboard location segment uses recorded strings', isset($dashAll['segments']['location'])
+    && !isset($dashAll['segments']['state']));
+$contactable = $crm->search(['eligible' => 'contactable', 'per' => 200])['rows'];
+ok('eligible=contactable filter works', count($contactable) > 0
+    && count(array_filter($contactable, fn($r) => empty($r['eligible']))) === 0);
+$attn = $dashAll['attention'];
+ok('dashboard attention keys', isset($attn['needs_review'], $attn['recorded_responses'], $attn['positive_responses']));
+
 /* ---------------- cleanup ---------------- */
 cleanup3();
 ok('cleanup removed fixtures', $cnt("SELECT COUNT(*) FROM marketing_contacts WHERE email_normalized LIKE '%@crmtest3%'") === 0

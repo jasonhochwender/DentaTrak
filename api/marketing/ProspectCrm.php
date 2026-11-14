@@ -305,7 +305,12 @@ final class ProspectCrm
             else { $where[] = 'c.id IN (' . implode(',', array_map('intval', $ids)) . ')'; }
         }
         $kind = trim((string)($o['eligible'] ?? ''));
-        if ($kind === 'initial' || $kind === 'followup') {
+        if ($kind === 'contactable') {
+            $ids = [];
+            foreach ($ctx['byId'] as $id => $a) if (!empty($a['eligible'])) $ids[] = (int)$id;
+            if (!$ids) { $where[] = '1=0'; }
+            else { $where[] = 'c.id IN (' . implode(',', $ids) . ')'; }
+        } elseif ($kind === 'initial' || $kind === 'followup') {
             $ids = array_keys($ctx['kindOk'][$kind]);
             if (!$ids) { $where[] = '1=0'; }
             else { $where[] = 'c.id IN (' . implode(',', array_map('intval', $ids)) . ')'; }
@@ -535,6 +540,114 @@ final class ProspectCrm
             'eligible_followup' => $eligFollowup,
             'flags'             => $flags,
             'followup_buckets'  => $buckets,
+        ];
+    }
+
+    /**
+     * Dashboard aggregates (CRM mode). Prospect-side metrics only -
+     * send/campaign figures live in the API action because they come
+     * from the send ledger and campaign tables, not contact records.
+     *
+     * Filters: org_type (practice_type), location (substring match on
+     * the recorded location string - no state inference).
+     * Everything returned is an all-time INVENTORY count over the
+     * filtered prospect set; date-scoped activity is computed
+     * separately from marketing_sends.
+     */
+    public function dashboard(array $o): array
+    {
+        $ctx = $this->context();
+        $orgType = strtolower(trim((string)($o['org_type'] ?? '')));
+        // Locations are stored as free-text city/region strings; match by
+        // substring rather than inferring a state that is not recorded.
+        $locF = strtolower(trim((string)($o['location'] ?? '')));
+
+        $buckets = ['due_today' => 0, 'overdue' => 0, 'upcoming' => 0, 'awaiting_response' => 0,
+                    'not_contacted' => 0, 'completed' => 0, 'excluded' => 0];
+        $flags = ['missing_contact' => 0, 'do_not_contact' => 0, 'duplicate_org' => 0];
+        $segOrg = []; $segStatus = []; $segPrio = []; $segLoc = []; $segSource = [];
+        $needsReview = 0; $recordedResponses = 0; $positiveResponses = 0;
+        $total = 0; $eligible = 0; $eligInitial = 0; $eligFollowup = 0;
+
+        // context() annotations carry bucket/flags/eligibility but not the
+        // 'fields' map - that is attached per-record by present(). Fetch
+        // detail fields for the whole set in one query.
+        $details = $this->detailFields(array_keys($ctx['byId']));
+
+        foreach ($ctx['byId'] as $id => $a) {
+            $f = $details[(int)$id] ?? ($a['fields'] ?? []);
+            if ($orgType !== '' && strtolower(trim((string)($f['practice_type'] ?? ''))) !== $orgType) continue;
+            if ($locF !== '' && strpos(strtolower((string)($f['location'] ?? '')), $locF) === false) continue;
+            $total++;
+
+            $b = $a['bucket'];
+            $buckets[$b] = ($buckets[$b] ?? 0) + 1;
+            if ($a['eligible']) $eligible++;
+            if (!empty($a['eligibility']['initial']['ok'])) $eligInitial++;
+            if (!empty($a['eligibility']['followup']['ok'])) $eligFollowup++;
+            foreach ($a['flags'] as $fl) $flags[$fl] = ($flags[$fl] ?? 0) + 1;
+            if (!empty($f['needs_review'])) $needsReview++;
+
+            $resp = strtolower(trim((string)($f['response'] ?? '')));
+            if ($resp !== '' && $resp !== 'none' && $resp !== 'no response') {
+                $recordedResponses++;
+                if (in_array($resp, ['replied', 'interested', 'meeting booked'], true)) $positiveResponses++;
+            }
+
+            $pt = trim((string)($f['practice_type'] ?? ''));
+            if ($pt !== '') $segOrg[$pt] = ($segOrg[$pt] ?? 0) + 1;
+            $st = trim((string)($f['status'] ?? ''));
+            if ($st !== '') $segStatus[$st] = ($segStatus[$st] ?? 0) + 1;
+            $pr = trim((string)($f['priority'] ?? ''));
+            if ($pr !== '') $segPrio[$pr] = ($segPrio[$pr] ?? 0) + 1;
+            $loc = trim((string)($f['location'] ?? ''));
+            if ($loc !== '') $segLoc[$loc] = ($segLoc[$loc] ?? 0) + 1;
+            $src = trim((string)($f['source'] ?? ''));
+            if ($src !== '') $segSource[$src] = ($segSource[$src] ?? 0) + 1;
+        }
+
+        arsort($segOrg); arsort($segStatus); arsort($segPrio); arsort($segLoc); arsort($segSource);
+        $top = static function (array $m, int $n = 10): array {
+            $out = [];
+            $i = 0;
+            foreach ($m as $k => $v) {
+                if ($i++ >= $n) { $out['Other'] = ($out['Other'] ?? 0) + $v; continue; }
+                $out[(string)$k] = $v;
+            }
+            return $out;
+        };
+
+        return [
+            'prospects_total'    => $total,
+            'prospects_eligible' => $eligible,
+            'eligible_initial'   => $eligInitial,
+            'eligible_followup'  => $eligFollowup,
+            'followup_buckets'   => $buckets,
+            'flags'              => $flags,
+            'attention'          => [
+                'needs_review'        => $needsReview,
+                'missing_contact'     => $flags['missing_contact'],
+                'do_not_contact'      => $flags['do_not_contact'],
+                'duplicate_org'       => $flags['duplicate_org'],
+                'recorded_responses'  => $recordedResponses,
+                'positive_responses'  => $positiveResponses,
+            ],
+            // Replies are NOT automatically tracked; `response` is
+            // imported/manual data only. Kept separate from verified sends.
+            'replies_tracked'    => false,
+            'segments'           => [
+                'org_type' => $top($segOrg, 8),
+                'status'   => $top($segStatus),
+                'priority' => $top($segPrio),
+                // Recorded location strings (city/region as stored) - no
+                // state inference, since the data has no state field.
+                'location' => $top($segLoc),
+                'source'   => $top($segSource, 8),
+            ],
+            'filter_options'     => [
+                'org_types'  => array_keys($top($segOrg, 50)),
+                'locations'  => array_slice(array_keys($segLoc), 0, 60),
+            ],
         ];
     }
 

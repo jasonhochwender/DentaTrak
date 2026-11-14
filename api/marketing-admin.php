@@ -502,6 +502,117 @@ if ($method === 'GET') {
                 'sheet_error' => $sheetErr,
             ]]);
         }
+        case 'dashboard': {
+            // Performance dashboard. Prospect-side aggregates come from
+            // ProspectCrm::dashboard (all-time inventory over the filtered
+            // set); send/campaign figures come from the send ledger and
+            // campaign tables (date-scoped where a range is given).
+            $crm = mo_crm($pdo);
+            if ($crm === null) mo_fail('crm_unavailable', 503);
+
+            // ---- date range (UTC; sent_at is stored UTC) ----
+            $today = gmdate('Y-m-d');
+            $preset = (string)($_GET['days'] ?? '30');
+            $from = trim((string)($_GET['from'] ?? ''));
+            $to   = trim((string)($_GET['to'] ?? ''));
+            if ($from === '' || $to === '') {
+                $n = in_array($preset, ['7', '30', '90'], true) ? (int)$preset : 30;
+                $to = $today;
+                $from = gmdate('Y-m-d', strtotime($today . ' -' . ($n - 1) . ' days'));
+            }
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $from) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $to)
+                || $from > $to || $to > $today) {
+                mo_fail('invalid date range');
+            }
+            // Cap unbounded ranges at ~2 years of daily buckets.
+            if (strtotime($to) - strtotime($from) > 730 * 86400) mo_fail('date range too large');
+            $fromTs = $from . ' 00:00:00';
+            $toTs   = gmdate('Y-m-d H:i:s', strtotime($to . ' +1 day'));
+            $days   = (int)round((strtotime($to) - strtotime($from)) / 86400) + 1;
+            // Prior equivalent period for delta comparisons.
+            $priorFrom = gmdate('Y-m-d', strtotime($from) - $days * 86400) . ' 00:00:00';
+            $priorTo   = $fromTs;
+
+            $cid  = trim((string)($_GET['campaign_id'] ?? ''));
+            $kind = in_array(($_GET['kind'] ?? ''), ['initial', 'followup'], true) ? (string)$_GET['kind'] : '';
+            $campRef = $cid !== '' ? 'mo:' . $cid : null;
+
+            // ---- verified sends from the ledger ----
+            $sendArgs = [$fromTs, $toTs];
+            $sendWhere = "status='sent' AND sent_at>=? AND sent_at<?";
+            if ($campRef !== null) { $sendWhere .= ' AND campaign_ref=?'; $sendArgs[] = $campRef; }
+            $st = $pdo->prepare("SELECT COUNT(*) FROM marketing_sends WHERE $sendWhere");
+            $st->execute($sendArgs);
+            $sendsPeriod = (int)$st->fetchColumn();
+
+            $st = $pdo->prepare("SELECT COUNT(*) FROM marketing_sends WHERE status='sent' AND sent_at>=? AND sent_at<?"
+                . ($campRef !== null ? ' AND campaign_ref=?' : ''));
+            $st->execute($campRef !== null ? [$priorFrom, $priorTo, $campRef] : [$priorFrom, $priorTo]);
+            $sendsPrior = (int)$st->fetchColumn();
+
+            // Daily series: verified sends plus failed/uncertain attempts.
+            $serArgs = [$fromTs, $toTs];
+            $serWhere = "sent_at>=? AND sent_at<? AND status IN ('sent','failed','uncertain')";
+            if ($campRef !== null) { $serWhere .= ' AND campaign_ref=?'; $serArgs[] = $campRef; }
+            $st = $pdo->prepare("SELECT DATE(sent_at) d, status, COUNT(*) n FROM marketing_sends
+                                 WHERE $serWhere GROUP BY DATE(sent_at), status");
+            $st->execute($serArgs);
+            $series = [];
+            foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r) {
+                $series[$r['d']][$r['status']] = (int)$r['n'];
+            }
+
+            $ledgerAll = (int)$pdo->query("SELECT COUNT(*) FROM marketing_sends WHERE status='sent'")->fetchColumn();
+            $ledgerProblems = (int)$pdo->query("SELECT COUNT(*) FROM marketing_sends WHERE status IN ('failed','uncertain')")->fetchColumn();
+
+            // ---- campaign performance ----
+            $campSql = "SELECT c.id, c.name, c.kind, c.status, c.created_at, c.recipient_count,
+                    (SELECT COUNT(*) FROM marketing_campaign_recipients r WHERE r.campaign_id=c.id) AS recipients,
+                    (SELECT COUNT(*) FROM marketing_campaign_recipients r WHERE r.campaign_id=c.id AND r.status='sent') AS sent,
+                    (SELECT COUNT(*) FROM marketing_campaign_recipients r WHERE r.campaign_id=c.id AND r.status IN ('failed','uncertain')) AS problems,
+                    (SELECT MAX(r.sent_at) FROM marketing_campaign_recipients r WHERE r.campaign_id=c.id) AS last_sent_at,
+                    (SELECT MAX(r.updated_at) FROM marketing_campaign_recipients r WHERE r.campaign_id=c.id) AS last_activity_at
+                FROM marketing_campaigns c";
+            $campArgs = [];
+            $campWhere = [];
+            if ($cid !== '') { $campWhere[] = 'c.id=?'; $campArgs[] = $cid; }
+            if ($kind !== '') { $campWhere[] = 'c.kind=?'; $campArgs[] = $kind; }
+            if ($campWhere) $campSql .= ' WHERE ' . implode(' AND ', $campWhere);
+            $campSql .= ' ORDER BY c.created_at DESC LIMIT 100';
+            $st = $pdo->prepare($campSql);
+            $st->execute($campArgs);
+            $campaignsPerf = $st->fetchAll(PDO::FETCH_ASSOC);
+
+            // Campaign-side attention counts (respect kind filter).
+            $attSql = "SELECT status, COUNT(*) n FROM marketing_campaigns" . ($kind !== '' ? ' WHERE kind=?' : '') . ' GROUP BY status';
+            $st = $pdo->prepare($attSql);
+            $st->execute($kind !== '' ? [$kind] : []);
+            $campaignStatus = $st->fetchAll(PDO::FETCH_KEY_PAIR);
+
+            // Filter dropdown options come from the unfiltered prospect set.
+            $prospect = $crm->dashboard([
+                'org_type' => (string)($_GET['org_type'] ?? ''),
+                'location' => (string)($_GET['location'] ?? ''),
+            ]);
+            $allOpts = $crm->dashboard([]);
+
+            mo_out(['success' => true, 'dashboard' => [
+                'sending' => $sendingPolicy->summary(),
+                'range' => ['from' => $from, 'to' => $to, 'days' => $days],
+                'filters' => ['campaign_id' => $cid, 'kind' => $kind,
+                    'org_type' => (string)($_GET['org_type'] ?? ''), 'location' => (string)($_GET['location'] ?? '')],
+                'sends' => [
+                    'period' => $sendsPeriod, 'prior' => $sendsPrior,
+                    'ledger_total' => $ledgerAll, 'ledger_problems' => $ledgerProblems,
+                    'series' => $series,
+                ],
+                'campaigns' => $campaignsPerf,
+                'campaign_status' => $campaignStatus,
+                'prospect' => $prospect,
+                'filter_options' => $allOpts['filter_options'],
+                'campaign_options' => $pdo->query("SELECT id, name, kind FROM marketing_campaigns ORDER BY created_at DESC LIMIT 200")->fetchAll(PDO::FETCH_ASSOC),
+            ]]);
+        }
         case 'prospects': {
             $crm = mo_crm($pdo);
             if ($crm !== null) {
