@@ -7629,6 +7629,13 @@
         "thread_reason_invalid": "L’indirizzo email del destinatario non è valido.",
         "thread_reason_action": "Usa «Risolvi thread» per riprovare, oppure approva per inviare come nuova conversazione.",
         "new_threads_warn": "{n} follow-up non hanno potuto essere associati a una conversazione email originale. L’approvazione li invierà come email NUOVE, non come risposte.",
-        "new_threads_ack": "Comprendo che questi messaggi avvieranno nuove conversazioni email anziché risposte."
+        "new_threads_ack": "Comprendo che questi messaggi avvieranno nuove conversazioni email anziché risposte.",
+        "checking_threads": "Verifica…",
+        "threads_matched": "{n} conversazione/i abbinata/e",
+        "threads_not_found": "{n} non trovata/e",
+        "threads_ambiguous": "{n} ambigua/e",
+        "threads_unverifiable": "{n} non verificabile/i",
+        "threads_sheet_error": "note dei prospect non disponibili",
+        "threads_none": "Nessun destinatario da verificare"
     }
 }

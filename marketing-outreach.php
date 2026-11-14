@@ -1204,7 +1204,14 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
                 threadReasonInvalid: <?php echo json_encode(ma('thread_reason_invalid')); ?>,
                 threadReasonAction: <?php echo json_encode(ma('thread_reason_action')); ?>,
                 newThreadsWarn: <?php echo json_encode(ma('new_threads_warn')); ?>,
-                newThreadsAck: <?php echo json_encode(ma('new_threads_ack')); ?>
+                newThreadsAck: <?php echo json_encode(ma('new_threads_ack')); ?>,
+                checkingThreads: <?php echo json_encode(ma('checking_threads')); ?>,
+                threadsMatched: <?php echo json_encode(ma('threads_matched')); ?>,
+                threadsNotFound: <?php echo json_encode(ma('threads_not_found')); ?>,
+                threadsAmbiguous: <?php echo json_encode(ma('threads_ambiguous')); ?>,
+                threadsUnverifiable: <?php echo json_encode(ma('threads_unverifiable')); ?>,
+                threadsSheetError: <?php echo json_encode(ma('threads_sheet_error')); ?>,
+                threadsNone: <?php echo json_encode(ma('threads_none')); ?>
             }
         });
     }

@@ -7629,6 +7629,13 @@
         "thread_reason_invalid": "The recipient email address is invalid.",
         "thread_reason_action": "Use Resolve Threads to retry, or approve to send this as a new conversation.",
         "new_threads_warn": "{n} follow-up(s) could not be matched to an original email conversation. Approving will send them as NEW emails, not replies.",
-        "new_threads_ack": "I understand these messages will start new email conversations rather than replies."
+        "new_threads_ack": "I understand these messages will start new email conversations rather than replies.",
+        "checking_threads": "Checking…",
+        "threads_matched": "{n} conversation(s) matched",
+        "threads_not_found": "{n} not found",
+        "threads_ambiguous": "{n} ambiguous",
+        "threads_unverifiable": "{n} unverifiable",
+        "threads_sheet_error": "prospect notes unavailable",
+        "threads_none": "No recipients to check"
     }
 }

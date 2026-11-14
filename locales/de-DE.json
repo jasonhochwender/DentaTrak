@@ -7629,6 +7629,13 @@
         "thread_reason_invalid": "Die Empfänger-E-Mail-Adresse ist ungültig.",
         "thread_reason_action": "Verwenden Sie „Threads auflösen“ zum Wiederholen oder genehmigen Sie, um diese als neue Unterhaltung zu senden.",
         "new_threads_warn": "{n} Follow-up(s) konnten keiner ursprünglichen E-Mail-Unterhaltung zugeordnet werden. Die Genehmigung sendet sie als NEUE E-Mails, nicht als Antworten.",
-        "new_threads_ack": "Ich verstehe, dass diese Nachrichten neue E-Mail-Unterhaltungen beginnen und keine Antworten sind."
+        "new_threads_ack": "Ich verstehe, dass diese Nachrichten neue E-Mail-Unterhaltungen beginnen und keine Antworten sind.",
+        "checking_threads": "Prüfung…",
+        "threads_matched": "{n} Unterhaltung(en) zugeordnet",
+        "threads_not_found": "{n} nicht gefunden",
+        "threads_ambiguous": "{n} mehrdeutig",
+        "threads_unverifiable": "{n} nicht verifizierbar",
+        "threads_sheet_error": "Prospect-Notizen nicht verfügbar",
+        "threads_none": "Keine Empfänger zu prüfen"
     }
 }

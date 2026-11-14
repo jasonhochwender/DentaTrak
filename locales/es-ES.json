@@ -7629,6 +7629,13 @@
         "thread_reason_invalid": "La dirección de correo del destinatario no es válida.",
         "thread_reason_action": "Use «Resolver hilos» para reintentar, o apruebe para enviar esto como una conversación nueva.",
         "new_threads_warn": "{n} seguimiento(s) no pudieron asociarse a una conversación de correo original. Al aprobar se enviarán como correos NUEVOS, no como respuestas.",
-        "new_threads_ack": "Entiendo que estos mensajes iniciarán nuevas conversaciones de correo en lugar de respuestas."
+        "new_threads_ack": "Entiendo que estos mensajes iniciarán nuevas conversaciones de correo en lugar de respuestas.",
+        "checking_threads": "Comprobando…",
+        "threads_matched": "{n} conversación(es) coincidente(s)",
+        "threads_not_found": "{n} no encontrada(s)",
+        "threads_ambiguous": "{n} ambigua(s)",
+        "threads_unverifiable": "{n} no verificable(s)",
+        "threads_sheet_error": "notas de prospectos no disponibles",
+        "threads_none": "No hay destinatarios que comprobar"
     }
 }

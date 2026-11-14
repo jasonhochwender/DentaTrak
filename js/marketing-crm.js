@@ -33,7 +33,8 @@
         payload = payload || {}; payload.action = action; payload.csrf_token = cfg.csrf;
         return fetch(cfg.api, { method: 'POST', credentials: 'same-origin',
             headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-            .then(function (r) { return r.json(); });
+            .then(function (r) { return r.json().catch(function () { return { success: false, error: 'bad_response' }; }); })
+            .catch(function () { return { success: false, error: 'request_failed' }; });
     }
     function showErr(m) { cfg.showErr(m); }
     function showOk(m) { cfg.showOk(m); }
@@ -1116,8 +1117,23 @@
         });
     }
     function campThreads() {
+        var btn = $('moCampThreadsCrm');
+        if (btn.disabled) return;
+        btn.disabled = true;
+        var orig = btn.textContent;
+        btn.textContent = S('checkingThreads');
         apiPost('resolve_threads', { campaign_id: campState.current }).then(function (d) {
-            if (!d.success) showErr(d.error || S('loadFailed'));
+            btn.disabled = false;
+            btn.textContent = orig;
+            if (!d.success) { showErr(d.error || S('loadFailed')); return; }
+            var t = d.threads || {};
+            var parts = [];
+            if (t.resolved) parts.push(S('threadsMatched').replace('{n}', t.resolved));
+            if (t.unresolved) parts.push(S('threadsNotFound').replace('{n}', t.unresolved));
+            if (t.ambiguous) parts.push(S('threadsAmbiguous').replace('{n}', t.ambiguous));
+            if (t.unverifiable) parts.push(S('threadsUnverifiable').replace('{n}', t.unverifiable));
+            if (d.sheet_error) parts.push(S('threadsSheetError'));
+            showOk(parts.length ? parts.join(' · ') : S('threadsNone'));
             openCampaign(campState.current);
         });
     }

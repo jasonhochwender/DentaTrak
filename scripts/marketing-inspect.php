@@ -11,6 +11,45 @@ require_once __DIR__ . '/../api/appConfig.php';
 require_once __DIR__ . '/../api/marketing/MarketingMailer.php';
 global $pdo, $appConfig;
 
+// --resolve-check: run OutreachThreadResolver for the newest follow-up
+// campaign's draft/ready recipients and print outcomes. READ-ONLY: no
+// thread_status writes, no sends, masked emails only.
+if (in_array('--resolve-check', $argv, true)) {
+    require_once __DIR__ . '/../api/marketing/ProspectCrm.php';
+    require_once __DIR__ . '/../api/marketing/OutreachThreadResolver.php';
+    require_once __DIR__ . '/../api/marketing/OutreachEligibility.php';
+    $cid = $argv[2] ?? null;
+    if ($cid) {
+        $cs = $pdo->prepare("SELECT id FROM marketing_campaigns WHERE id=? AND kind='followup'");
+        $cs->execute([$cid]);
+    } else {
+        $cs = $pdo->query("SELECT id FROM marketing_campaigns WHERE kind='followup' ORDER BY created_at DESC LIMIT 1");
+    }
+    $campId = $cs->fetchColumn();
+    if (!$campId) { echo "no follow-up campaign found\n"; exit(0); }
+    echo "campaign: $campId\n";
+    $crm = new ProspectCrm($pdo);
+    $mailer = new MarketingMailer($pdo, (string)($appConfig['baseUrl'] ?? ''));
+    $resolver = new OutreachThreadResolver($pdo, [$mailer, 'gmailGet']);
+    $rs = $pdo->prepare("SELECT id, prospect_email, status FROM marketing_campaign_recipients
+        WHERE campaign_id=? AND status IN ('draft','ready') ORDER BY id");
+    $rs->execute([$campId]);
+    $recips = $rs->fetchAll(PDO::FETCH_ASSOC);
+    $byEmail = $crm->findByEmails(array_map(static fn($r) => (string)$r['prospect_email'], $recips));
+    $counts = [];
+    foreach ($recips as $r) {
+        $email = strtolower(trim((string)$r['prospect_email']));
+        $notes = (string)($byEmail[$email]['fields']['notes'] ?? '');
+        $t = $resolver->resolve($email, OutreachEligibility::gmailIdsFromNotes($notes), 'mo:' . $campId);
+        $counts[$t['status']] = ($counts[$t['status']] ?? 0) + 1;
+        printf("  r%-4s %-22s -> %-12s reason=%s source=%s thread=%s\n",
+            $r['id'], $mask($email), $t['status'], $t['reason'] ?: '-', $t['source'] ?: '-',
+            !empty($t['thread_id']) ? 'yes' : 'no');
+    }
+    echo 'summary: ' . json_encode($counts) . "\n";
+    exit(0);
+}
+
 // --gmail-probe: report whether the Gmail read path works in this
 // environment (status codes only - no tokens, no message content).
 if (in_array('--gmail-probe', $argv, true)) {

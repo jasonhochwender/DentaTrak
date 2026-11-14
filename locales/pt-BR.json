@@ -7629,6 +7629,13 @@
         "thread_reason_invalid": "O endereço de e-mail do destinatário é inválido.",
         "thread_reason_action": "Use «Resolver threads» para tentar novamente, ou aprove para enviar como nova conversa.",
         "new_threads_warn": "{n} follow-up(s) não puderam ser associados a uma conversa de e-mail original. Aprovar enviará como e-mails NOVOS, não como respostas.",
-        "new_threads_ack": "Entendo que estas mensagens iniciarão novas conversas de e-mail em vez de respostas."
+        "new_threads_ack": "Entendo que estas mensagens iniciarão novas conversas de e-mail em vez de respostas.",
+        "checking_threads": "Verificando…",
+        "threads_matched": "{n} conversa(s) encontrada(s)",
+        "threads_not_found": "{n} não encontrada(s)",
+        "threads_ambiguous": "{n} ambígua(s)",
+        "threads_unverifiable": "{n} não verificável(is)",
+        "threads_sheet_error": "notas de prospects indisponíveis",
+        "threads_none": "Nenhum destinatário para verificar"
     }
 }
