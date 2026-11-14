@@ -437,6 +437,47 @@ final class ProspectCrm
     }
 
     /**
+     * Batch email -> contact matching for bulk campaign entry.
+     * Returns normalized email => list of FULL present() records (every
+     * CRM contact sharing the address - callers must handle >1 as
+     * ambiguous, never silently pick one).
+     * @return array<string, array<int, array>>
+     */
+    public function matchEmails(array $emails): array
+    {
+        $seen = []; $norm = [];
+        foreach ($emails as $e) {
+            $e = trim((string)$e);
+            if (!preg_match('/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/', $e)) continue;
+            $n = SuppressionService::normalizeEmail($e);
+            if ($n !== '' && !isset($seen[$n])) { $seen[$n] = true; $norm[] = $n; }
+        }
+        if (!$norm) return [];
+        $ph = implode(',', array_fill(0, count($norm), '?'));
+        $st = $this->pdo->prepare("SELECT id, email_normalized FROM marketing_contacts
+                                    WHERE email_normalized IN ($ph) ORDER BY id");
+        $st->execute($norm);
+        $byEmail = [];
+        foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r) {
+            $byEmail[(string)$r['email_normalized']][] = (int)$r['id'];
+        }
+        $ids = [];
+        foreach ($byEmail as $list) foreach ($list as $id) $ids[$id] = true;
+        $ids = array_keys($ids);
+        $details = $this->detailFields($ids);
+        $out = [];
+        foreach ($norm as $n) {
+            $ms = [];
+            foreach ($byEmail[$n] ?? [] as $id) {
+                $p = $this->present($id, $details);
+                if ($p !== null) $ms[] = $p;
+            }
+            $out[$n] = $ms;
+        }
+        return $out;
+    }
+
+    /**
      * Follow-up pipeline list. Default bucket set matches the sheet
      * behavior (actionable follow-ups only); pass bucket=not_contacted etc.
      * to see other buckets. Sorted by follow-up date, nulls last.

@@ -276,6 +276,34 @@ $pdo->prepare("UPDATE marketing_campaigns SET status='draft' WHERE id=?")->execu
 $res4 = $admin->addToCampaign([999999], $res['campaign_id'], null, 'initial', 10);
 ok('unknown contact reported not_found', ($res4['results'][0]['reason'] ?? '') === 'not_found');
 
+/* ---------------- 7b. bulk email matching (matchEmails) ---------------- */
+// Normalization + dedupe: mixed case, whitespace, separators already
+// split upstream - matchEmails must normalize, dedupe, and skip junk.
+$mm = $crm->matchEmails([
+    '  FRED@CRMTEST3-FRESH.COM ',
+    'fred@crmtest3-fresh.com',
+    'not-an-email',
+    'ghost@crmtest3-missing.com',
+    'shared2@crmtest3-shared.com',
+]);
+$mmKeys = array_keys($mm);
+sort($mmKeys);
+ok('matchEmails normalizes + dedupes', $mmKeys === ['fred@crmtest3-fresh.com', 'ghost@crmtest3-missing.com', 'shared2@crmtest3-shared.com']);
+ok('matchEmails returns every shared-email record', count($mm['shared2@crmtest3-shared.com']) === 2
+    && count(array_unique(array_column($mm['shared2@crmtest3-shared.com'], 'id'))) === 2);
+ok('matchEmails unmatched email -> empty match list', $mm['ghost@crmtest3-missing.com'] === []);
+$fredM = $mm['fred@crmtest3-fresh.com'][0] ?? null;
+ok('match row carries contact_id + eligibility', $fredM !== null
+    && ($fredM['fields']['contact_id'] ?? 0) === $c7['id']
+    && !empty($fredM['eligibility']['initial']['ok']));
+// DNC contact must be ineligible for both kinds.
+$ginaM = $crm->matchEmails(['gina@crmtest3-gone.com'])['gina@crmtest3-gone.com'][0] ?? null;
+ok('DNC contact ineligible in match rows', $ginaM !== null
+    && empty($ginaM['eligibility']['initial']['ok'])
+    && empty($ginaM['eligibility']['followup']['ok']));
+// All-invalid input yields nothing.
+ok('matchEmails all-invalid input -> empty', $crm->matchEmails(['x', 'y@', '@z.com']) === []);
+
 /* ---------------- 8. CSV import preview + commit ---------------- */
 $csv = "Public Email,Practice Name,Contact Name,First Name,Last Name,Title,Outreach Status,Priority,Location,Website\n" .
     "new1@crmtest3-csv.com,CRMTEST3 CSV Org,CSV New Person,CSV,New,Manager,Not Contacted,2 - Strong Priority,Austin TX,https://crmtest3-csv.example\n" .

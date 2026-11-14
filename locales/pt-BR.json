@@ -7651,6 +7651,14 @@
         "sig_hint": "Anexada a cada e-mail de marketing no envio, após sua mensagem e antes do rodapé da empresa. Se uma mensagem já contiver este nome e cargo, a assinatura não é adicionada duas vezes.",
         "sig_name": "Nome",
         "sig_title_lbl": "Cargo",
-        "sig_detail_lbl": "Linha adicional (opcional)"
+        "sig_detail_lbl": "Linha adicional (opcional)",
+        "paste_emails": "Colar endereços de e-mail",
+        "paste_emails_ph": "Cole endereços separados por vírgulas, ponto e vírgula ou quebras de linha (ex.: copiados de uma planilha)…",
+        "find_recipients": "Encontrar destinatários",
+        "paste_emails_required": "Cole pelo menos um endereço de e-mail.",
+        "not_in_crm": "Não está no CRM",
+        "ambiguous_match": "Vários registros do CRM compartilham este e-mail — escolha explicitamente",
+        "already_in_campaign": "Já está na campanha",
+        "bulk_summary": "{m} encontrados · {u} fora do CRM · {a} registros com e-mail compartilhado exigem escolha"
     }
 }

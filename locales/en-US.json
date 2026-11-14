@@ -7651,6 +7651,14 @@
         "sig_hint": "Appended to every marketing email at send time, after your message and before the company footer. If a message already contains this name and title, the signature is not added twice.",
         "sig_name": "Name",
         "sig_title_lbl": "Title",
-        "sig_detail_lbl": "Additional line (optional)"
+        "sig_detail_lbl": "Additional line (optional)",
+        "paste_emails": "Paste Email Addresses",
+        "paste_emails_ph": "Paste addresses separated by commas, semicolons, or new lines (e.g. copied from a spreadsheet)…",
+        "find_recipients": "Find Recipients",
+        "paste_emails_required": "Paste at least one email address.",
+        "not_in_crm": "Not in CRM",
+        "ambiguous_match": "Multiple CRM records share this email — choose explicitly",
+        "already_in_campaign": "Already in campaign",
+        "bulk_summary": "{m} matched · {u} not in CRM · {a} shared-email records need a choice"
     }
 }

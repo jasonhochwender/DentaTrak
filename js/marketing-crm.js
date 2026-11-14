@@ -351,7 +351,8 @@
     function field(label, inner) {
         return '<label class="mo-field"><span>' + esc(label) + '</span>' + inner + '</label>';
     }
-    function openProspectForm(contactId) {
+    function openProspectForm(contactId, opts) {
+        opts = opts || {};
         var isEdit = !!contactId;
         var fill = function (d) {
             var p = d.prospect, f = p.fields || {};
@@ -393,7 +394,7 @@
                 '<button class="mo-btn" id="pfSave">' + esc(cfg.str.save) + '</button>' +
                 '<button class="mo-btn secondary" data-close-btn>' + esc(cfg.str.cancel) + '</button>'));
             bindOrgPicker('pfOrg', 'pfOrgSearch');
-            bindForm(p, isEdit ? f.version : null);
+            bindForm(p, isEdit ? f.version : null, isEdit ? null : opts.onSaved);
         };
         if (isEdit) {
             apiGet('prospect', { id: contactId }).then(function (d) {
@@ -401,7 +402,7 @@
                 fill(d);
             });
         } else {
-            fill({ prospect: { fields: {} } });
+            fill({ prospect: { fields: opts.prefill || {} } });
         }
     }
     /* Org picker: server-side search so all orgs are reachable (there are
@@ -427,7 +428,7 @@
         if (typeof tags === 'string' && tags) { try { return (JSON.parse(tags) || []).join(', '); } catch (e) { return tags; } }
         return '';
     }
-    function bindForm(p, version) {
+    function bindForm(p, version, onSaved) {
         var tog = $('pfNewOrgToggle');
         tog.onchange = function () { $('pfNewOrgFields').classList.toggle('mo-hidden', !tog.checked); };
         $('pfSave').onclick = function () {
@@ -460,7 +461,9 @@
                 var warnMsgs = (d.warnings || []).map(function (w) { return w.message || w.code; });
                 $('pfWarnings').innerHTML = warnMsgs.map(function (m) { return '<div class="mo-warn">' + esc(m) + '</div>'; }).join('');
                 showOk(warnMsgs.length ? cfg.str.savedWithWarnings + ' ' + warnMsgs.join('; ') : cfg.str.saved);
+                var newId = d.contact_id || (p.fields && p.fields.contact_id);
                 closeModal(); load();
+                if (onSaved && newId) onSaved(newId);
                 if (state.detail && p.fields && p.fields.contact_id) openDrawer(p.fields.contact_id);
             });
         };
@@ -705,11 +708,17 @@
        wizard (step 2) and the add-recipients flow. onConfirm(ids). */
     function prospectPicker(opts) {
         var sel = {}; var page = 1; var q = '';
+        if (opts.initialSel) Object.keys(opts.initialSel).forEach(function (k) { sel[k] = true; });
         var body = '<div class="mo-toolbar" style="margin-bottom:8px;">' +
             '<input type="search" id="pkQ" placeholder="' + esc(S('searchProspects')) + '" style="flex:1;">' +
             '<select id="pkElig"><option value="">' + esc(S('allEligibility')) + '</option>' +
             '<option value="initial">' + esc(S('kindInitial')) + '</option>' +
             '<option value="followup">' + esc(S('kindFollowup')) + '</option></select></div>' +
+            '<div style="margin-bottom:8px;"><button type="button" class="mo-btn secondary small" id="pkBulkToggle">' + esc(S('pasteEmails')) + '</button></div>' +
+            '<div id="pkBulk" class="mo-hidden" style="margin-bottom:10px;">' +
+            '<textarea id="pkBulkText" rows="4" style="width:100%;" placeholder="' + esc(S('pasteEmailsPh')) + '"></textarea>' +
+            '<div style="margin-top:6px;"><button type="button" class="mo-btn small" id="pkBulkFind">' + esc(S('findRecipients')) + '</button></div>' +
+            '<div id="pkBulkResults"></div></div>' +
             '<div id="pkList"></div>' +
             '<div id="pkSel" class="mo-sub" style="margin-top:8px;"></div>';
         openModal(modalShell(opts.title || S('selectRecipients'), body,
@@ -756,6 +765,70 @@
         var deb = debounce(function () { q = $('pkQ').value; page = 1; load(); }, 350);
         $('pkQ').addEventListener('input', deb);
         $('pkElig').addEventListener('change', function () { eligKind = this.value || opts.kind || 'initial'; page = 1; load(); });
+
+        // Bulk paste: server matches every address against the CRM in one
+        // batch; ambiguous shared-email matches are never pre-selected.
+        $('pkBulkToggle').onclick = function () {
+            $('pkBulk').classList.toggle('mo-hidden');
+        };
+        $('pkBulkFind').onclick = function () {
+            var text = $('pkBulkText').value.trim();
+            if (!text) { showErr(S('pasteEmailsRequired')); return; }
+            var host = $('pkBulkResults');
+            host.innerHTML = '<div class="pa-card">' + esc(S('loading')) + '</div>';
+            apiPost('prospect_match_emails', { text: text, kind: eligKind || opts.kind || 'initial',
+                campaign_id: opts.campaignId || '' }).then(function (d) {
+                if (!d.success) { host.innerHTML = ''; showErr(d.error || S('loadFailed')); return; }
+                var matched = 0, unmatched = 0, ambiguous = 0;
+                var html = '';
+                (d.results || []).forEach(function (r) {
+                    if (!r.matches.length) {
+                        unmatched++;
+                        html += '<div class="mo-msg" style="margin-top:8px;"><div class="mo-msg-head"><strong>' + esc(r.email) + '</strong>' +
+                            ' <span class="mo-pill suppressed">' + esc(S('notInCrm')) + '</span></div>' +
+                            '<div style="margin-top:6px;"><button type="button" class="mo-btn secondary small" data-addp="' + esc(r.email) + '">' + esc(S('addProspect')) + '</button></div></div>';
+                        return;
+                    }
+                    matched++;
+                    if (r.matches.length > 1) ambiguous++;
+                    r.matches.forEach(function (m) {
+                        var precheck = r.matches.length === 1 && m.eligible && !m.in_campaign;
+                        if (precheck) sel[m.id] = true;
+                        var eligPill = m.eligible
+                            ? '<span class="mo-pill eligible">' + esc(S('eligible')) + '</span>'
+                            : '<span class="mo-pill suppressed" title="' + esc((m.flags || []).join(', ')) + '">' + esc(S('excluded')) + '</span>';
+                        var warn = (r.matches.length > 1 ? ' <span class="mo-pill">' + esc(S('ambiguousMatch')) + '</span>' : '') +
+                            (m.in_campaign ? ' <span class="mo-pill">' + esc(S('alreadyInCampaign')) + '</span>' : '');
+                        html += '<div class="mo-msg" style="margin-top:8px;"><div class="mo-msg-head">' +
+                            '<label style="display:flex;gap:8px;align-items:center;"><input type="checkbox" class="pkCbBulk" data-id="' + m.id + '"' + (precheck ? ' checked' : '') + '>' +
+                            '<strong>' + esc(m.name || '—') + '</strong></label>' +
+                            '<span>' + eligPill + warn + '</span></div>' +
+                            '<div class="mo-msg-sub">' + esc(m.org || '—') + ' · ' + esc(m.email) + ' · #' + m.id + '</div></div>';
+                    });
+                });
+                host.innerHTML = '<div class="mo-sub" style="margin:8px 0;">' +
+                    esc(S('bulkSummary').replace('{m}', matched).replace('{u}', unmatched).replace('{a}', ambiguous)) + '</div>' +
+                    (html || '<div class="mo-sub">' + esc(S('noProspects')) + '</div>');
+                host.querySelectorAll('.pkCbBulk').forEach(function (cb) {
+                    cb.addEventListener('change', function () {
+                        var id = parseInt(cb.dataset.id, 10);
+                        if (cb.checked) sel[id] = true; else delete sel[id];
+                        renderSel();
+                    });
+                });
+                host.querySelectorAll('[data-addp]').forEach(function (b) {
+                    b.addEventListener('click', function () {
+                        var em = b.dataset.addp;
+                        openProspectForm(null, { email: em }, function (newId) {
+                            sel[newId] = true;
+                            prospectPicker({ title: opts.title, kind: eligKind || opts.kind || 'initial',
+                                campaignId: opts.campaignId, onConfirm: opts.onConfirm, initialSel: sel });
+                        });
+                    });
+                });
+                renderSel();
+            }).catch(function () { host.innerHTML = ''; showErr(S('loadFailed')); });
+        };
         $('pkConfirm').onclick = function () {
             var ids = Object.keys(sel).map(function (k) { return parseInt(k, 10); });
             if (!ids.length) return;
@@ -1089,7 +1162,7 @@
 
     function addRecipientsFlow(c) {
         prospectPicker({
-            title: S('addRecipients'), kind: c.kind,
+            title: S('addRecipients'), kind: c.kind, campaignId: c.id,
             onConfirm: function (ids) {
                 apiPost('campaign_add_recipients', { campaign_id: c.id, contact_ids: ids })
                     .then(function (r) {

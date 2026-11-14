@@ -7651,6 +7651,14 @@
         "sig_hint": "Ajoutée à chaque e-mail marketing à l'envoi, après votre message et avant le pied de page de l'entreprise. Si un message contient déjà ce nom et ce titre, la signature n'est pas ajoutée deux fois.",
         "sig_name": "Nom",
         "sig_title_lbl": "Titre",
-        "sig_detail_lbl": "Ligne supplémentaire (facultatif)"
+        "sig_detail_lbl": "Ligne supplémentaire (facultatif)",
+        "paste_emails": "Coller des adresses e-mail",
+        "paste_emails_ph": "Collez des adresses séparées par des virgules, des points-virgules ou des sauts de ligne (p. ex. copiées d'un tableur)…",
+        "find_recipients": "Trouver les destinataires",
+        "paste_emails_required": "Collez au moins une adresse e-mail.",
+        "not_in_crm": "Absent du CRM",
+        "ambiguous_match": "Plusieurs dossiers CRM partagent cet e-mail — choisissez explicitement",
+        "already_in_campaign": "Déjà dans la campagne",
+        "bulk_summary": "{m} trouvés · {u} absents du CRM · {a} dossiers partageant un e-mail nécessitent un choix"
     }
 }

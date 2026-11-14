@@ -1360,6 +1360,58 @@ switch ($action) {
     /* Phase 3: CRM prospect/organization management (MySQL only)          */
     /* ------------------------------------------------------------------ */
 
+    case 'prospect_match_emails': {
+        // Read-only batch match for bulk campaign entry. Accepts an
+        // 'emails' array or a 'text' blob (any separators - addresses are
+        // extracted by pattern). Returns EVERY CRM contact per address so
+        // the UI can flag ambiguous shared-email matches; nothing is
+        // selected or written here.
+        $crm = mo_crm($pdo);
+        if ($crm === null) mo_fail('crm_unavailable', 503);
+        $raw = [];
+        if (isset($in['text']) && is_string($in['text'])) {
+            preg_match_all('/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/', $in['text'], $mm);
+            $raw = $mm[0] ?? [];
+        }
+        foreach ((array)($in['emails'] ?? []) as $e) $raw[] = (string)$e;
+        if (count($raw) > 200) mo_fail('too many addresses (max 200)');
+        $kind = ($in['kind'] ?? 'initial') === 'followup' ? 'followup' : 'initial';
+        $matched = $crm->matchEmails($raw);
+
+        // Emails already recipients of the target campaign (when given).
+        $inCampaign = [];
+        $cid = trim((string)($in['campaign_id'] ?? ''));
+        if ($cid !== '') {
+            $ex = $pdo->prepare('SELECT prospect_email FROM marketing_campaign_recipients WHERE campaign_id=?');
+            $ex->execute([$cid]);
+            foreach ($ex->fetchAll(PDO::FETCH_COLUMN) as $e) $inCampaign[strtolower((string)$e)] = true;
+        }
+
+        $out = [];
+        foreach ($matched as $email => $contacts) {
+            $rows = [];
+            foreach ($contacts as $p) {
+                $f = $p['fields'] ?? [];
+                $rows[] = [
+                    'id'         => (int)($p['id'] ?? 0),
+                    'contact_id' => (int)($f['contact_id'] ?? $p['id'] ?? 0),
+                    'name'       => (string)($p['contact_name'] ?? ''),
+                    'org'        => (string)($f['org'] ?? ''),
+                    'email'      => $email,
+                    'eligible'   => !empty($p['eligibility'][$kind]['ok'] ?? false),
+                    'flags'      => array_values((array)($p['flags'] ?? [])),
+                    'in_campaign' => isset($inCampaign[$email]),
+                ];
+            }
+            $out[] = ['email' => $email, 'matches' => $rows];
+        }
+        // Preserve submission order of first appearance for unmatched too:
+        // matchEmails only returns normalized valid addresses; report the
+        // count of unique valid addresses submitted.
+        mo_out(['success' => true, 'kind' => $kind, 'results' => $out,
+            'matched_count' => count(array_filter($out, fn($r) => $r['matches'] !== []))]);
+    }
+
     case 'prospect_create': {
         $admin = mo_crm_admin($pdo, $userEmail);
         try {

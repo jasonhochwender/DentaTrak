@@ -7651,6 +7651,14 @@
         "sig_hint": "Wird jeder Marketing-E-Mail beim Versand angehängt, nach Ihrer Nachricht und vor der Firmenfußzeile. Enthält eine Nachricht bereits diesen Namen und Titel, wird die Signatur nicht doppelt hinzugefügt.",
         "sig_name": "Name",
         "sig_title_lbl": "Titel",
-        "sig_detail_lbl": "Zusätzliche Zeile (optional)"
+        "sig_detail_lbl": "Zusätzliche Zeile (optional)",
+        "paste_emails": "E-Mail-Adressen einfügen",
+        "paste_emails_ph": "Adressen mit Kommas, Semikolons oder Zeilenumbrüchen einfügen (z. B. aus einer Tabelle kopiert)…",
+        "find_recipients": "Empfänger suchen",
+        "paste_emails_required": "Fügen Sie mindestens eine E-Mail-Adresse ein.",
+        "not_in_crm": "Nicht im CRM",
+        "ambiguous_match": "Mehrere CRM-Datensätze teilen diese E-Mail — bitte ausdrücklich wählen",
+        "already_in_campaign": "Bereits in der Kampagne",
+        "bulk_summary": "{m} gefunden · {u} nicht im CRM · {a} Datensätze mit geteilter E-Mail erfordern eine Auswahl"
     }
 }

@@ -7651,6 +7651,14 @@
         "sig_hint": "메시지 본문 다음, 회사 푸터 이전에 모든 마케팅 이메일에 발송 시 추가됩니다. 메시지에 이미 이 이름과 직함이 포함되어 있으면 서명이 중복 추가되지 않습니다.",
         "sig_name": "이름",
         "sig_title_lbl": "직함",
-        "sig_detail_lbl": "추가 줄 (선택 사항)"
+        "sig_detail_lbl": "추가 줄 (선택 사항)",
+        "paste_emails": "이메일 주소 붙여넣기",
+        "paste_emails_ph": "쉼표, 세미콜론 또는 줄 바꿈으로 구분된 주소를 붙여넣으세요(예: 스프레드시트에서 복사)…",
+        "find_recipients": "수신자 찾기",
+        "paste_emails_required": "이메일 주소를 하나 이상 붙여넣으세요.",
+        "not_in_crm": "CRM에 없음",
+        "ambiguous_match": "여러 CRM 레코드가 이 이메일을 공유함 — 직접 선택하세요",
+        "already_in_campaign": "이미 캠페인에 있음",
+        "bulk_summary": "일치 {m}개 · CRM에 없음 {u}개 · 공유 이메일 레코드 {a}개는 선택 필요"
     }
 }

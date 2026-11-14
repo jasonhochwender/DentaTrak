@@ -7651,6 +7651,14 @@
         "sig_hint": "Se añade a cada correo de marketing al enviar, después de tu mensaje y antes del pie de empresa. Si un mensaje ya contiene este nombre y título, la firma no se añade dos veces.",
         "sig_name": "Nombre",
         "sig_title_lbl": "Cargo",
-        "sig_detail_lbl": "Línea adicional (opcional)"
+        "sig_detail_lbl": "Línea adicional (opcional)",
+        "paste_emails": "Pegar direcciones de correo",
+        "paste_emails_ph": "Pega direcciones separadas por comas, punto y coma o saltos de línea (p. ej. copiadas de una hoja de cálculo)…",
+        "find_recipients": "Buscar destinatarios",
+        "paste_emails_required": "Pega al menos una dirección de correo.",
+        "not_in_crm": "No está en el CRM",
+        "ambiguous_match": " varios registros del CRM comparten este correo — elige explícitamente",
+        "already_in_campaign": "Ya está en la campaña",
+        "bulk_summary": "{m} coincidentes · {u} no están en el CRM · {a} registros con correo compartido requieren elección"
     }
 }

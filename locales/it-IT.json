@@ -7651,6 +7651,14 @@
         "sig_hint": "Aggiunta a ogni email marketing all'invio, dopo il tuo messaggio e prima del piè di pagina aziendale. Se un messaggio contiene già questo nome e titolo, la firma non viene aggiunta due volte.",
         "sig_name": "Nome",
         "sig_title_lbl": "Titolo",
-        "sig_detail_lbl": "Riga aggiuntiva (facoltativa)"
+        "sig_detail_lbl": "Riga aggiuntiva (facoltativa)",
+        "paste_emails": "Incolla indirizzi email",
+        "paste_emails_ph": "Incolla indirizzi separati da virgole, punti e virgola o a capo (ad es. copiati da un foglio di calcolo)…",
+        "find_recipients": "Trova destinatari",
+        "paste_emails_required": "Incolla almeno un indirizzo email.",
+        "not_in_crm": "Non nel CRM",
+        "ambiguous_match": "Più schede CRM condividono questa email — scegli esplicitamente",
+        "already_in_campaign": "Già nella campagna",
+        "bulk_summary": "{m} trovati · {u} non nel CRM · {a} schede con email condivisa richiedono una scelta"
     }
 }
