@@ -909,6 +909,8 @@
                 flags += '<span class="mo-pill ' + (locked ? 'thread-resolved' : 'thread-new') + '">' + esc(r.thread_status.replace(/_/g, ' ')) + '</span> ';
                 if (!locked) {
                     notes += '<div class="mo-msg-note">' + esc(threadReasonText(r.thread_reason)) + '</div>';
+                } else if (r.thread_reason === 'transmission_unverified') {
+                    notes += '<div class="mo-msg-note">' + esc(S('threadSendUnverified')) + '</div>';
                 }
             }
             if (r.status === 'uncertain') {

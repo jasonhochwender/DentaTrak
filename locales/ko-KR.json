@@ -7636,6 +7636,7 @@
         "threads_ambiguous": "{n}개 모호",
         "threads_unverifiable": "{n}개 확인 불가",
         "threads_sheet_error": "잠재 고객 메모를 사용할 수 없음",
-        "threads_none": "확인할 수신자가 없습니다"
+        "threads_none": "확인할 수신자가 없습니다",
+        "thread_send_unverified": "기존 Gmail 대화를 찾았지만 원본 메시지가 실제로 전송되었는지 확인할 수 없습니다(SENT 라벨 없음). 답장은 여전히 올바른 스레드에 표시됩니다."
     }
 }

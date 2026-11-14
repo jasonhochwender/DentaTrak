@@ -66,9 +66,10 @@ if (in_array('--resolve-check', $argv, true)) {
         $notes = (string)($byEmail[$email]['fields']['notes'] ?? '');
         $t = $resolver->resolve($email, OutreachEligibility::gmailIdsFromNotes($notes), 'mo:' . $campId);
         $counts[$t['status']] = ($counts[$t['status']] ?? 0) + 1;
-        printf("  r%-4s %-22s -> %-12s reason=%s source=%s thread=%s\n",
+        printf("  r%-4s %-22s -> %-12s reason=%-28s source=%-12s ev=%-10s date=%s thread=%s labels=%s\n",
             $r['id'], $mask($email), $t['status'], $t['reason'] ?: '-', $t['source'] ?: '-',
-            !empty($t['thread_id']) ? 'yes' : 'no');
+            $t['evidence'] ?? '-', substr((string)($t['date'] ?? ''), 0, 22),
+            !empty($t['thread_id']) ? 'yes' : 'no', $t['labels'] ?? '-');
     }
     echo 'summary: ' . json_encode($counts) . "\n";
     exit(0);

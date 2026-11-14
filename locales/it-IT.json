@@ -7636,6 +7636,7 @@
         "threads_ambiguous": "{n} ambigua/e",
         "threads_unverifiable": "{n} non verificabile/i",
         "threads_sheet_error": "note dei prospect non disponibili",
-        "threads_none": "Nessun destinatario da verificare"
+        "threads_none": "Nessun destinatario da verificare",
+        "thread_send_unverified": "È stata trovata una conversazione Gmail esistente, ma Gmail non ha potuto confermare che il messaggio originale fosse stato inviato (nessuna etichetta SENT). La risposta resterà nel thread corretto."
     }
 }

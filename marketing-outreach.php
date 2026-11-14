@@ -1203,6 +1203,7 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
                 threadReasonUnverified: <?php echo json_encode(ma('thread_reason_unverified')); ?>,
                 threadReasonInvalid: <?php echo json_encode(ma('thread_reason_invalid')); ?>,
                 threadReasonAction: <?php echo json_encode(ma('thread_reason_action')); ?>,
+                threadSendUnverified: <?php echo json_encode(ma('thread_send_unverified')); ?>,
                 newThreadsWarn: <?php echo json_encode(ma('new_threads_warn')); ?>,
                 newThreadsAck: <?php echo json_encode(ma('new_threads_ack')); ?>,
                 checkingThreads: <?php echo json_encode(ma('checking_threads')); ?>,

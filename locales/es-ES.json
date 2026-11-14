@@ -7636,6 +7636,7 @@
         "threads_ambiguous": "{n} ambigua(s)",
         "threads_unverifiable": "{n} no verificable(s)",
         "threads_sheet_error": "notas de prospectos no disponibles",
-        "threads_none": "No hay destinatarios que comprobar"
+        "threads_none": "No hay destinatarios que comprobar",
+        "thread_send_unverified": "Se encontró una conversación existente de Gmail, pero Gmail no pudo confirmar que el mensaje original se enviara (sin etiqueta SENT). La respuesta seguirá en el hilo correcto."
     }
 }

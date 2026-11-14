@@ -7636,6 +7636,7 @@
         "threads_ambiguous": "{n} mehrdeutig",
         "threads_unverifiable": "{n} nicht verifizierbar",
         "threads_sheet_error": "Prospect-Notizen nicht verfügbar",
-        "threads_none": "Keine Empfänger zu prüfen"
+        "threads_none": "Keine Empfänger zu prüfen",
+        "thread_send_unverified": "Eine bestehende Gmail-Unterhaltung wurde gefunden, aber Gmail konnte nicht bestätigen, dass die Originalnachricht gesendet wurde (kein SENT-Label). Die Antwort wird weiterhin korrekt eingefügt."
     }
 }

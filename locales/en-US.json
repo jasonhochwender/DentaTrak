@@ -7636,6 +7636,7 @@
         "threads_ambiguous": "{n} ambiguous",
         "threads_unverifiable": "{n} unverifiable",
         "threads_sheet_error": "prospect notes unavailable",
-        "threads_none": "No recipients to check"
+        "threads_none": "No recipients to check",
+        "thread_send_unverified": "Matched an existing Gmail conversation, but Gmail could not confirm the original message was sent (no SENT label). The reply will still thread correctly."
     }
 }
