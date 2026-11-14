@@ -7642,6 +7642,8 @@
         "edit_campaign": "Kampagne bearbeiten",
         "template": "Vorlage",
         "send_campaign": "Kampagne senden",
+        "send_recipient": "Senden",
+        "confirm_send_recipient": "Nur diesen Empfänger jetzt senden? Dadurch wird eine echte E-Mail nur an diese Adresse zugestellt.",
         "approve": "Genehmigen",
         "approved_by": "genehmigt von",
         "tpl_default_label": "Kampagnen-Standard",

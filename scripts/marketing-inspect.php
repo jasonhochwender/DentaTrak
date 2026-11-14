@@ -35,6 +35,74 @@ $mask = static function (?string $email): string {
     return substr($email, 0, 1) . '***' . substr($email, $at);
 };
 
+// --pilot-check <campaign_id>: pre-send verification for a controlled
+// sending pilot. READ-ONLY: recomputes the approval content hash, checks
+// suppression + CRM eligibility exactly as the send path does, and prints
+// the delivery-policy summary. Writes nothing, sends nothing.
+if (in_array('--pilot-check', $argv, true)) {
+    require_once __DIR__ . '/../api/marketing/SuppressionService.php';
+    require_once __DIR__ . '/../api/marketing/CampaignContentHash.php';
+    require_once __DIR__ . '/../api/marketing/MarketingSendingPolicy.php';
+    $pos = array_search('--pilot-check', $argv, true);
+    $cid = $argv[$pos + 1] ?? null;
+    if (!$cid) { echo "usage: --pilot-check <campaign_id>\n"; exit(1); }
+    $c = $pdo->prepare('SELECT * FROM marketing_campaigns WHERE id=?');
+    $c->execute([$cid]);
+    $camp = $c->fetch(PDO::FETCH_ASSOC);
+    if (!$camp) { echo "campaign $cid not found\n"; exit(1); }
+    echo "== pilot-check {$camp['id']} ==\n";
+    echo "  name={$camp['name']} kind={$camp['kind']} status={$camp['status']}\n";
+    echo "  approved_by=" . ($camp['approved_by'] ?? 'null') . " approved_at=" . ($camp['approved_at'] ?? 'null') . "\n";
+    $stored = (string)($camp['content_hash'] ?? '');
+    $computed = CampaignContentHash::compute($pdo, $cid);
+    echo '  content_hash: stored=' . substr($stored, 0, 16) . '... computed=' . substr($computed, 0, 16)
+        . '... ' . (hash_equals($stored, $computed) ? 'MATCH' : 'MISMATCH - send will refuse') . "\n";
+    $pol = new MarketingSendingPolicy();
+    $sum = $pol->summary();
+    echo '  sending_policy: enabled=' . var_export($sum['enabled'], true)
+        . ' mode=' . $sum['mode'] . ' allowlist_count=' . $sum['allowlist_count'] . "\n";
+
+    $rs = $pdo->prepare("SELECT id, contact_id, prospect_email, status, thread_status, thread_reason
+        FROM marketing_campaign_recipients WHERE campaign_id=? ORDER BY id");
+    $rs->execute([$cid]);
+    $recips = $rs->fetchAll(PDO::FETCH_ASSOC);
+    $emails = array_map(static fn($r) => (string)$r['prospect_email'], $recips);
+    $supp = new SuppressionService($pdo);
+    $eligMap = [];
+    foreach ($supp->eligibility($emails) as $e) $eligMap[$e['email']] = $e;
+    require_once __DIR__ . '/../api/marketing/ProspectCrm.php';
+    $crm = new ProspectCrm($pdo);
+    $byEmail = $crm->findByEmails($emails);
+    $kind = $camp['kind'] === 'followup' ? 'followup' : 'initial';
+    foreach ($recips as $r) {
+        $em = SuppressionService::normalizeEmail((string)$r['prospect_email']);
+        $se = $eligMap[$em] ?? ['eligible' => false, 'reason' => 'not_checked'];
+        $p = $byEmail[$em] ?? null;
+        $flags = $p['flags'] ?? ['not_in_crm'];
+        $el = $p['eligibility'][$kind] ?? ['ok' => false, 'flags' => ['ineligible'], 'hard' => true];
+        $suppRow = $supp->row($em);
+        $bounceHolds = 0;
+        if ($p && !empty($p['contact_id'])) {
+            $bh = $pdo->prepare("SELECT COUNT(*) FROM marketing_reply_events WHERE contact_id=? AND classification='delivery_failure'");
+            $bh->execute([(int)$p['contact_id']]);
+            $bounceHolds = (int)$bh->fetchColumn();
+        }
+        printf("  r%-4s %-22s st=%-10s thread=%-10s supp=%-3s crm_elig=%-3s hard=%-3s flags=%s%s\n",
+            $r['id'], $mask($em), $r['status'], $r['thread_status'] ?? 'NULL',
+            !empty($se['eligible']) ? 'no' : 'YES',
+            !empty($el['ok']) ? 'yes' : 'NO',
+            !empty($el['hard']) ? 'yes' : 'no',
+            implode(',', array_merge($flags, $el['flags'] ?? [])),
+            $bounceHolds ? " reply_bounces=$bounceHolds" : '');
+        if ($suppRow) {
+            printf("       suppression: source=%s created=%s\n",
+                $suppRow['source'] ?? '?', $suppRow['created_at'] ?? '?');
+        }
+    }
+    echo "done\n";
+    exit(0);
+}
+
 // --resolve-check: run OutreachThreadResolver for the newest follow-up
 // campaign's draft/ready recipients and print outcomes. READ-ONLY: no
 // thread_status writes, no sends, masked emails only.

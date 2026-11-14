@@ -7642,6 +7642,8 @@
         "edit_campaign": "Editar campaña",
         "template": "Plantilla",
         "send_campaign": "Enviar campaña",
+        "send_recipient": "Enviar",
+        "confirm_send_recipient": "¿Enviar solo a este destinatario ahora? Esto entrega un correo real únicamente a esta dirección.",
         "approve": "Aprobar",
         "approved_by": "aprobado por",
         "tpl_default_label": "Predeterminada de campaña",

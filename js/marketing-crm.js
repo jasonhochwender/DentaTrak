@@ -989,6 +989,12 @@
                     notes += '<div class="mo-msg-note">' + esc(S('threadSendUnverified')) + '</div>';
                 }
             }
+            // Per-recipient send: only when delivery is enabled and the
+            // campaign is approved/partial. The env allowlist still gates
+            // the actual delivery inside the mailer.
+            var canSendOne = !!(campState.sending && campState.sending.enabled) &&
+                (camp.status === 'approved' || camp.status === 'partial') &&
+                (r.status === 'approved' || r.status === 'failed');
             if (r.status === 'uncertain') {
                 notes += '<div class="mo-msg-note">' + esc(S('uncertainNote')) + '</div>' +
                     '<div style="margin:6px 0;display:flex;gap:8px;flex-wrap:wrap;">' +
@@ -1022,7 +1028,9 @@
                       (canRemove ? '<button class="mo-btn danger small" data-act="remove">' + esc(S('remove')) + '</button>' : '') + '</div>' +
                       '<div class="mo-preview mo-hidden" style="margin-top:8px;"></div>'
                     : '<div class="mo-preview">' + (r.body_html || '<em>' + esc(S('noContent')) + '</em>') + '</div>' +
-                      '<div style="margin-top:6px;"><button class="mo-btn secondary small" data-act="preview">' + esc(S('previewFinal')) + '</button></div>');
+                      '<div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;">' +
+                      '<button class="mo-btn secondary small" data-act="preview">' + esc(S('previewFinal')) + '</button>' +
+                      (canSendOne ? '<button class="mo-btn small" data-act="sendone">' + esc(S('sendRecipient')) + '</button>' : '') + '</div>');
             host.appendChild(div);
             div.querySelectorAll('button[data-resolve]').forEach(function (b) {
                 b.addEventListener('click', function () {
@@ -1065,6 +1073,15 @@
                     } else if (act === 'regen') {
                         apiPost('generate', { campaign_id: campState.current, recipient_ids: [r.id], force: true })
                             .then(function (d2) { if (d2.success) { showOk(S('generatedOk').replace('{n}', d2.generated)); openCampaign(campState.current); } else showErr(d2.error); });
+                    } else if (act === 'sendone') {
+                        confirmModal(S('confirmSendRecipient'), function () {
+                            apiPost('send', { campaign_id: campState.current, recipient_ids: [r.id] })
+                                .then(function (d2) {
+                                    if (!d2.success) { showErr(d2.error || S('loadFailed')); openCampaign(campState.current); return; }
+                                    showOk(S('sendSummary').replace('{s}', d2.sent).replace('{k}', d2.skipped).replace('{f}', d2.failed).replace('{u}', d2.uncertain));
+                                    openCampaign(campState.current);
+                                });
+                        });
                     } else if (act === 'remove') {
                         confirmModal(S('confirmRemoveRecipient'), function () {
                             apiPost('campaign_recipient_remove', { campaign_id: campState.current, recipient_id: r.id })

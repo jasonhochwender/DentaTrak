@@ -7642,6 +7642,8 @@
         "edit_campaign": "Edit campaign",
         "template": "Template",
         "send_campaign": "Send campaign",
+        "send_recipient": "Send",
+        "confirm_send_recipient": "Send only this recipient now? This delivers real email to this address only.",
         "approve": "Approve",
         "approved_by": "approved by",
         "tpl_default_label": "Campaign default",

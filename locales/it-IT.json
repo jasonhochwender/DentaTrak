@@ -7642,6 +7642,8 @@
         "edit_campaign": "Modifica campagna",
         "template": "Modello",
         "send_campaign": "Invia campagna",
+        "send_recipient": "Invia",
+        "confirm_send_recipient": "Inviare solo a questo destinatario ora? Verrà recapitata un'e-mail reale solo a questo indirizzo.",
         "approve": "Approva",
         "approved_by": "approvato da",
         "tpl_default_label": "Predefinito campagna",

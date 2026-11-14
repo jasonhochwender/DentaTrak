@@ -92,6 +92,18 @@ assertContains($api, '/mo_audit\(/', 'mutations must write the audit log');
 assertContains($api, '/SET status=\'sending\', updated_at=NOW\(\) WHERE id=\? AND \(/', 'send must atomically claim the campaign');
 assertContains($api, '/send already in progress/', 'concurrent send must be refused');
 
+// ---- 5a. Controlled pilot: per-recipient send selection ----
+// recipient_ids may only narrow the sendable set; every other gate still
+// applies per row. The env allowlist remains the hard delivery gate.
+assertContains($api, '/\$in\[\'recipient_ids\'\]/', 'send must accept an optional recipient_ids selection');
+assertContains($api, '/AND id IN \(/', 'recipient_ids must filter the recipient query');
+assertContains($api, '/\'recipient_ids\' => \$recipIds/', 'send audit must record the recipient selection');
+assertContains($baseDir . '/js/marketing-crm.js', '/data-act="sendone"/', 'campaign UI must offer a per-recipient send action');
+assertContains($baseDir . '/js/marketing-crm.js', '/recipient_ids: \[r\.id\]/', 'per-recipient send must pass recipient_ids to the API');
+assertContains($baseDir . '/api/marketing/CampaignContentHash.php', '/function compute\(PDO \$pdo, string \$campaignId\)/', 'content hash must be shared with verification tooling');
+assertContains($baseDir . '/scripts/marketing-inspect.php', '/--pilot-check/', 'inspector must support read-only pilot verification');
+assertContains($baseDir . '/scripts/marketing-inspect.php', '/CampaignContentHash::compute/', 'pilot check must recompute the approval hash');
+
 // ---- 5b. Pre-launch hardening ----
 $elig = $baseDir . '/api/marketing/OutreachEligibility.php';
 $policy = $baseDir . '/api/marketing/MarketingSendingPolicy.php';

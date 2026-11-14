@@ -51,6 +51,7 @@ require_once __DIR__ . '/marketing/OutreachEligibility.php';
 require_once __DIR__ . '/marketing/OutreachThreadResolver.php';
 require_once __DIR__ . '/marketing/MarketingSignature.php';
 require_once __DIR__ . '/marketing/ReplyTracker.php';
+require_once __DIR__ . '/marketing/CampaignContentHash.php';
 require_once __DIR__ . '/marketing/SheetSyncException.php';
 setSecurityHeaders();
 header('Content-Type: application/json');
@@ -316,19 +317,7 @@ function mo_load_prospects(PDO $pdo): array {
  * and resolved thread references. Any add/remove/edit changes it.
  */
 function mo_content_hash(PDO $pdo, string $campaignId): string {
-    $c = $pdo->prepare("SELECT name,kind FROM marketing_campaigns WHERE id=?");
-    $c->execute([$campaignId]);
-    $meta = $c->fetch(PDO::FETCH_ASSOC) ?: ['name' => '', 'kind' => ''];
-    $rows = $pdo->prepare("SELECT id,contact_id,sheet_row,prospect_email,subject,body_html,thread_status,gmail_thread_id,thread_rfc_message_id,thread_references,thread_subject,thread_date FROM marketing_campaign_recipients WHERE campaign_id=? ORDER BY id");
-    $rows->execute([$campaignId]);
-    // Material delivery content is part of what was approved: the sender
-    // signature config and the managed footer template. Dynamic
-    // unsubscribe tokens are per-send and intentionally excluded.
-    $env = [
-        MarketingSignature::fingerprint(MarketingSignature::load($pdo)),
-        hash('sha256', MarketingFooter::html('__preview__')),
-    ];
-    return hash('sha256', json_encode([$meta['name'], $meta['kind'], $rows->fetchAll(PDO::FETCH_ASSOC), $env]));
+    return CampaignContentHash::compute($pdo, $campaignId);
 }
 
 /** Render a template's placeholders for one prospect. */
@@ -1363,8 +1352,19 @@ switch ($action) {
         // synchronously, so 'pending' rows are a sheet-era leftover only.
         $sheetRetry = $crmMode ? ['synced' => 0, 'failed' => 0] : mo_sheet_sync_pending($pdo, $sheet, $camp);
 
+        // Optional per-recipient selection: recipient_ids narrows the batch
+        // to specific recipient rows (pilot sends). It can only shrink the
+        // sendable set - every other gate still applies to each row.
+        $recipIds = [];
+        foreach ((array)($in['recipient_ids'] ?? []) as $ridRaw) {
+            $rid = (int)$ridRaw;
+            if ($rid > 0) $recipIds[$rid] = true;
+        }
+        $recipIds = array_keys($recipIds);
+        if (count($recipIds) > MO_MAX_RECIPIENTS) mo_fail('too many recipients');
+        $idFilter = $recipIds ? ' AND id IN (' . implode(',', $recipIds) . ')' : '';
         $rs = $pdo->prepare("SELECT * FROM marketing_campaign_recipients
-            WHERE campaign_id=? AND status IN ('approved','failed','uncertain','sending') ORDER BY id LIMIT " . MO_MAX_RECIPIENTS);
+            WHERE campaign_id=? AND status IN ('approved','failed','uncertain','sending')$idFilter ORDER BY id LIMIT " . MO_MAX_RECIPIENTS);
         $rs->execute([$cid]);
         $recips = $rs->fetchAll(PDO::FETCH_ASSOC);
         $ref = mo_ref($cid);
@@ -1495,7 +1495,7 @@ switch ($action) {
         $roll = mo_rollup($pdo, $cid);
         mo_audit($pdo, $userEmail, 'campaign_send', $cid, ['sent' => $sent, 'skipped' => $skipped, 'failed' => $failed,
             'uncertain' => $uncertain, 'blocked' => $blocked, 'sheet_failed' => $sheetFailed,
-            'mode' => $mailer->policy()->mode()]);
+            'mode' => $mailer->policy()->mode(), 'recipient_ids' => $recipIds ?: null]);
         mo_out(['success' => true, 'sent' => $sent, 'skipped' => $skipped, 'failed' => $failed,
             'uncertain' => $uncertain, 'blocked' => $blocked,
             'sheet_failed' => $sheetFailed + $sheetRetry['failed'], 'sheet_retried' => $sheetRetry['synced'],

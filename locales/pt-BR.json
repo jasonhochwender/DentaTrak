@@ -7642,6 +7642,8 @@
         "edit_campaign": "Editar campanha",
         "template": "Modelo",
         "send_campaign": "Enviar campanha",
+        "send_recipient": "Enviar",
+        "confirm_send_recipient": "Enviar apenas para este destinatário agora? Isso entrega um e-mail real somente para este endereço.",
         "approve": "Aprovar",
         "approved_by": "aprovado por",
         "tpl_default_label": "Padrão da campanha",

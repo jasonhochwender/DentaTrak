@@ -7642,6 +7642,8 @@
         "edit_campaign": "캠페인 편집",
         "template": "템플릿",
         "send_campaign": "캠페인 발송",
+        "send_recipient": "보내기",
+        "confirm_send_recipient": "이 수신자에게만 지금 보내시겠습니까? 실제 이메일이 이 주소로만 전달됩니다.",
         "approve": "승인",
         "approved_by": "승인자",
         "tpl_default_label": "캠페인 기본값",

@@ -1935,6 +1935,8 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
                 kindFollowup: <?php echo json_encode(ma('kind_followup_lbl')); ?>,
                 template: <?php echo json_encode(ma('template')); ?>,
                 sendCampaign: <?php echo json_encode(ma('send_campaign')); ?>,
+                sendRecipient: <?php echo json_encode(ma('send_recipient')); ?>,
+                confirmSendRecipient: <?php echo json_encode(ma('confirm_send_recipient')); ?>,
                 maxRecipients: <?php echo json_encode(ma('max_recipients_label')); ?>,
                 cancel: <?php echo json_encode(ma('cancel')); ?>,
                 save: <?php echo json_encode(ma('save')); ?>,
