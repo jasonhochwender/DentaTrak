@@ -166,7 +166,7 @@ final class ReplyTracker
     public function backfill(int $days = 14, bool $dryRun = true): array
     {
         $r = ($this->gmailGet)('/messages', [
-            'q' => 'in:inbox newer_than:' . max(1, min(30, $days)) . 'd -in:drafts',
+            'q' => 'newer_than:' . max(1, min(30, $days)) . 'd -in:drafts -in:sent -in:chats',
             'maxResults' => self::MAX_MESSAGES,
         ]);
         if (($r['status'] ?? null) !== 200) {
