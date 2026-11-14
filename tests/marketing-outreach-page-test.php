@@ -67,12 +67,12 @@ check($badScriptPhp === [], 'every PHP interpolation in <script> uses json_encod
 check(strpos($html, "json_encode(ma('generated_ok')); ?>.replace('{n}', d.generated)") !== false,
     'generated_ok {n} substitution performed in JS, not PHP');
 
-// ---- 4. Six tabs, panes, and self-init ----
-foreach (['overview', 'prospects', 'campaigns', 'followups', 'templates', 'history'] as $tab) {
+// ---- 4. Seven tabs, panes, and self-init ----
+foreach (['overview', 'prospects', 'campaigns', 'followups', 'replies', 'templates', 'history'] as $tab) {
     check(strpos($html, 'data-tab="' . $tab . '"') !== false, "tab button for $tab");
     check(strpos($html, 'id="moTab-' . $tab . '"') !== false, "pane for $tab");
 }
-check(substr_count($html, '<button class="mo-tab') === 6, 'exactly six tab buttons');
+check(substr_count($html, '<button class="mo-tab') === 7, 'exactly seven tab buttons');
 check(strpos($html, "loadTab('overview')") !== false, 'page self-initializes overview tab');
 
 // ---- 5. API failure path surfaces an error ----

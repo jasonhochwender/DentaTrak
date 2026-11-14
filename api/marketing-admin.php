@@ -50,6 +50,7 @@ require_once __DIR__ . '/marketing/MarketingSendingPolicy.php';
 require_once __DIR__ . '/marketing/OutreachEligibility.php';
 require_once __DIR__ . '/marketing/OutreachThreadResolver.php';
 require_once __DIR__ . '/marketing/MarketingSignature.php';
+require_once __DIR__ . '/marketing/ReplyTracker.php';
 require_once __DIR__ . '/marketing/SheetSyncException.php';
 setSecurityHeaders();
 header('Content-Type: application/json');
@@ -589,6 +590,82 @@ if ($method === 'GET') {
             $st->execute($kind !== '' ? [$kind] : []);
             $campaignStatus = $st->fetchAll(PDO::FETCH_KEY_PAIR);
 
+            // ---- detected replies (Gmail reply tracking) ----
+            // Numerator/denominator for response rate share the same period:
+            // human replies received in range / verified sends in range.
+            $replyWhere = 'r.gmail_internal_date>=? AND r.gmail_internal_date<?';
+            $replyArgs = [$from . ' 00:00:00', $to . ' 23:59:59'];
+            $replyJoin = '';
+            if ($cid !== '') { $replyWhere .= ' AND r.campaign_id=?'; $replyArgs[] = $cid; }
+            if ($kind !== '') { $replyJoin = ' JOIN marketing_campaigns k ON k.id=r.campaign_id'; $replyWhere .= ' AND k.kind=?'; $replyArgs[] = $kind; }
+            $st = $pdo->prepare("SELECT r.classification, COUNT(*) n,
+                    SUM(r.review_status='new') new_n, MAX(r.gmail_internal_date) last_at
+                 FROM marketing_reply_events r $replyJoin WHERE $replyWhere GROUP BY r.classification");
+            $st->execute($replyArgs);
+            $replyCounts = ['human' => 0, 'auto_response' => 0, 'delivery_failure' => 0,
+                            'unsubscribe_request' => 0, 'uncertain' => 0];
+            $replyNew = 0; $lastReplyAt = null;
+            foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r) {
+                $cls = (string)$r['classification'];
+                if (isset($replyCounts[$cls])) $replyCounts[$cls] = (int)$r['n'];
+                $replyNew += (int)$r['new_n'];
+                if ($r['last_at'] && (!$lastReplyAt || $r['last_at'] > $lastReplyAt)) $lastReplyAt = $r['last_at'];
+            }
+            // Prior-period human replies for delta.
+            $st = $pdo->prepare("SELECT COUNT(*) FROM marketing_reply_events r $replyJoin
+                 WHERE r.classification='human' AND r.gmail_internal_date>=? AND r.gmail_internal_date<?"
+                . ($cid !== '' ? ' AND r.campaign_id=?' : '')
+                . ($kind !== '' ? ' AND k.kind=?' : ''));
+            $priorArgs = [$priorFrom, $priorTo];
+            if ($cid !== '') $priorArgs[] = $cid;
+            if ($kind !== '') $priorArgs[] = $kind;
+            $st->execute($priorArgs);
+            $repliesPrior = (int)$st->fetchColumn();
+            // Daily human-reply series for the activity chart.
+            $st = $pdo->prepare("SELECT DATE(r.gmail_internal_date) d, COUNT(*) n
+                 FROM marketing_reply_events r $replyJoin
+                 WHERE r.classification='human' AND r.gmail_internal_date>=? AND r.gmail_internal_date<?"
+                . ($cid !== '' ? ' AND r.campaign_id=?' : '')
+                . ($kind !== '' ? ' AND k.kind=?' : '')
+                . ' GROUP BY DATE(r.gmail_internal_date)');
+            $st->execute($priorArgs = array_merge([$from . ' 00:00:00', $to . ' 23:59:59'],
+                $cid !== '' ? [$cid] : [], $kind !== '' ? [$kind] : []));
+            $replySeries = [];
+            foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r) $replySeries[$r['d']] = (int)$r['n'];
+            // Per-campaign reply rollup for the performance table.
+            $st = $pdo->query("SELECT campaign_id, classification, COUNT(*) n
+                 FROM marketing_reply_events WHERE campaign_id IS NOT NULL GROUP BY campaign_id, classification");
+            $replyPerCampaign = [];
+            foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r) {
+                $replyPerCampaign[$r['campaign_id']][$r['classification']] = (int)$r['n'];
+            }
+            $campaignsPerf = array_map(function ($c) use ($replyPerCampaign) {
+                $rc = $replyPerCampaign[$c['id']] ?? [];
+                $c['replies_human'] = (int)($rc['human'] ?? 0);
+                $c['replies_other'] = (int)($rc['auto_response'] ?? 0) + (int)($rc['delivery_failure'] ?? 0)
+                    + (int)($rc['unsubscribe_request'] ?? 0) + (int)($rc['uncertain'] ?? 0);
+                return $c;
+            }, $campaignsPerf);
+            // New-review counts + last reply date per campaign.
+            $st = $pdo->query("SELECT campaign_id, COUNT(*) n FROM marketing_reply_events
+                 WHERE review_status='new' AND campaign_id IS NOT NULL GROUP BY campaign_id");
+            $newByCamp = $st->fetchAll(PDO::FETCH_KEY_PAIR);
+            $st = $pdo->query("SELECT campaign_id, MAX(gmail_internal_date) d FROM marketing_reply_events
+                 WHERE campaign_id IS NOT NULL GROUP BY campaign_id");
+            $lastByCamp = $st->fetchAll(PDO::FETCH_KEY_PAIR);
+            foreach ($campaignsPerf as &$cp) {
+                $cp['replies_new'] = (int)($newByCamp[$cp['id']] ?? 0);
+                $cp['last_reply_at'] = $lastByCamp[$cp['id']] ?? null;
+            }
+            unset($cp);
+
+            // Sync health for the UI.
+            $replySync = ['tracked' => true];
+            try {
+                $rt = new ReplyTracker($pdo, function () { return ['status' => null, 'data' => []]; }, 'dashboard');
+                $replySync = array_merge($replySync, $rt->syncStatus());
+            } catch (Throwable $e) { $replySync['error'] = 'unavailable'; }
+
             // Filter dropdown options come from the unfiltered prospect set.
             $prospect = $crm->dashboard([
                 'org_type' => (string)($_GET['org_type'] ?? ''),
@@ -606,12 +683,34 @@ if ($method === 'GET') {
                     'ledger_total' => $ledgerAll, 'ledger_problems' => $ledgerProblems,
                     'series' => $series,
                 ],
+                'replies' => [
+                    'tracked' => true,
+                    'counts' => $replyCounts,
+                    'period_human' => $replyCounts['human'],
+                    'prior_human' => $repliesPrior,
+                    'new_review' => $replyNew,
+                    'last_reply_at' => $lastReplyAt,
+                    'series' => $replySeries,
+                    'sync' => $replySync,
+                ],
                 'campaigns' => $campaignsPerf,
                 'campaign_status' => $campaignStatus,
                 'prospect' => $prospect,
                 'filter_options' => $allOpts['filter_options'],
                 'campaign_options' => $pdo->query("SELECT id, name, kind FROM marketing_campaigns ORDER BY created_at DESC LIMIT 200")->fetchAll(PDO::FETCH_ASSOC),
             ]]);
+        }
+        case 'replies': {
+            // Detected Gmail replies awaiting/undergoing review.
+            if (!isFeatureEnabled('MARKETING_CRM_READS')) mo_fail('crm unavailable', 503);
+            $rt = new ReplyTracker($pdo, function () { return ['status' => null, 'data' => []]; }, 'admin');
+            $rows = $rt->listReplies([
+                'status' => (string)($_GET['status'] ?? ''),
+                'class' => (string)($_GET['class'] ?? ''),
+                'contact_id' => (int)($_GET['contact_id'] ?? 0) ?: null,
+                'limit' => (int)($_GET['limit'] ?? 100),
+            ]);
+            mo_out(['success' => true, 'replies' => $rows, 'sync' => $rt->syncStatus()]);
         }
         case 'prospects': {
             $crm = mo_crm($pdo);
@@ -1065,6 +1164,40 @@ switch ($action) {
         ]);
         mo_audit($pdo, $userEmail, 'signature_save', null, $sig);
         mo_out(['success' => true, 'signature' => $sig]);
+    }
+
+    case 'reply_mark_reviewed': {
+        $id = (int)($in['reply_id'] ?? 0);
+        if ($id <= 0) mo_fail('reply_id required');
+        $rt = new ReplyTracker($pdo, function () { return ['status' => null, 'data' => []]; }, 'admin');
+        if (!$rt->markReviewed($id, (string)$userEmail, !empty($in['dismissed']))) mo_fail('not found', 404);
+        mo_audit($pdo, $userEmail, 'reply_review', (string)$id, ['dismissed' => !empty($in['dismissed'])]);
+        mo_out(['success' => true]);
+    }
+
+    case 'reply_sync_now': {
+        // Admin-triggered bounded sync pass (same code path as the scheduler).
+        $mailer = new MarketingMailer($pdo, $baseUrl);
+        $rt = new ReplyTracker($pdo, function (string $path, array $q = []) use ($mailer) {
+            return $mailer->gmailGet($path, $q);
+        }, 'admin-manual');
+        $r = $rt->sync();
+        mo_audit($pdo, $userEmail, 'reply_sync', null, ['ok' => !empty($r['ok']), 'processed' => $r['processed'] ?? 0]);
+        mo_out(['success' => !empty($r['ok']), 'result' => $r]);
+    }
+
+    case 'reply_backfill': {
+        // Controlled historical scan. Dry-run by default; requires explicit
+        // apply=1 plus days<=30. Never automatic.
+        $days = max(1, min(30, (int)($in['days'] ?? 14)));
+        $apply = !empty($in['apply']);
+        $mailer = new MarketingMailer($pdo, $baseUrl);
+        $rt = new ReplyTracker($pdo, function (string $path, array $q = []) use ($mailer) {
+            return $mailer->gmailGet($path, $q);
+        }, 'admin-backfill');
+        $r = $rt->backfill($days, !$apply);
+        mo_audit($pdo, $userEmail, 'reply_backfill', null, ['days' => $days, 'apply' => $apply, 'matched' => $r['matched'] ?? 0]);
+        mo_out(['success' => !empty($r['ok']), 'report' => $r]);
     }
 
     case 'approve': {

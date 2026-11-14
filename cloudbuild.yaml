@@ -117,6 +117,14 @@ steps:
         'scripts/provision-ask-usage-worker.sh'
       ]
 
+  # ---------- Ensure marketing reply-sync schedule (idempotent) ----------
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: bash
+    args:
+      [
+        'scripts/provision-reply-sync.sh'
+      ]
+
   # (data-export worker provisioning runs before promotion - see above)
 
 # Authenticated smoke-test credentials for the synthetic test-practice

@@ -1313,6 +1313,7 @@
             var ro = $('moCrmReviewOnly'); if (ro) ro.checked = !!state.review;
         },
         newCampaignWizard: newCampaignWizard,
+        openDrawer: openDrawer,
         openCampaign: openCampaign,
         addContactsToCampaign: function (ids, kind) { openCampaignAdd(ids, kind); },
         addRecipientsToCampaign: function (c) { addRecipientsFlow(c); },

@@ -210,6 +210,7 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
         .mo-chart .bar-sent { fill: #1e40af; }
         .mo-chart .bar-failed { fill: #ef4444; }
         .mo-chart .bar-uncertain { fill: #f59e0b; }
+        .mo-chart .reply-dot { fill: #059669; }
         .mo-chart .dot { fill: #0ea5e9; }
         .mo-legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 0.75rem; color: #6b7280; margin-top: 6px; }
         .mo-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; }
@@ -237,6 +238,7 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
     <button class="mo-tab" data-tab="prospects" role="tab"><?php echo h(ma('tab_prospects')); ?></button>
     <button class="mo-tab" data-tab="campaigns" role="tab"><?php echo h(ma('tab_campaigns')); ?></button>
     <button class="mo-tab" data-tab="followups" role="tab"><?php echo h(ma('tab_followups')); ?></button>
+    <button class="mo-tab" data-tab="replies" role="tab"><?php echo h(ma('tab_replies')); ?></button>
     <button class="mo-tab" data-tab="templates" role="tab"><?php echo h(ma('tab_templates')); ?></button>
     <button class="mo-tab" data-tab="history" role="tab"><?php echo h(ma('tab_history')); ?></button>
 </div>
@@ -473,6 +475,31 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
 </section>
 
 <!-- ============ HISTORY ============ -->
+<!-- ============ REPLIES ============ -->
+<section id="moTab-replies" class="mo-pane mo-hidden">
+    <div class="pa-card">
+        <div class="mo-toolbar" style="margin-bottom:10px;">
+            <select id="moReplyStatus">
+                <option value="new"><?php echo h(ma('reply_filter_new')); ?></option>
+                <option value=""><?php echo h(ma('reply_filter_all')); ?></option>
+                <option value="reviewed"><?php echo h(ma('reply_filter_reviewed')); ?></option>
+                <option value="dismissed"><?php echo h(ma('reply_filter_dismissed')); ?></option>
+            </select>
+            <select id="moReplyClass">
+                <option value=""><?php echo h(ma('reply_filter_allclass')); ?></option>
+                <option value="human"><?php echo h(ma('reply_cls_human')); ?></option>
+                <option value="auto_response"><?php echo h(ma('reply_cls_auto')); ?></option>
+                <option value="delivery_failure"><?php echo h(ma('reply_cls_bounce')); ?></option>
+                <option value="unsubscribe_request"><?php echo h(ma('reply_cls_unsub')); ?></option>
+                <option value="uncertain"><?php echo h(ma('reply_cls_uncertain')); ?></option>
+            </select>
+            <button type="button" class="mo-btn secondary small" id="moReplySyncNow"><?php echo h(ma('reply_sync_now')); ?></button>
+        </div>
+        <p class="mo-step-note" id="moReplySyncNote"></p>
+        <div id="moReplyList"></div>
+    </div>
+</section>
+
 <section id="moTab-history" class="mo-pane mo-hidden">
     <div class="pa-card">
         <h2><?php echo h(ma('hist_sends_title')); ?></h2>
@@ -613,7 +640,43 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
             segStatus: <?php echo json_encode(ma('dash_seg_status')); ?>,
             segPriority: <?php echo json_encode(ma('dash_seg_priority')); ?>,
             segLocation: <?php echo json_encode(ma('dash_seg_location')); ?>,
-            segSource: <?php echo json_encode(ma('dash_seg_source')); ?>
+            segSource: <?php echo json_encode(ma('dash_seg_source')); ?>,
+            legReplies: <?php echo json_encode(ma('dash_leg_replies')); ?>,
+            aReplies: <?php echo json_encode(ma('dash_a_replies')); ?>,
+            aBounces: <?php echo json_encode(ma('dash_a_bounces')); ?>,
+            aUnsub: <?php echo json_encode(ma('dash_a_unsub')); ?>,
+            aAuto: <?php echo json_encode(ma('dash_a_auto')); ?>,
+            syncOk: <?php echo json_encode(ma('reply_sync_ok')); ?>,
+            syncErr: <?php echo json_encode(ma('reply_sync_err')); ?>,
+            syncAuth: <?php echo json_encode(ma('reply_sync_auth')); ?>,
+            rateNA: <?php echo json_encode(ma('dash_rate_na')); ?>,
+            campReplies: <?php echo json_encode(ma('dash_camp_replies')); ?>
+        },
+        reply: {
+            empty: <?php echo json_encode(ma('reply_empty')); ?>,
+            openGmail: <?php echo json_encode(ma('reply_open_gmail')); ?>,
+            markReviewed: <?php echo json_encode(ma('reply_mark_reviewed')); ?>,
+            dismiss: <?php echo json_encode(ma('reply_dismiss')); ?>,
+            ambiguous: <?php echo json_encode(ma('reply_ambiguous')); ?>,
+            unmatched: <?php echo json_encode(ma('reply_unmatched')); ?>,
+            viaThread: <?php echo json_encode(ma('reply_via_thread')); ?>,
+            viaRfc: <?php echo json_encode(ma('reply_via_rfc')); ?>,
+            viaEmail: <?php echo json_encode(ma('reply_via_email')); ?>,
+            clsHuman: <?php echo json_encode(ma('reply_cls_human')); ?>,
+            clsAuto: <?php echo json_encode(ma('reply_cls_auto')); ?>,
+            clsBounce: <?php echo json_encode(ma('reply_cls_bounce')); ?>,
+            clsUnsub: <?php echo json_encode(ma('reply_cls_unsub')); ?>,
+            clsUncertain: <?php echo json_encode(ma('reply_cls_uncertain')); ?>,
+            reviewed: <?php echo json_encode(ma('reply_reviewed_ok')); ?>,
+            syncDone: <?php echo json_encode(ma('reply_sync_done')); ?>,
+            syncRunning: <?php echo json_encode(ma('reply_sync_running')); ?>,
+            colDate: <?php echo json_encode(ma('reply_col_date')); ?>,
+            colFrom: <?php echo json_encode(ma('reply_col_from')); ?>,
+            colSubject: <?php echo json_encode(ma('reply_col_subject')); ?>,
+            colClass: <?php echo json_encode(ma('reply_col_class')); ?>,
+            colCampaign: <?php echo json_encode(ma('reply_col_campaign')); ?>,
+            colStatus: <?php echo json_encode(ma('reply_col_status')); ?>,
+            colActions: <?php echo json_encode(ma('reply_col_actions')); ?>
         }
     };
     var state = { prospectPage: 1, currentCampaign: null, templates: [] };
@@ -676,6 +739,7 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
         else if (name === 'prospects') { if (CRM_READS && window.MOCrm) MOCrm.load(); else loadProspects(); }
         else if (name === 'campaigns') { if (CRM_READS && window.MOCrm) MOCrm.loadCampaigns(); else loadCampaigns(); }
         else if (name === 'followups') loadFollowups('');
+        else if (name === 'replies') loadReplies();
         else if (name === 'templates') loadTemplates();
         else if (name === 'history') loadHistory();
     }
@@ -740,7 +804,8 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
     }
 
     // Stacked daily/weekly bars drawn as inline SVG (no chart dependency).
-    function dashChartSvg(series, from, to) {
+    // replies: {date: n} human replies per day, drawn as a marker line.
+    function dashChartSvg(series, from, to, replies) {
         var days = Math.round((new Date(to) - new Date(from)) / 864e5) + 1;
         var weekly = days > 31;
         var buckets = {}; var order = [];
@@ -761,6 +826,17 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
             var b = buckets[wk]; if (!b) return;
             ['sent', 'failed', 'uncertain'].forEach(function (s) { b[s] += (series[day][s] || 0); });
         });
+        var replyPts = [];
+        if (replies) {
+            Object.keys(replies).forEach(function (day) {
+                var wk = weekly ? (function (ds) {
+                    var x = new Date(ds + 'T00:00:00Z');
+                    return new Date(x.getTime() - ((x.getUTCDay() + 6) % 7) * 864e5).toISOString().slice(0, 10);
+                })(day) : day;
+                var idx = order.indexOf(wk);
+                if (idx >= 0) replyPts.push({ i: idx, n: replies[day] });
+            });
+        }
         var host = $('moDashChart');
         var W = Math.max(320, host.clientWidth || 720), H = 190;
         var m = { l: 36, r: 8, t: 10, b: 24 };
@@ -795,6 +871,13 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
                 svg += '<text class="axis" x="' + (m.l + i * bw + bw / 2).toFixed(1) + '" y="' + (H - 8) +
                     '" text-anchor="middle">' + esc(k.slice(5)) + '</text>';
             }
+        });
+        // Human replies: diamond markers at bucket centers near the top.
+        replyPts.forEach(function (p) {
+            var x = m.l + p.i * bw + bw / 2, y = m.t + 6;
+            svg += '<rect class="reply-dot" x="' + (x - 3).toFixed(1) + '" y="' + y.toFixed(1) +
+                '" width="6" height="6" transform="rotate(45 ' + x.toFixed(1) + ' ' + (y + 3).toFixed(1) + ')">' +
+                '<title>' + esc(STR.dash.legReplies + ': ' + p.n) + '</title></rect>';
         });
         return svg + '</svg>';
     }
@@ -892,14 +975,24 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
             // ---- KPI cards ----
             var b = p.followup_buckets, delta = s.period - s.prior;
             var deltaTxt = (delta === 0 ? '±0' : (delta > 0 ? '+' : '') + delta) + ' ' + STR.dash.vsPrior;
+            var rep = db.replies || { counts: {}, period_human: 0, prior_human: 0, new_review: 0,
+                series: {}, sync: {} };
+            var rdelta = rep.period_human - (rep.prior_human || 0);
+            var rdeltaTxt = (rdelta === 0 ? '±0' : (rdelta > 0 ? '+' : '') + rdelta) + ' ' + STR.dash.vsPrior;
+            // Response rate = human replies in period / verified sends in period.
+            // Shown only when the send denominator is non-zero; otherwise NA.
+            var rateTxt = s.period > 0
+                ? ((rep.period_human / s.period * 100).toFixed(1) + '%')
+                : STR.dash.rateNA;
             var kpis = [
                 dashKpi(STR.dash.kProspects, p.prospects_total, STR.dash.tProspects, null, 'prospects'),
                 dashKpi(STR.dash.kContactable, p.prospects_eligible, STR.dash.tContactable, null,
                     'prospects:{"eligible":"contactable"}'),
                 dashKpi(STR.dash.kSent, s.period, deltaTxt, STR.dash.tSent,
                     'sent'),
-                dashKpi(STR.dash.kReplies, '—', null, STR.dash.tReplies, null),
-                dashKpi(STR.dash.kRate, '—', null, STR.dash.tRate, null),
+                dashKpi(STR.dash.kReplies, rep.period_human, rdeltaTxt, STR.dash.tReplies,
+                    'replies'),
+                dashKpi(STR.dash.kRate, rateTxt, null, STR.dash.tRate, null),
                 dashKpi(STR.dash.kAwaiting, b.awaiting_response, null, STR.dash.tAwaiting,
                     'bucket:awaiting_response'),
                 dashKpi(STR.dash.kDue, b.due_today + b.overdue, null, STR.dash.tDue,
@@ -916,18 +1009,26 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
                         dashProspects(arg ? JSON.parse(arg) : {});
                     } else if (kind === 'bucket') dashProspects({ bucket: arg });
                     else if (kind === 'sent') dashHistory();
+                    else if (kind === 'replies') dashGoTab('replies');
                 });
             });
 
             // ---- activity chart ----
-            var anySends = Object.keys(s.series).length > 0;
-            $('moDashChart').innerHTML = anySends ? dashChartSvg(s.series, r.from, r.to)
+            var anySends = Object.keys(s.series).length > 0 || Object.keys(rep.series || {}).length > 0;
+            $('moDashChart').innerHTML = anySends ? dashChartSvg(s.series, r.from, r.to, rep.series)
                 : '<div class="mo-empty-note">' + esc(STR.dash.chartEmpty) + '</div>';
             $('moDashLegend').innerHTML =
                 '<span><i style="background:#1e40af"></i>' + esc(STR.dash.legSent) + ' (' + s.ledger_total + ' ' + esc(STR.dash.legAllTime || 'all time') + ')</span>' +
                 '<span><i style="background:#ef4444"></i>' + esc(STR.dash.legFailed) + '</span>' +
-                '<span><i style="background:#f59e0b"></i>' + esc(STR.dash.legUncertain) + ' (' + s.ledger_problems + ')</span>';
-            $('moDashChartNote').textContent = STR.dash.chartNote;
+                '<span><i style="background:#f59e0b"></i>' + esc(STR.dash.legUncertain) + ' (' + s.ledger_problems + ')</span>' +
+                '<span><i class="reply-dot" style="display:inline-block;width:9px;height:9px;border-radius:2px;transform:rotate(45deg);background:#059669"></i>' + esc(STR.dash.legReplies) + '</span>';
+            // Reply-sync health line.
+            var syncNote = '';
+            var sy = rep.sync || {};
+            if (sy.last_error === 'gmail_auth_required') syncNote = ' ⚠ ' + STR.dash.syncAuth;
+            else if (sy.last_error) syncNote = ' ⚠ ' + STR.dash.syncErr + ': ' + esc(sy.last_error);
+            else if (sy.last_success) syncNote = ' · ' + STR.dash.syncOk + ' ' + esc(sy.last_success.slice(0, 16));
+            $('moDashChartNote').textContent = STR.dash.chartNote + syncNote;
 
             // ---- pipeline (mutually exclusive buckets) ----
             var bk = STR.bucketLabels || {};
@@ -956,14 +1057,18 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
                 var ch = '<table class="mo-table"><thead><tr><th>' + esc(STR.dash.campName) + '</th><th>' +
                     esc(STR.dash.campKind) + '</th><th>' + esc(STR.dash.campStatus) + '</th><th>' +
                     esc(STR.dash.campRecips) + '</th><th>' + esc(STR.dash.campSent) + '</th><th>' +
+                    esc(STR.dash.campReplies) + '</th><th>' +
                     esc(STR.dash.campIssues) + '</th><th>' + esc(STR.dash.campLast) + '</th><th></th></tr></thead><tbody>';
                 camps.forEach(function (c) {
-                    var last = c.last_activity_at || c.last_sent_at || '';
+                    var last = c.last_reply_at || c.last_activity_at || c.last_sent_at || '';
+                    var repCell = c.recipients === 0 && c.sent === 0 ? '—'
+                        : (c.replies_human || 0) + (c.replies_new > 0 ? ' <span class="mo-pill warn">' + c.replies_new + '</span>' : '');
                     ch += '<tr><td><strong>' + esc(c.name) + '</strong></td>' +
                         '<td>' + esc(c.kind) + '</td>' +
                         '<td><span class="mo-pill ' + esc(c.status) + '">' + esc(c.status) + '</span></td>' +
                         '<td>' + (c.recipients || 0) + '</td>' +
                         '<td>' + (c.sent || 0) + '</td>' +
+                        '<td>' + repCell + '</td>' +
                         '<td>' + ((c.problems || 0) > 0 ? '<span class="mo-pill failed">' + c.problems + '</span>' : '0') + '</td>' +
                         '<td class="mo-sub">' + esc(last ? last.slice(0, 10) : '—') + '</td>' +
                         '<td><button type="button" class="mo-btn secondary small" data-camp="' + esc(c.id) + '">' +
@@ -993,7 +1098,11 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
                 { label: STR.dash.aDrafts, n: (cs.draft || 0), act: 'campaigns' },
                 { label: STR.dash.aReady, n: (cs.ready || 0), act: 'campaigns' },
                 { label: STR.dash.aApproved, n: (cs.approved || 0), act: 'campaigns' },
-                { label: STR.dash.aProblems, n: s.ledger_problems, act: 'history' }
+                { label: STR.dash.aProblems, n: s.ledger_problems, act: 'history' },
+                { label: STR.dash.aReplies, n: rep.new_review || 0, act: 'replies' },
+                { label: STR.dash.aBounces, n: (rep.counts || {}).delivery_failure || 0, act: 'replies:bounce' },
+                { label: STR.dash.aUnsub, n: (rep.counts || {}).unsubscribe_request || 0, act: 'replies:unsub' },
+                { label: STR.dash.aAuto, n: (rep.counts || {}).auto_response || 0, act: 'replies:auto' }
             ];
             var anyAttn = attnRows.some(function (x) { return x.n > 0; });
             $('moDashAttn').innerHTML = anyAttn ? attnRows.map(function (x) {
@@ -1010,6 +1119,13 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
                     else if (a === 'prospects') dashProspects({});
                     else if (a === 'campaigns') dashCampaigns();
                     else if (a === 'history') dashHistory();
+                    else if (a.indexOf('replies') === 0) {
+                        dashGoTab('replies');
+                        var rc = a.split(':')[1];
+                        if (rc) setTimeout(function () {
+                            var cs = $('moReplyClass'); if (cs) { cs.value = rc; loadReplies(); }
+                        }, 60);
+                    }
                 });
             });
 
@@ -1048,6 +1164,95 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
             });
             $('moDashSegNote').textContent = STR.dash.segNote;
             $('moDashDefs').textContent = STR.dash.defs;
+        }).catch(function () { showErr(STR.loadFailed); });
+    }
+
+    // ---------- replies (Gmail reply tracking) ----------
+    var replyWired = false;
+    function replyClassLabel(c) {
+        return { human: STR.reply.clsHuman, auto_response: STR.reply.clsAuto,
+            delivery_failure: STR.reply.clsBounce, unsubscribe_request: STR.reply.clsUnsub,
+            uncertain: STR.reply.clsUncertain }[c] || c;
+    }
+    function replySyncNote(sync) {
+        var el = $('moReplySyncNote'); if (!el) return;
+        if (!sync || !sync.initialized) { el.textContent = STR.reply.syncRunning; return; }
+        var t = sync.last_success ? STR.dash.syncOk + ' ' + sync.last_success.slice(0, 16) : '';
+        if (sync.last_error === 'gmail_auth_required') el.textContent = STR.dash.syncAuth;
+        else if (sync.last_error) el.textContent = STR.dash.syncErr + ': ' + sync.last_error + (t ? ' · ' + t : '');
+        else el.textContent = t || '—';
+    }
+    function loadReplies() {
+        if (!CRM_READS) { $('moReplyList').innerHTML = '<div class="mo-empty-note">—</div>'; return; }
+        if (!replyWired) {
+            replyWired = true;
+            $('moReplyStatus').addEventListener('change', loadReplies);
+            $('moReplyClass').addEventListener('change', loadReplies);
+            $('moReplySyncNow').addEventListener('click', function () {
+                var btn = this; btn.disabled = true; btn.textContent = STR.reply.syncRunning;
+                apiPost('reply_sync_now', {}).then(function (d) {
+                    btn.disabled = false; btn.textContent = <?php echo json_encode(ma('reply_sync_now')); ?>;
+                    if (d.success) { showOk(STR.reply.syncDone); loadReplies(); }
+                    else showErr(d.result && d.result.error ? d.result.error : STR.loadFailed);
+                }).catch(function () { btn.disabled = false; showErr(STR.loadFailed); });
+            });
+        }
+        apiGet('replies', { status: $('moReplyStatus').value, class: $('moReplyClass').value, limit: 100 })
+        .then(function (d) {
+            if (!d.success) { showErr(d.error || STR.loadFailed); return; }
+            replySyncNote(d.sync);
+            var rows = d.replies || [];
+            if (!rows.length) {
+                $('moReplyList').innerHTML = '<div class="mo-empty-note">' + esc(STR.reply.empty) + '</div>';
+                return;
+            }
+            var html = '<table class="mo-table"><thead><tr><th>' + esc(STR.reply.colDate) + '</th><th>' +
+                esc(STR.reply.colFrom) + '</th><th>' + esc(STR.reply.colSubject) + '</th><th>' +
+                esc(STR.reply.colClass) + '</th><th>' + esc(STR.reply.colCampaign) + '</th><th>' +
+                esc(STR.reply.colStatus) + '</th><th></th></tr></thead><tbody>';
+            rows.forEach(function (r) {
+                var clsPill = 'mo-pill ' + (r.classification === 'human' ? 'good'
+                    : r.classification === 'delivery_failure' ? 'failed'
+                    : r.classification === 'unsubscribe_request' ? 'bad' : 'alt');
+                var stPill = r.review_status === 'new' ? '<span class="mo-pill warn">new</span>'
+                    : '<span class="mo-pill">' + esc(r.review_status) + '</span>';
+                html += '<tr><td class="mo-sub">' + esc(fmtDT(r.gmail_internal_date)) + '</td>' +
+                    '<td><strong>' + esc(r.from_name || r.from_email || '—') + '</strong>' +
+                    (r.from_name ? '<br><span class="mo-sub">' + esc(r.from_email || '') + '</span>' : '') +
+                    (r.ambiguous == 1 ? '<br><span class="mo-flag do_not_contact">' + esc(STR.reply.ambiguous) + '</span>' : '') +
+                    (r.matched_via === 'none' ? '<br><span class="mo-flag missing_contact">' + esc(STR.reply.unmatched) + '</span>' : '') + '</td>' +
+                    '<td>' + esc(r.subject || '—') +
+                    (r.snippet ? '<br><span class="mo-sub">' + esc(r.snippet) + '</span>' : '') + '</td>' +
+                    '<td><span class="' + clsPill + '">' + esc(replyClassLabel(r.classification)) + '</span></td>' +
+                    '<td class="mo-sub">' + esc(r.campaign_name || '—') + '</td>' +
+                    '<td>' + stPill + (r.reviewed_by ? '<br><span class="mo-sub">' + esc(r.reviewed_by) + '</span>' : '') + '</td>' +
+                    '<td style="white-space:nowrap;">' +
+                    (r.contact_id && window.MOCrm && MOCrm.openDrawer ? '<button type="button" class="mo-btn secondary small" data-prospect="' + r.contact_id + '">' + esc(<?php echo json_encode(ma('reply_view_prospect')); ?>) + '</button> ' : '') +
+                    '<a class="mo-btn secondary small" href="' + esc(r.gmail_url) + '" target="_blank" rel="noopener">Gmail</a> ' +
+                    (r.review_status === 'new' ? '<button type="button" class="mo-btn small" data-review="' + r.id + '">' + esc(STR.reply.markReviewed) + '</button> ' +
+                    '<button type="button" class="mo-btn secondary small" data-dismiss="' + r.id + '">' + esc(STR.reply.dismiss) + '</button>' : '') +
+                    '</td></tr>';
+            });
+            $('moReplyList').innerHTML = html + '</tbody></table>';
+            $('moReplyList').querySelectorAll('[data-review]').forEach(function (b) {
+                b.addEventListener('click', function () {
+                    apiPost('reply_mark_reviewed', { reply_id: +b.dataset.review }).then(function () {
+                        showOk(STR.reply.reviewed); loadReplies();
+                    });
+                });
+            });
+            $('moReplyList').querySelectorAll('[data-dismiss]').forEach(function (b) {
+                b.addEventListener('click', function () {
+                    apiPost('reply_mark_reviewed', { reply_id: +b.dataset.dismiss, dismissed: 1 }).then(function () {
+                        showOk(STR.reply.reviewed); loadReplies();
+                    });
+                });
+            });
+            $('moReplyList').querySelectorAll('[data-prospect]').forEach(function (b) {
+                b.addEventListener('click', function () {
+                    if (window.MOCrm && MOCrm.openDrawer) MOCrm.openDrawer(+b.dataset.prospect);
+                });
+            });
         }).catch(function () { showErr(STR.loadFailed); });
     }
 

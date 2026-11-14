@@ -15,10 +15,12 @@ function check(name, cond, extra) {
 }
 
 const TAB_API = {
-  overview: 'overview',
+  // Overview calls 'dashboard' when CRM reads are on, 'overview' otherwise.
+  overview: ['overview', 'dashboard'],
   prospects: 'prospects',
   campaigns: 'campaigns',
   followups: 'followups',
+  replies: 'replies',
   templates: 'templates',
   history: 'history',
 };
@@ -51,6 +53,7 @@ async function callHelper(page, action, extra = {}) {
   await page.goto(BASE + '/main.php', { waitUntil: 'domcontentloaded' });
   const flag = await callHelper(page, 'set_session_flag', { flag: 'MARKETING_OUTREACH', value: true });
   check('MARKETING_OUTREACH session flag set', !!(flag.body && flag.body.success), JSON.stringify(flag.body || flag.raw).slice(0, 120));
+  await callHelper(page, 'set_session_flag', { flag: 'MARKETING_CRM_READS', value: true }).catch(() => {});
 
   // Track API calls per action.
   const apiCalls = [];
@@ -76,9 +79,9 @@ async function callHelper(page, action, extra = {}) {
   check('inline scripts parse without syntax errors', syntaxOk, syntaxErr);
   check('no uncaught page errors during load', pageErrors.length === 0, pageErrors.slice(0, 2).join(' | '));
 
-  // Overview auto-loads on init.
-  await page.waitForFunction(() => document.querySelectorAll('#moOvMetrics .pa-metric').length > 0, { timeout: 10000 }).catch(() => {});
-  check('overview loaded data via API', apiCalls.includes('overview'));
+  // Overview auto-loads on init (dashboard when CRM reads are enabled).
+  await page.waitForFunction(() => document.querySelectorAll('#moDashKpis .pa-metric').length > 0, { timeout: 10000 }).catch(() => {});
+  check('overview loaded data via API', apiCalls.includes('overview') || apiCalls.includes('dashboard'), apiCalls.join(','));
 
   // Each tab: click, pane visible, API action fired.
   for (const tab of Object.keys(TAB_API)) {
@@ -94,7 +97,8 @@ async function callHelper(page, action, extra = {}) {
       return b && b.classList.contains('is-active');
     }, tab);
     check(`tab ${tab}: pane visible + active`, paneVisible && active);
-    check(`tab ${tab}: API action '${TAB_API[tab]}' requested`, apiCalls.includes(TAB_API[tab]), apiCalls.join(','));
+    const expected = Array.isArray(TAB_API[tab]) ? TAB_API[tab] : [TAB_API[tab]];
+    check(`tab ${tab}: API action '${expected.join("/")}' requested`, expected.some(a => apiCalls.includes(a)), apiCalls.join(','));
   }
 
   // API failure surfaces a visible error.
@@ -120,6 +124,7 @@ async function callHelper(page, action, extra = {}) {
   check('sending banner present', banner.length > 0, banner.slice(0, 80));
 
   await callHelper(page, 'set_session_flag', { flag: 'MARKETING_OUTREACH', value: false }).catch(() => {});
+  await callHelper(page, 'set_session_flag', { flag: 'MARKETING_CRM_READS', value: false }).catch(() => {});
   await browser.close();
   const failed = results.filter(r => !r.pass);
   console.log(`\n${results.length - failed.length} passed, ${failed.length} failed`);
