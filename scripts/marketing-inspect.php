@@ -11,6 +11,30 @@ require_once __DIR__ . '/../api/appConfig.php';
 require_once __DIR__ . '/../api/marketing/MarketingMailer.php';
 global $pdo, $appConfig;
 
+// --gmail-probe: report whether the Gmail read path works in this
+// environment (status codes only - no tokens, no message content).
+if (in_array('--gmail-probe', $argv, true)) {
+    $m = new MarketingMailer($pdo, (string)($appConfig['baseUrl'] ?? ''));
+    $at = $m->accessToken();
+    echo 'access_token: ' . ($at ? 'obtained' : 'FAILED') . "\n";
+    if ($at) {
+        $r = $m->gmailGet('/messages', ['q' => 'in:sent', 'maxResults' => 1]);
+        echo 'messages.list status: ' . var_export($r['status'], true)
+            . ' results=' . count($r['data']['messages'] ?? []) . "\n";
+        if ($r['status'] !== 200) {
+            echo 'error: ' . substr(json_encode($r['data']['error'] ?? $r['data']), 0, 300) . "\n";
+        }
+    }
+    exit(0);
+}
+
+$mask = static function (?string $email): string {
+    $email = (string)$email;
+    $at = strpos($email, '@');
+    if ($at === false) return '***';
+    return substr($email, 0, 1) . '***' . substr($email, $at);
+};
+
 // --resolve-check: run OutreachThreadResolver for the newest follow-up
 // campaign's draft/ready recipients and print outcomes. READ-ONLY: no
 // thread_status writes, no sends, masked emails only.
@@ -49,30 +73,6 @@ if (in_array('--resolve-check', $argv, true)) {
     echo 'summary: ' . json_encode($counts) . "\n";
     exit(0);
 }
-
-// --gmail-probe: report whether the Gmail read path works in this
-// environment (status codes only - no tokens, no message content).
-if (in_array('--gmail-probe', $argv, true)) {
-    $m = new MarketingMailer($pdo, (string)($appConfig['baseUrl'] ?? ''));
-    $at = $m->accessToken();
-    echo 'access_token: ' . ($at ? 'obtained' : 'FAILED') . "\n";
-    if ($at) {
-        $r = $m->gmailGet('/messages', ['q' => 'in:sent', 'maxResults' => 1]);
-        echo 'messages.list status: ' . var_export($r['status'], true)
-            . ' results=' . count($r['data']['messages'] ?? []) . "\n";
-        if ($r['status'] !== 200) {
-            echo 'error: ' . substr(json_encode($r['data']['error'] ?? $r['data']), 0, 300) . "\n";
-        }
-    }
-    exit(0);
-}
-
-$mask = static function (?string $email): string {
-    $email = (string)$email;
-    $at = strpos($email, '@');
-    if ($at === false) return '***';
-    return substr($email, 0, 1) . '***' . substr($email, $at);
-};
 
 $cid = $argv[1] ?? null;
 $camps = $cid
