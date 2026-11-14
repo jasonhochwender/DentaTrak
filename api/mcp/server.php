@@ -81,6 +81,37 @@ $TOOLS = [
       'contact_id'=>['type'=>'integer'],'text'=>['type'=>'string'],
       'sources'=>['type'=>'array','items'=>['type'=>'string']],'researched_at'=>['type'=>'string'],
       'confirm'=>['type'=>'boolean']],'required'=>['contact_id','text']]],
+  // --- Campaign preparation (drafts only - never approves or sends) ---
+  'list_campaigns' => ['description'=>'List Marketing Outreach campaigns with recipient/sent counts. Filter by kind (initial|followup) and status. Read-only.',
+    'inputSchema'=>['type'=>'object','properties'=>[
+      'kind'=>['type'=>'string','enum'=>['initial','followup']],
+      'status'=>['type'=>'string','enum'=>['draft','ready','approved','partial','sending','completed']],
+      'limit'=>['type'=>'integer']]]],
+  'get_campaign' => ['description'=>'Full campaign detail: metadata, every recipient with message status, content, thread resolution, and send state. Read-only.',
+    'inputSchema'=>['type'=>'object','properties'=>['campaign_id'=>['type'=>'string']],'required'=>['campaign_id']]],
+  'create_campaign' => ['description'=>'Create a DRAFT outreach campaign (never approves or sends). Optional contact_ids seeds recipients (max 10). Identical open drafts by the same actor are returned instead of duplicated - retries are safe. Set dry_run=true to preview first. REQUIRES confirm=true for the actual create.',
+    'inputSchema'=>['type'=>'object','properties'=>[
+      'name'=>['type'=>'string'],'kind'=>['type'=>'string','enum'=>['initial','followup']],
+      'description'=>['type'=>'string'],'template_id'=>['type'=>'integer'],
+      'contact_ids'=>['type'=>'array','items'=>['type'=>'integer']],'limit'=>['type'=>'integer'],
+      'dry_run'=>['type'=>'boolean'],'confirm'=>['type'=>'boolean']],'required'=>['name']]],
+  'add_campaign_recipients' => ['description'=>'Add CRM contacts (stable contact_ids, max 10/call) to an editable draft campaign. Rechecks eligibility; suppressed/DNC contacts are recorded as suppressed, never bypassed. Returns per-contact results. Set dry_run=true to preview. REQUIRES confirm=true.',
+    'inputSchema'=>['type'=>'object','properties'=>[
+      'campaign_id'=>['type'=>'string'],'contact_ids'=>['type'=>'array','items'=>['type'=>'integer']],'dry_run'=>['type'=>'boolean'],'confirm'=>['type'=>'boolean']],'required'=>['campaign_id','contact_ids']]],
+  'save_campaign_messages' => ['description'=>'Save individually personalized email drafts (subject + HTML body) for up to 10 campaign recipients in one call. Each recipient keeps their own content - no shared template required. Same sanitizer/thread-subject rules as the admin UI; sent or in-flight recipients are refused. REQUIRES confirm=true. Never approves or sends.',
+    'inputSchema'=>['type'=>'object','properties'=>[
+      'campaign_id'=>['type'=>'string'],
+      'messages'=>['type'=>'array','maxItems'=>10,'items'=>['type'=>'object','properties'=>[
+        'recipient_id'=>['type'=>'integer'],'contact_id'=>['type'=>'integer'],
+        'subject'=>['type'=>'string'],'body_html'=>['type'=>'string'],'text'=>['type'=>'string']],
+        'required'=>['subject','body_html']]],
+      'confirm'=>['type'=>'boolean']],'required'=>['campaign_id','messages']]],
+  'preview_campaign_message' => ['description'=>'Exact final-assembly preview for one recipient: From/To/subject, personalized body + sender signature + managed footer + unsubscribe PLACEHOLDER (nonfunctional - real token is per-send). Includes Gmail thread status. Read-only; no tokens issued, nothing written.',
+    'inputSchema'=>['type'=>'object','properties'=>[
+      'campaign_id'=>['type'=>'string'],'recipient_id'=>['type'=>'integer'],
+      'subject'=>['type'=>'string'],'body_html'=>['type'=>'string']],'required'=>['campaign_id','recipient_id']]],
+  'get_campaign_readiness' => ['description'=>'Report whether a campaign is ready for admin review/approval: missing drafts, duplicate recipients, live eligibility/suppression re-check, thread resolution, approval-hash integrity, and actionable blockers. Read-only.',
+    'inputSchema'=>['type'=>'object','properties'=>['campaign_id'=>['type'=>'string']],'required'=>['campaign_id']]],
 ];
 if ($method==='tools/list') $ok(['tools'=>array_map(function($n,$t){return ['name'=>$n]+$t;},array_keys($TOOLS),array_values($TOOLS))]);
 if ($method!=='tools/call') $fail('unsupported method');
@@ -199,6 +230,27 @@ if ($name==='check_eligibility') {
         'update_prospect' => 'updateProspect', 'update_organization' => 'updateOrganization',
         'add_prospect_note' => 'addProspectNote',
     ];
+    // Campaign-preparation tools share the same record set as the UI but
+    // never approve or send - delivery stays behind the admin controls.
+    $campaignTools = [
+        'list_campaigns' => 'listCampaigns', 'get_campaign' => 'getCampaign',
+        'create_campaign' => 'createCampaign', 'add_campaign_recipients' => 'addCampaignRecipients',
+        'save_campaign_messages' => 'saveCampaignMessages', 'preview_campaign_message' => 'previewCampaignMessage',
+        'get_campaign_readiness' => 'getCampaignReadiness',
+    ];
+    if (isset($campaignTools[$name])) {
+        require_once __DIR__ . '/../marketing/McpCampaignTools.php';
+        try {
+            $ct = new McpCampaignTools($pdo, (string)$tokenRow['email'], (string)($appConfig['baseUrl'] ?? ''));
+            $result = $ct->{$campaignTools[$name]}($a);
+            $ok(['content'=>[['type'=>'text','text'=>json_encode($result)]]]);
+        } catch (InvalidArgumentException $e) {
+            $fail($e->getMessage());
+        } catch (Throwable $e) {
+            error_log('[mcp-campaign] ' . $name . ': ' . $e->getMessage());
+            $fail('tool failed');
+        }
+    }
     if (!isset($crmTools[$name])) $fail('unknown tool');
     require_once __DIR__ . '/../marketing/McpCrmTools.php';
     try {

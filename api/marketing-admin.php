@@ -52,6 +52,7 @@ require_once __DIR__ . '/marketing/OutreachThreadResolver.php';
 require_once __DIR__ . '/marketing/MarketingSignature.php';
 require_once __DIR__ . '/marketing/ReplyTracker.php';
 require_once __DIR__ . '/marketing/CampaignContentHash.php';
+require_once __DIR__ . '/marketing/MessageHtml.php';
 require_once __DIR__ . '/marketing/SheetSyncException.php';
 setSecurityHeaders();
 header('Content-Type: application/json');
@@ -338,11 +339,7 @@ function mo_render(string $tpl, array $prospect): string {
 
 /** Strip anything unsafe from generated/edited HTML bodies. */
 function mo_sanitize_html(string $html): string {
-    $html = preg_replace('#<script\b[^>]*>.*?</script>#is', '', $html);
-    $html = preg_replace('#<style\b[^>]*>.*?</style>#is', '', $html);
-    $html = preg_replace('#\son\w+\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)#i', '', $html);
-    $html = preg_replace('#(href|src)\s*=\s*(["\']?)\s*javascript:[^"\'>\s]*\2#i', '$1=$2#$2', $html);
-    return trim((string)$html);
+    return MessageHtml::sanitize($html);
 }
 
 /** AI-generate one recipient's email; falls back to the template render. */
