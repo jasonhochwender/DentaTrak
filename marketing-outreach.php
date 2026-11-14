@@ -650,7 +650,12 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
             syncErr: <?php echo json_encode(ma('reply_sync_err')); ?>,
             syncAuth: <?php echo json_encode(ma('reply_sync_auth')); ?>,
             rateNA: <?php echo json_encode(ma('dash_rate_na')); ?>,
-            campReplies: <?php echo json_encode(ma('dash_camp_replies')); ?>
+            campReplies: <?php echo json_encode(ma('dash_camp_replies')); ?>,
+            campVerified: <?php echo json_encode(ma('dash_camp_verified')); ?>,
+            campCohort: <?php echo json_encode(ma('dash_camp_cohort')); ?>,
+            aBperm: <?php echo json_encode(ma('dash_a_bperm')); ?>,
+            aBtemp: <?php echo json_encode(ma('dash_a_btemp')); ?>,
+            aSuppressed: <?php echo json_encode(ma('dash_a_suppressed')); ?>
         },
         reply: {
             empty: <?php echo json_encode(ma('reply_empty')); ?>,
@@ -667,6 +672,12 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
             clsBounce: <?php echo json_encode(ma('reply_cls_bounce')); ?>,
             clsUnsub: <?php echo json_encode(ma('reply_cls_unsub')); ?>,
             clsUncertain: <?php echo json_encode(ma('reply_cls_uncertain')); ?>,
+            clsBperm: <?php echo json_encode(ma('reply_cls_bperm')); ?>,
+            clsBtemp: <?php echo json_encode(ma('reply_cls_btemp')); ?>,
+            clsBamb: <?php echo json_encode(ma('reply_cls_bamb')); ?>,
+            suppressedBadge: <?php echo json_encode(ma('reply_suppressed_badge')); ?>,
+            heldBadge: <?php echo json_encode(ma('reply_held_badge')); ?>,
+            unsubReview: <?php echo json_encode(ma('reply_unsub_review')); ?>,
             reviewed: <?php echo json_encode(ma('reply_reviewed_ok')); ?>,
             syncDone: <?php echo json_encode(ma('reply_sync_done')); ?>,
             syncRunning: <?php echo json_encode(ma('reply_sync_running')); ?>,
@@ -1057,6 +1068,7 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
                 var ch = '<table class="mo-table"><thead><tr><th>' + esc(STR.dash.campName) + '</th><th>' +
                     esc(STR.dash.campKind) + '</th><th>' + esc(STR.dash.campStatus) + '</th><th>' +
                     esc(STR.dash.campRecips) + '</th><th>' + esc(STR.dash.campSent) + '</th><th>' +
+                    esc(STR.dash.campVerified) + '</th><th>' + esc(STR.dash.campCohort) + '</th><th>' +
                     esc(STR.dash.campReplies) + '</th><th>' +
                     esc(STR.dash.campIssues) + '</th><th>' + esc(STR.dash.campLast) + '</th><th></th></tr></thead><tbody>';
                 camps.forEach(function (c) {
@@ -1068,6 +1080,9 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
                         '<td><span class="mo-pill ' + esc(c.status) + '">' + esc(c.status) + '</span></td>' +
                         '<td>' + (c.recipients || 0) + '</td>' +
                         '<td>' + (c.sent || 0) + '</td>' +
+                        '<td>' + (c.verified_sends || 0) + '</td>' +
+                        '<td>' + (c.cohort_rate === null || c.cohort_rate === undefined ? '—'
+                            : c.cohort_rate + '% (' + c.cohort_replies + '/' + c.verified_sends + ')') + '</td>' +
                         '<td>' + repCell + '</td>' +
                         '<td>' + ((c.problems || 0) > 0 ? '<span class="mo-pill failed">' + c.problems + '</span>' : '0') + '</td>' +
                         '<td class="mo-sub">' + esc(last ? last.slice(0, 10) : '—') + '</td>' +
@@ -1100,8 +1115,11 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
                 { label: STR.dash.aApproved, n: (cs.approved || 0), act: 'campaigns' },
                 { label: STR.dash.aProblems, n: s.ledger_problems, act: 'history' },
                 { label: STR.dash.aReplies, n: rep.new_review || 0, act: 'replies' },
-                { label: STR.dash.aBounces, n: (rep.counts || {}).delivery_failure || 0, act: 'replies:bounce' },
+                { label: STR.dash.aBperm, n: (rep.bounce_kinds || {}).permanent || 0, act: 'replies:bounce' },
+                { label: STR.dash.aBtemp, n: (rep.bounce_kinds || {}).temporary || 0, act: 'replies:bounce' },
+                { label: STR.dash.aBounces, n: (rep.bounce_kinds || {}).ambiguous || 0, act: 'replies:bounce' },
                 { label: STR.dash.aUnsub, n: (rep.counts || {}).unsubscribe_request || 0, act: 'replies:unsub' },
+                { label: STR.dash.aSuppressed, n: rep.suppressed_contacts || 0, act: 'prospects' },
                 { label: STR.dash.aAuto, n: (rep.counts || {}).auto_response || 0, act: 'replies:auto' }
             ];
             var anyAttn = attnRows.some(function (x) { return x.n > 0; });
@@ -1169,7 +1187,11 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
 
     // ---------- replies (Gmail reply tracking) ----------
     var replyWired = false;
-    function replyClassLabel(c) {
+    function replyClassLabel(r) {
+        var c = r.classification || r;
+        if (c === 'delivery_failure' && r && r.bounce_kind === 'permanent') return STR.reply.clsBperm;
+        if (c === 'delivery_failure' && r && r.bounce_kind === 'temporary') return STR.reply.clsBtemp;
+        if (c === 'delivery_failure' && r && r.bounce_kind) return STR.reply.clsBamb;
         return { human: STR.reply.clsHuman, auto_response: STR.reply.clsAuto,
             delivery_failure: STR.reply.clsBounce, unsubscribe_request: STR.reply.clsUnsub,
             uncertain: STR.reply.clsUncertain }[c] || c;
@@ -1211,19 +1233,28 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
                 esc(STR.reply.colClass) + '</th><th>' + esc(STR.reply.colCampaign) + '</th><th>' +
                 esc(STR.reply.colStatus) + '</th><th></th></tr></thead><tbody>';
             rows.forEach(function (r) {
+                var isBounce = r.classification === 'delivery_failure';
                 var clsPill = 'mo-pill ' + (r.classification === 'human' ? 'good'
-                    : r.classification === 'delivery_failure' ? 'failed'
+                    : isBounce ? (r.bounce_kind === 'permanent' ? 'bad' : r.bounce_kind === 'temporary' ? 'warn' : 'alt')
                     : r.classification === 'unsubscribe_request' ? 'bad' : 'alt');
                 var stPill = r.review_status === 'new' ? '<span class="mo-pill warn">new</span>'
                     : '<span class="mo-pill">' + esc(r.review_status) + '</span>';
+                var badges = '';
+                if (r.ambiguous == 1) badges += '<br><span class="mo-flag do_not_contact">' + esc(STR.reply.ambiguous) + '</span>';
+                if (r.matched_via === 'none') badges += '<br><span class="mo-flag missing_contact">' + esc(STR.reply.unmatched) + '</span>';
+                if (r.suppressed_email) badges += '<br><span class="mo-flag do_not_contact">' + esc(STR.reply.suppressedBadge) + ': ' + esc(r.suppression_source || '') + '</span>';
+                if (r.action_taken === 'held') badges += '<br><span class="mo-flag missing_contact">' + esc(STR.reply.heldBadge) + '</span>';
+                if (r.unsubscribe_confidence === 'review' && r.classification === 'unsubscribe_request')
+                    badges += '<br><span class="mo-flag missing_contact">' + esc(STR.reply.unsubReview) + '</span>';
+                if (r.failed_recipient) badges += '<br><span class="mo-sub">→ ' + esc(r.failed_recipient) + '</span>';
                 html += '<tr><td class="mo-sub">' + esc(fmtDT(r.gmail_internal_date)) + '</td>' +
-                    '<td><strong>' + esc(r.from_name || r.from_email || '—') + '</strong>' +
-                    (r.from_name ? '<br><span class="mo-sub">' + esc(r.from_email || '') + '</span>' : '') +
-                    (r.ambiguous == 1 ? '<br><span class="mo-flag do_not_contact">' + esc(STR.reply.ambiguous) + '</span>' : '') +
-                    (r.matched_via === 'none' ? '<br><span class="mo-flag missing_contact">' + esc(STR.reply.unmatched) + '</span>' : '') + '</td>' +
+                    '<td><strong>' + esc(r.contact_name || r.from_name || r.from_email || '—') + '</strong>' +
+                    (r.org_name ? '<br><span class="mo-sub">' + esc(r.org_name) + '</span>' : '') +
+                    (!r.contact_name && r.from_name ? '<br><span class="mo-sub">' + esc(r.from_email || '') + '</span>' : '') +
+                    badges + '</td>' +
                     '<td>' + esc(r.subject || '—') +
                     (r.snippet ? '<br><span class="mo-sub">' + esc(r.snippet) + '</span>' : '') + '</td>' +
-                    '<td><span class="' + clsPill + '">' + esc(replyClassLabel(r.classification)) + '</span></td>' +
+                    '<td><span class="' + clsPill + '">' + esc(replyClassLabel(r)) + '</span></td>' +
                     '<td class="mo-sub">' + esc(r.campaign_name || '—') + '</td>' +
                     '<td>' + stPill + (r.reviewed_by ? '<br><span class="mo-sub">' + esc(r.reviewed_by) + '</span>' : '') + '</td>' +
                     '<td style="white-space:nowrap;">' +

@@ -34,6 +34,25 @@ $mailer = new MarketingMailer($pdo, $baseUrl);
 $tracker = new ReplyTracker($pdo, function (string $path, array $q = []) use ($mailer) {
     return $mailer->gmailGet($path, $q);
 }, 'reply-sync');
+
+// Optional bounded backfill: {"backfill_days":N,"apply":bool}. Dry-run by
+// default; apply=1 requires the explicit flag and never runs on schedule.
+$body = json_decode((string)file_get_contents('php://input'), true);
+if (is_array($body) && isset($body['backfill_days'])) {
+    $days = max(1, min(30, (int)$body['backfill_days']));
+    $apply = !empty($body['apply']);
+    try {
+        $r = $tracker->backfill($days, !$apply);
+        http_response_code(!empty($r['ok']) ? 200 : 502);
+        echo json_encode(['success' => !empty($r['ok']), 'report' => $r]);
+    } catch (Throwable $e) {
+        error_log('[reply-backfill] fatal: ' . $e->getMessage());
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'backfill failed']);
+    }
+    exit;
+}
+
 try {
     $r = $tracker->sync();
     http_response_code(!empty($r['ok']) ? 200 : 502);

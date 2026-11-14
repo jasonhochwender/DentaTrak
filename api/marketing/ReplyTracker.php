@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/SuppressionService.php';
 /**
  * Gmail reply tracking for Marketing Outreach.
  *
@@ -92,14 +93,11 @@ final class ReplyTracker
 
         $start = $this->setting('reply_sync_history_id');
         if ($start === null) {
-            // First run: establish the checkpoint now; only process messages
-            // added after this point unless backfill was explicitly requested.
-            if (!$allowBackfill) {
-                $this->setSetting('reply_sync_history_id', $profileHistory !== '' ? $profileHistory : null);
-                return ['ok' => true, 'initialized' => true, 'processed' => 0, 'inserted' => 0];
-            }
-            // Backfill: scan a bounded recent window via messages.list.
-            return $this->backfill($ownEmail);
+            // First run: establish the checkpoint now. Historical scanning is
+            // a separate, explicitly-invoked dry-run/apply operation
+            // (backfill()) — never part of incremental sync.
+            $this->setSetting('reply_sync_history_id', $profileHistory !== '' ? $profileHistory : null);
+            return ['ok' => true, 'initialized' => true, 'processed' => 0, 'inserted' => 0];
         }
 
         $historyId = $start;
@@ -175,7 +173,15 @@ final class ReplyTracker
             return ['ok' => false, 'error' => 'gmail_api', 'detail' => 'list status ' . ($r['status'] ?? 'none')];
         }
         $report = ['ok' => true, 'dry_run' => $dryRun, 'scanned' => 0, 'matched' => 0,
-                   'would_insert' => 0, 'by_class' => [], 'samples' => []];
+                   'matched_campaign' => 0, 'already_tracked' => 0, 'ambiguous' => 0,
+                   'unmatched' => 0,
+                   'would_insert' => 0, 'by_class' => [], 'bounce_kinds' => [],
+                   'proposed_suppressions' => [], 'proposed_crm_changes' => [],
+                   'samples' => []];
+        $existing = [];
+        foreach ($this->pdo->query("SELECT gmail_message_id FROM marketing_reply_events")->fetchAll(PDO::FETCH_COLUMN) as $id) {
+            $existing[$id] = true;
+        }
         foreach (($r['data']['messages'] ?? []) as $m) {
             $id = (string)($m['id'] ?? '');
             if ($id === '') continue;
@@ -184,29 +190,90 @@ final class ReplyTracker
                 $msg = $this->fetchMessage($id);
                 if ($msg === null) continue;
                 $match = $this->matchMessage($msg);
-                if (!$match['matched']) continue;
+                if (!$match['matched']) { $report['unmatched']++; continue; }
                 $report['matched']++;
-                $cls = $this->classify($msg);
+                if (!empty($match['campaign_id'])) $report['matched_campaign']++;
+                if (!empty($match['ambiguous'])) $report['ambiguous']++;
+                $analysis = $this->analyze($msg);
+                $cls = $analysis['class'];
                 $report['by_class'][$cls] = ($report['by_class'][$cls] ?? 0) + 1;
+                if (!empty($analysis['bounce_kind'])) {
+                    $report['bounce_kinds'][$analysis['bounce_kind']] = ($report['bounce_kinds'][$analysis['bounce_kind']] ?? 0) + 1;
+                }
+                $isDup = isset($existing[$id]);
+                if ($isDup) $report['already_tracked']++;
+                // Proposed actions (computed, never applied in dry-run).
+                $proposal = $this->proposeAction($msg, $match, $analysis);
+                if ($proposal !== null) {
+                    $key = $proposal['type'] . ':' . ($proposal['email'] ?? '');
+                    $report['proposed_suppressions'][$key] = $proposal;
+                }
+                if ($match['contact_id'] !== null && in_array($cls, ['human', 'unsubscribe_request', 'delivery_failure'], true)) {
+                    $report['proposed_crm_changes'][] = [
+                        'contact_id' => $match['contact_id'], 'classification' => $cls,
+                        'response_would_set' => $cls === 'human' ? 'replied' : null,
+                        'review_flag' => $cls !== 'human',
+                    ];
+                }
                 if (count($report['samples']) < 25) {
                     $report['samples'][] = [
                         'message_id' => $id, 'thread_id' => $msg['threadId'] ?? null,
                         'from' => $msg['from'] ?? null, 'subject' => $msg['subject'] ?? null,
-                        'classification' => $cls, 'matched_via' => $match['via'],
-                        'contact_id' => $match['contact_id'], 'ambiguous' => $match['ambiguous'],
+                        'classification' => $cls, 'bounce_kind' => $analysis['bounce_kind'],
+                        'unsubscribe_confidence' => $analysis['unsubscribe_confidence'],
+                        'matched_via' => $match['via'], 'contact_id' => $match['contact_id'],
+                        'campaign_id' => $match['campaign_id'], 'ambiguous' => $match['ambiguous'],
+                        'already_tracked' => $isDup,
                     ];
                 }
-                if (!$dryRun) {
-                    $this->record($msg, $match, $cls);
-                    $report['would_insert']++;
-                } else {
-                    $report['would_insert']++;
+                $report['would_insert']++;
+                if (!$dryRun && !$isDup) {
+                    $this->record($msg, $match, $cls, $analysis);
                 }
             } catch (Throwable $e) {
                 error_log('[reply-backfill] ' . $id . ': ' . $e->getMessage());
             }
         }
         return $report;
+    }
+
+    /**
+     * What applyCrmEffects WOULD do for this message — used by the dry-run
+     * report. Mirrors the suppression criteria without writing anything.
+     */
+    private function proposeAction(array $msg, array $match, array $analysis): ?array
+    {
+        $cls = $analysis['class'];
+        if ($cls === 'unsubscribe_request') {
+            $conf = $analysis['unsubscribe_confidence'] ?? 'review';
+            $from = strtolower((string)($msg['from_email'] ?? ''));
+            $cid = $match['contact_id'] ?? null;
+            $contactEmail = $cid !== null ? $this->contactEmail((int)$cid) : null;
+            if ($conf === 'high' && !$match['ambiguous'] && $contactEmail !== null && $from === $contactEmail) {
+                return ['type' => 'suppress', 'email' => $contactEmail, 'source' => 'reply_unsubscribe'];
+            }
+            return ['type' => 'review', 'email' => $from, 'source' => 'unsubscribe_request_' . $conf];
+        }
+        if ($cls === 'delivery_failure') {
+            $kind = $analysis['bounce_kind'] ?? 'ambiguous';
+            $failed = $analysis['failed_recipient'] ?? null;
+            $cid = $match['contact_id'] ?? null;
+            $contactEmail = $cid !== null ? $this->contactEmail((int)$cid) : null;
+            $target = null;
+            if ($failed !== null && $contactEmail !== null && $failed === $contactEmail) $target = $failed;
+            elseif ($failed !== null) {
+                $hits = $this->contactsByEmail($failed);
+                if (count($hits) === 1 && $cid !== null && (int)$hits[0]['id'] === (int)$cid) $target = $failed;
+            }
+            if ($kind === 'permanent' && $target !== null) {
+                return ['type' => 'suppress', 'email' => $target, 'source' => 'bounce_permanent'];
+            }
+            if ($kind === 'temporary' && $target !== null) {
+                return ['type' => 'hold', 'email' => $target, 'source' => 'bounce_temp_hold'];
+            }
+            return ['type' => 'review', 'email' => $failed ?? ($msg['from_email'] ?? null), 'source' => 'bounce_' . $kind];
+        }
+        return null;
     }
 
     private function err(string $e): void
@@ -303,12 +370,94 @@ final class ReplyTracker
             || preg_match('/^(automatic reply|auto(re)?[- ]?reply|out of office|away from (the )?office|abwesenheitsnotiz|réponse automatique|respuesta automática)/i', $subj)) {
             return 'auto_response';
         }
-        // Explicit unsubscribe / do-not-contact request in body or subject.
+        // Explicit unsubscribe / do-not-contact language in body or subject.
+        // Confidence is decided in analyze(): imperative requests are
+        // high-confidence; weaker mentions ("how do I unsubscribe?",
+        // forwarded quotes) are review-only and never auto-suppress.
         $hay = $subj . "\n" . (string)($msg['text'] ?? '');
-        if (preg_match('/\b(unsubscribe|remove me|take me off|do not (contact|email) me|stop (emailing|contacting)|opt[- ]?out|no longer wish to receive)\b/i', $hay)) {
+        if (preg_match('/\b(unsubscribe|remove me|take me off|do not (contact|email|write to) me|stop (emailing|contacting|sending|messaging)|opt[- ]?out|no longer wish to receive|remove my email)\b/i', $hay)) {
             return 'unsubscribe_request';
         }
         return 'human';
+    }
+
+    /**
+     * Full analysis: base class plus suppression-relevant detail.
+     * @return array{class:string,bounce_kind:?string,unsubscribe_confidence:?string,
+     *               failed_recipient:?string}
+     */
+    public function analyze(array $msg): array
+    {
+        $cls = $this->classify($msg);
+        $out = ['class' => $cls, 'bounce_kind' => null,
+                'unsubscribe_confidence' => null, 'failed_recipient' => null];
+        if ($cls === 'delivery_failure') {
+            $out['bounce_kind'] = $this->bounceKind($msg);
+            $out['failed_recipient'] = $this->failedRecipient($msg);
+        } elseif ($cls === 'unsubscribe_request') {
+            $out['unsubscribe_confidence'] = $this->unsubscribeConfidence($msg);
+        }
+        return $out;
+    }
+
+    /** 'high' only for imperative requests addressed to the sender. */
+    public function unsubscribeConfidence(array $msg): string
+    {
+        $hay = (string)($msg['subject'] ?? '') . "\n" . (string)($msg['text'] ?? '');
+        // Negated requests ("don't stop sending", "do not unsubscribe me")
+        // are never high-confidence — strip them before matching.
+        $hay = preg_replace('/\b(don\'?t|do not|never|please don\'?t)\s+(stop|unsubscribe|remove|opt)[^\n.!?]*/i', ' ', $hay) ?? $hay;
+        if (preg_match('/\b(unsubscribe me|remove me|take me off (your|the|this) (list|mailing|emails?)|opt[- ]?out|do not (contact|email|write to) me|stop (emailing|contacting|sending|messaging) me|please remove my|no longer wish to receive|remove my email|remove me from)\b/i', $hay)) {
+            return 'high';
+        }
+        return 'review';
+    }
+
+    /**
+     * Permanent vs temporary vs ambiguous bounce, from DSN diagnostics.
+     * Only whitelisted permanent recipient-failure codes or explicit
+     * "failed permanently" + bad-mailbox phrasing count as permanent.
+     */
+    public function bounceKind(array $msg): string
+    {
+        $text = (string)($msg['text'] ?? '');
+        $codes = [];
+        if (preg_match_all('/\b([45])\.(\d{1,2})\.(\d{1,2})\b/', $text, $m, PREG_SET_ORDER)) {
+            foreach ($m as $c) $codes[] = $c[1] . '.' . $c[2] . '.' . $c[3];
+        }
+        $permanentCodes = ['5.1.1','5.1.2','5.1.3','5.1.6','5.1.10','5.2.1','5.2.2'];
+        foreach ($codes as $c) if (in_array($c, $permanentCodes, true)) return 'permanent';
+        foreach ($codes as $c) if (str_starts_with($c, '4.')) return 'temporary';
+        $low = strtolower($text);
+        if (preg_match('/failed permanently|user unknown|no such user|mailbox (is )?(unavailable|does not exist)|recipient address rejected|address rejected:|does not exist|is not a valid|invalid recipient/i', $low)) {
+            // Strong permanent phrasing; require a 5xx or "permanently" context
+            // to avoid over-reading quoted text.
+            if (preg_match('/\b5\.\d|permanent/i', $low)) return 'permanent';
+            return 'ambiguous';
+        }
+        if (preg_match('/mailbox (is )?full|over quota|temporarily|try again|rate limit|greylist|421 /i', $low)) {
+            return 'temporary';
+        }
+        return 'ambiguous';
+    }
+
+    /** Best-effort extraction of the failed recipient from a DSN body. */
+    public function failedRecipient(array $msg): ?string
+    {
+        $text = (string)($msg['text'] ?? '');
+        $patterns = [
+            '/Final-Recipient:\s*rfc822;\s*<?([^\s>,]+)/i',
+            '/X-Failed-Recipients:\s*<?([^\s>,]+)/i',
+            '/Delivery to the following recipient failed[^\n:]*:\s*<?([^\s<>,]+)/i',
+            '/\bfor\s+<([A-Za-z0-9._%+\'-]+@[A-Za-z0-9.\'-]+)>/i',
+        ];
+        foreach ($patterns as $p) {
+            if (preg_match($p, $text, $m)) {
+                $e = strtolower(trim($m[1]));
+                if (filter_var($e, FILTER_VALIDATE_EMAIL)) return $e;
+            }
+        }
+        return null;
     }
 
     // ---------------------------------------------------------------
@@ -459,13 +608,16 @@ final class ReplyTracker
         if ($threadId !== '' && $msg['threadId'] === '') $msg['threadId'] = $threadId;
         $match = $this->matchMessage($msg);
         if (!$match['matched']) return false;
-        $cls = $this->classify($msg);
-        return $this->record($msg, $match, $cls);
+        $analysis = $this->analyze($msg);
+        return $this->record($msg, $match, $analysis['class'], $analysis);
     }
 
     /** @return bool true when a new row was inserted */
-    public function record(array $msg, array $match, string $cls): bool
+    public function record(array $msg, array $match, string $cls, ?array $analysis = null): bool
     {
+        $analysis = $analysis ?? $this->analyze($msg);
+        $bounceKind = $analysis['bounce_kind'] ?? null;
+        $unsubConf = $analysis['unsubscribe_confidence'] ?? null;
         $ts = $msg['internal_ts'] ?? null;
         $dt = $ts ? gmdate('Y-m-d H:i:s', (int)($ts / 1000)) : null;
         $url = 'https://mail.google.com/mail/u/0/#all/' . rawurlencode((string)($msg['threadId'] ?? ''));
@@ -473,8 +625,9 @@ final class ReplyTracker
             "INSERT IGNORE INTO marketing_reply_events
              (gmail_message_id, gmail_thread_id, contact_id, campaign_id, campaign_recipient_id,
               matched_via, classification, review_status, ambiguous, from_email, from_name,
-              subject, snippet, gmail_internal_date, gmail_url, details)
-             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+              subject, snippet, gmail_internal_date, gmail_url, bounce_kind, unsubscribe_confidence,
+              failed_recipient, details)
+             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
         $ins->execute([
             substr((string)$msg['id'], 0, 80), substr((string)($msg['threadId'] ?? ''), 0, 80) ?: null,
             $match['contact_id'], $match['campaign_id'], $match['campaign_recipient_id'],
@@ -484,11 +637,23 @@ final class ReplyTracker
             $msg['from_name'] ?? null,
             $msg['subject'] ?? null,
             $this->snippet($msg), $dt, $url,
-            json_encode(['message_id_header' => $msg['message_id'] ?? null]),
+            $bounceKind !== null ? substr($bounceKind, 0, 20) : null,
+            $unsubConf !== null ? substr($unsubConf, 0, 20) : null,
+            isset($analysis['failed_recipient']) ? substr((string)$analysis['failed_recipient'], 0, 320) : null,
+            json_encode([
+                'message_id_header' => $msg['message_id'] ?? null,
+                'class' => $cls,
+            ]),
         ]);
         if ($ins->rowCount() === 0) return false; // duplicate — idempotent
 
-        $this->applyCrmEffects($match, $cls);
+        $action = $this->applyCrmEffects($match, $cls, $analysis, $msg);
+        if ($action !== null) {
+            try {
+                $this->pdo->prepare('UPDATE marketing_reply_events SET action_taken=? WHERE gmail_message_id=?')
+                    ->execute([substr($action, 0, 40), substr((string)$msg['id'], 0, 80)]);
+            } catch (Throwable $e) { /* non-fatal */ }
+        }
         return true;
     }
 
@@ -500,14 +665,19 @@ final class ReplyTracker
         return substr($t, 0, 300);
     }
 
-    private function applyCrmEffects(array $match, string $cls): void
+    /**
+     * Apply CRM side-effects for a newly recorded reply.
+     * @return ?string action_taken label for the event row.
+     */
+    private function applyCrmEffects(array $match, string $cls, array $analysis, array $msg): ?string
     {
         $cid = $match['contact_id'] ?? null;
-        if ($cid === null) return;
+        if ($cid === null) return null;
         $details = json_encode([
             'source' => 'gmail_reply_sync',
             'classification' => $cls,
             'campaign_id' => $match['campaign_id'],
+            'gmail_message_id' => $msg['id'] ?? null,
         ]);
         try {
             $this->pdo->prepare(
@@ -519,28 +689,106 @@ final class ReplyTracker
             error_log('[reply-sync] event: ' . $e->getMessage());
         }
 
+        $flagReview = function (string $reason) use ($cid): void {
+            $this->pdo->prepare(
+                "UPDATE marketing_contacts SET needs_review=1,
+                    review_reason=IF(needs_review=1 AND review_reason IS NOT NULL AND review_reason<>'',
+                        CONCAT(review_reason,'; '),?)
+                 WHERE id=?"
+            )->execute([substr($reason, 0, 120), $cid]);
+        };
+
         if ($cls === 'human') {
             // Mark responded only when no substantive response is already recorded.
             $this->pdo->prepare(
                 "UPDATE marketing_contacts SET response='replied'
                  WHERE id=? AND (response IS NULL OR response='' OR response IN ('none','no response','No Response'))"
             )->execute([$cid]);
-        } elseif ($cls === 'unsubscribe_request') {
-            $this->pdo->prepare(
-                "UPDATE marketing_contacts SET needs_review=1,
-                    review_reason=IF(needs_review=1 AND review_reason IS NOT NULL AND review_reason<>'',
-                        CONCAT(review_reason,'; '),'email_unsubscribe_request')
-                 WHERE id=?"
-            )->execute([$cid]);
-        } elseif ($cls === 'delivery_failure') {
-            $this->pdo->prepare(
-                "UPDATE marketing_contacts SET needs_review=1,
-                    review_reason=IF(needs_review=1 AND review_reason IS NOT NULL AND review_reason<>'',
-                        CONCAT(review_reason,'; '),'email_bounce')
-                 WHERE id=?"
-            )->execute([$cid]);
+            return null;
+        }
+
+        if ($cls === 'unsubscribe_request') {
+            $conf = $analysis['unsubscribe_confidence'] ?? 'review';
+            $from = strtolower((string)($msg['from_email'] ?? ''));
+            // Auto-suppress ONLY when: imperative request + unambiguous single
+            // contact + sender is the contact's own address (a forwarded or
+            // third-party request is review-only).
+            $contactEmail = $this->contactEmail($cid);
+            $highConf = $conf === 'high' && !$match['ambiguous']
+                && $contactEmail !== null && $from === $contactEmail;
+            if ($highConf) {
+                $this->suppressionResult($contactEmail, 'reply_unsubscribe', $match, $msg);
+                $flagReview('email_unsubscribe_request');
+                return 'suppressed';
+            }
+            $flagReview('email_unsubscribe_request');
+            return 'review';
+        }
+
+        if ($cls === 'delivery_failure') {
+            $kind = $analysis['bounce_kind'] ?? 'ambiguous';
+            $failed = $analysis['failed_recipient'] ?? null;
+            // Suppress/hold only when the failed recipient is confidently
+            // identified AND resolves to this contact's address.
+            $contactEmail = $this->contactEmail($cid);
+            $target = null;
+            if ($failed !== null) {
+                // Prefer the DSN recipient; fall back to the contact's own
+                // address only when the DSN names it.
+                if ($contactEmail !== null && $failed === $contactEmail) $target = $contactEmail;
+                else {
+                    $hits = $this->contactsByEmail($failed);
+                    if (count($hits) === 1 && (int)$hits[0]['id'] === (int)$cid) $target = $failed;
+                }
+            }
+            if ($kind === 'permanent' && $target !== null) {
+                $this->suppressionResult($target, 'bounce_permanent', $match, $msg);
+                $flagReview('email_bounce_permanent');
+                return 'suppressed';
+            }
+            if ($kind === 'temporary' && $target !== null) {
+                // Temporary failure: hold pending admin review, never a
+                // permanent-looking silent block.
+                $this->suppressionResult($target, 'bounce_temp_hold', $match, $msg);
+                $flagReview('email_bounce_temporary');
+                return 'held';
+            }
+            $flagReview($kind === 'ambiguous' ? 'email_bounce_ambiguous' : 'email_bounce');
+            return 'review';
         }
         // auto_response / uncertain: event only, no status change.
+        return null;
+    }
+
+    private function contactEmail(int $cid): ?string
+    {
+        $s = $this->pdo->prepare('SELECT email_normalized FROM marketing_contacts WHERE id=?');
+        $s->execute([$cid]);
+        $e = $s->fetchColumn();
+        return $e ? strtolower((string)$e) : null;
+    }
+
+    /** Idempotent suppression + prospect-event audit trail. */
+    private function suppressionResult(string $email, string $source, array $match, array $msg): void
+    {
+        try {
+            $svc = new SuppressionService($this->pdo);
+            $campRef = !empty($match['campaign_id']) ? 'mo:' . $match['campaign_id'] : null;
+            $res = $svc->suppress($email, $source, $campRef);
+            $this->pdo->prepare(
+                "INSERT INTO marketing_prospect_events (contact_id, org_id, event_type, details, actor, source)
+                 SELECT ?, org_id, 'suppression_added', ?, ?, 'reply_sync'
+                 FROM marketing_contacts WHERE email_normalized = ?"
+            )->execute([
+                $match['contact_id'] ?? null,
+                json_encode(['email' => $email, 'source' => $source,
+                    'gmail_message_id' => $msg['id'] ?? null,
+                    'already_suppressed' => !empty($res['already_suppressed'])]),
+                $this->actor, $email,
+            ]);
+        } catch (Throwable $e) {
+            error_log('[reply-sync] suppression: ' . $e->getMessage());
+        }
     }
 
     // ---------------------------------------------------------------
@@ -555,9 +803,14 @@ final class ReplyTracker
         $lim = max(1, min(200, (int)($f['limit'] ?? 100)));
         $s = $this->pdo->prepare(
             "SELECT r.*, c.full_name AS contact_name, c.email AS contact_email,
+                    o.name AS org_name,
+                    ms.email_normalized AS suppressed_email, ms.source AS suppression_source,
                     camp.name AS campaign_name
              FROM marketing_reply_events r
              LEFT JOIN marketing_contacts c ON c.id = r.contact_id
+             LEFT JOIN marketing_orgs o ON o.id = c.org_id
+             LEFT JOIN marketing_suppressions ms
+               ON ms.email_normalized = COALESCE(c.email_normalized, r.from_email)
              LEFT JOIN marketing_campaigns camp ON camp.id = r.campaign_id
              WHERE $where ORDER BY r.gmail_internal_date DESC, r.id DESC LIMIT $lim");
         $s->execute($args);
@@ -586,7 +839,28 @@ final class ReplyTracker
              FROM marketing_reply_events WHERE $w GROUP BY classification");
         $s->execute($args);
         $out = ['human' => 0, 'auto_response' => 0, 'delivery_failure' => 0,
-                'unsubscribe_request' => 0, 'uncertain' => 0, 'new_review' => 0, 'last_reply_at' => null];
+                'unsubscribe_request' => 0, 'uncertain' => 0, 'new_review' => 0,
+                'last_reply_at' => null, 'bounce_permanent' => 0, 'bounce_temporary' => 0,
+                'bounce_ambiguous' => 0, 'suppressed_contacts' => 0];
+        // Bounce sub-classification within delivery_failure.
+        $bk = $this->pdo->prepare(
+            "SELECT bounce_kind, COUNT(*) n FROM marketing_reply_events
+             WHERE classification='delivery_failure' AND $w GROUP BY bounce_kind");
+        $bk->execute($args);
+        foreach ($bk->fetchAll(PDO::FETCH_ASSOC) as $r) {
+            $k = (string)($r['bounce_kind'] ?? 'ambiguous');
+            if ($k === 'permanent') $out['bounce_permanent'] = (int)$r['n'];
+            elseif ($k === 'temporary') $out['bounce_temporary'] = (int)$r['n'];
+            else $out['bounce_ambiguous'] += (int)$r['n'];
+        }
+        // Distinct suppressed contacts among matched replies.
+        $sc = $this->pdo->prepare(
+            "SELECT COUNT(DISTINCT c.id) FROM marketing_reply_events r
+             JOIN marketing_contacts c ON c.id = r.contact_id
+             JOIN marketing_suppressions ms ON ms.email_normalized = c.email_normalized
+             WHERE $w");
+        $sc->execute($args);
+        $out['suppressed_contacts'] = (int)$sc->fetchColumn();
         foreach ($s->fetchAll(PDO::FETCH_ASSOC) as $r) {
             $cls = (string)$r['classification'];
             if (isset($out[$cls])) $out[$cls] = (int)$r['n'];
@@ -606,6 +880,20 @@ final class ReplyTracker
             $per[$r['campaign_id']][$r['classification']] = (int)$r['n'];
         }
         $out['per_campaign'] = $per;
+        // Cohort numerator: DISTINCT recipients with >=1 human reply per
+        // campaign — each responding recipient counted once, immune to
+        // period boundaries and repeat replies.
+        $cr = $this->pdo->prepare(
+            "SELECT campaign_id, COUNT(DISTINCT COALESCE(campaign_recipient_id, contact_id, gmail_message_id)) n
+             FROM marketing_reply_events
+             WHERE campaign_id IS NOT NULL AND classification='human' AND $w
+             GROUP BY campaign_id");
+        $cr->execute($args);
+        $cohort = [];
+        foreach ($cr->fetchAll(PDO::FETCH_ASSOC) as $r) {
+            $cohort[$r['campaign_id']] = (int)$r['n'];
+        }
+        $out['cohort_replies'] = $cohort;
         return $out;
     }
 }

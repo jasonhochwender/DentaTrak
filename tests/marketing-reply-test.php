@@ -28,6 +28,7 @@ if (($appConfig['current_environment'] ?? '') !== 'development') {
 global $pdo;
 
 require_once $baseDir . '/migrations/2026_11_20_marketing_reply_tracking.php';
+require_once $baseDir . '/migrations/2026_11_21_marketing_reply_suppression.php';
 
 $pass = 0; $fail = 0;
 function ok(string $msg, bool $cond): void {
@@ -52,6 +53,8 @@ function cleanupReply(): void {
     $pdo->exec("DELETE c FROM marketing_contacts c LEFT JOIN marketing_orgs o ON o.id=c.org_id WHERE $m");
     $pdo->exec("UPDATE marketing_orgs SET parent_org_id=NULL WHERE name LIKE 'REPLYTEST%'");
     $pdo->exec("DELETE FROM marketing_orgs WHERE name LIKE 'REPLYTEST%'");
+    $pdo->exec("DELETE q FROM marketing_sync_queue q JOIN marketing_suppressions s ON s.id=q.suppression_id WHERE s.email_normalized LIKE '%@replytest%'");
+    $pdo->exec("DELETE FROM marketing_suppressions WHERE email_normalized LIKE '%@replytest%'");
     $pdo->exec("DELETE FROM marketing_settings WHERE sk LIKE 'reply_sync%'");
 }
 cleanupReply();
@@ -74,6 +77,10 @@ $cSharedA = $admin->createContact(['full_name' => 'REPLYTEST Shared A', 'email' 
     'org_id' => $org['id'], 'status' => 'Contacted']);
 $cSharedB = $admin->createContact(['full_name' => 'REPLYTEST Shared B', 'email' => 'shared@replytest.example',
     'org_id' => $org2['id'], 'status' => 'Contacted']);
+$cTemp = $admin->createContact(['full_name' => 'REPLYTEST Temp', 'email' => 'temp@replytest.example',
+    'org_id' => $org['id'], 'status' => 'Contacted']);
+$cAmb  = $admin->createContact(['full_name' => 'REPLYTEST Amb', 'email' => 'amb@replytest.example',
+    'org_id' => $org['id'], 'status' => 'Contacted']);
 // Already-responded contact: response must be preserved.
 $cDone = $admin->createContact(['full_name' => 'REPLYTEST Done', 'email' => 'done@replytest.example',
     'org_id' => $org['id'], 'status' => 'Contacted']);
@@ -121,6 +128,10 @@ $addHistory = function (string $id, string $threadId) use (&$history) {
 $gmailGet = function (string $path, array $q = []) use (&$msgs, &$history, &$profile) {
     if ($path === '/profile') return $profile;
     if ($path === '/history') return ['status' => 200, 'data' => $history];
+    if ($path === '/messages') {
+        return ['status' => 200, 'data' => ['messages' => array_map(
+            fn($id) => ['id' => $id, 'threadId' => $msgs[$id]['threadId'] ?? ''], array_keys($msgs))]];
+    }
     if (preg_match('#^/messages/([A-Za-z0-9_-]+)$#', $path, $m)) {
         $id = $m[1];
         if (isset($msgs[$id])) return ['status' => 200, 'data' => $msgs[$id]];
@@ -189,12 +200,25 @@ $tracker->record($norm('m-rec-3', 'rt-thread-bounce', 'mailer-daemon@google.com'
 $nr = $pdo->query("SELECT needs_review FROM marketing_contacts WHERE id=" . $cBounce['id'])->fetchColumn();
 ok('bounce flags needs_review', (int)$nr === 1);
 
-// Unsubscribe flags review.
+// Unsubscribe flags review AND auto-suppresses (high-confidence, own address).
 $tracker->record($norm('m-rec-4', 'x', 'unsub@replytest.example', ['subject' => 'Re: hi', 'text' => 'unsubscribe me please']),
     ['matched' => true, 'via' => 'email', 'contact_id' => $cUnsub['id'], 'campaign_id' => null,
-     'campaign_recipient_id' => null, 'ambiguous' => false], 'unsubscribe_request');
+     'campaign_recipient_id' => null, 'ambiguous' => false], 'unsubscribe_request',
+    ['class' => 'unsubscribe_request', 'bounce_kind' => null, 'unsubscribe_confidence' => 'high',
+     'failed_recipient' => null]);
 $nrU = $pdo->query("SELECT needs_review, review_reason FROM marketing_contacts WHERE id=" . $cUnsub['id'])->fetch(PDO::FETCH_ASSOC);
 ok('unsubscribe flags needs_review', (int)$nrU['needs_review'] === 1 && str_contains((string)$nrU['review_reason'], 'unsubscribe'));
+$sup = $pdo->query("SELECT source FROM marketing_suppressions WHERE email_normalized='unsub@replytest.example'")->fetchColumn();
+ok('high-confidence unsubscribe auto-suppresses', $sup === 'reply_unsubscribe');
+$act = $pdo->query("SELECT action_taken FROM marketing_reply_events WHERE gmail_message_id='m-rec-4'")->fetchColumn();
+ok('action_taken=suppressed recorded', $act === 'suppressed');
+// Idempotent: a second unsubscribe event does not duplicate the suppression.
+$tracker->record($norm('m-rec-4b', 'x', 'unsub@replytest.example', ['subject' => 'Re: hi', 'text' => 'unsubscribe me']),
+    ['matched' => true, 'via' => 'email', 'contact_id' => $cUnsub['id'], 'campaign_id' => null,
+     'campaign_recipient_id' => null, 'ambiguous' => false], 'unsubscribe_request',
+    ['class' => 'unsubscribe_request', 'bounce_kind' => null, 'unsubscribe_confidence' => 'high',
+     'failed_recipient' => null]);
+ok('suppression idempotent', $cnt("SELECT COUNT(*) FROM marketing_suppressions WHERE email_normalized='unsub@replytest.example'") === 1);
 
 // Existing response preserved.
 $tracker->record($norm('m-rec-5', 'x', 'done@replytest.example'),
@@ -202,6 +226,62 @@ $tracker->record($norm('m-rec-5', 'x', 'done@replytest.example'),
      'campaign_recipient_id' => null, 'ambiguous' => false], 'human');
 $respDone = $pdo->query("SELECT response FROM marketing_contacts WHERE id=" . $cDone['id'])->fetchColumn();
 ok('existing response preserved', $respDone === 'Interested');
+
+/* ---------------- 3b. unsubscribe confidence + forwarded sender ---------------- */
+ok('unsub confidence high', $tracker->unsubscribeConfidence(
+    ['subject' => 'Re: hi', 'text' => 'Please unsubscribe me from this list.']) === 'high');
+ok('unsub confidence review (question)', $tracker->unsubscribeConfidence(
+    ['subject' => 'Re: hi', 'text' => 'How do I unsubscribe from these emails?']) === 'review');
+ok('unsub confidence review (negation)', $tracker->unsubscribeConfidence(
+    ['subject' => 'Re: hi', 'text' => 'Please don\'t stop sending me information.']) === 'review');
+// Third-party/forwarded sender: high-confidence words but From != contact email.
+$tracker->record($norm('m-rec-6', 'x', 'assistant@other-example.com',
+    ['subject' => 'Fwd: unsubscribe me', 'text' => 'Forwarding: they asked me to unsubscribe me']),
+    ['matched' => true, 'via' => 'thread_id', 'contact_id' => $cAuto['id'], 'campaign_id' => null,
+     'campaign_recipient_id' => null, 'ambiguous' => false], 'unsubscribe_request',
+    ['class' => 'unsubscribe_request', 'bounce_kind' => null, 'unsubscribe_confidence' => 'high',
+     'failed_recipient' => null]);
+ok('forwarded unsubscribe NOT suppressed', $cnt("SELECT COUNT(*) FROM marketing_suppressions WHERE email_normalized='auto@replytest.example'") === 0);
+ok('forwarded unsubscribe action=review', $pdo->query("SELECT action_taken FROM marketing_reply_events WHERE gmail_message_id='m-rec-6'")->fetchColumn() === 'review');
+
+/* ---------------- 3c. bounce kinds + suppression ---------------- */
+ok('bounceKind permanent 5.1.1', $tracker->bounceKind(['text' => "Diagnostic-Code: smtp; 550 5.1.1 user unknown"]) === 'permanent');
+ok('bounceKind temporary 4.2.2', $tracker->bounceKind(['text' => "Diagnostic-Code: smtp; 452 4.2.2 mailbox full"]) === 'temporary');
+ok('bounceKind temp phrase', $tracker->bounceKind(['text' => 'The mailbox is full, try again later']) === 'temporary');
+ok('bounceKind ambiguous', $tracker->bounceKind(['text' => 'Delivery delayed']) === 'ambiguous');
+ok('failedRecipient extracts', $tracker->failedRecipient(['text' => 'Final-Recipient: rfc822;bad@replytest.example']) === 'bad@replytest.example');
+
+// Permanent bounce with identified recipient = contact email -> suppress.
+$tracker->record($norm('m-rec-7', 'rt-thread-bounce', 'mailer-daemon@google.com',
+    ['subject' => 'Delivery Status Notification', 'text' => "550 5.1.1 user unknown\nFinal-Recipient: rfc822;bounce@replytest.example"]),
+    ['matched' => true, 'via' => 'thread_id', 'contact_id' => $cBounce['id'], 'campaign_id' => $cid,
+     'campaign_recipient_id' => null, 'ambiguous' => false], 'delivery_failure',
+    ['class' => 'delivery_failure', 'bounce_kind' => 'permanent', 'unsubscribe_confidence' => null,
+     'failed_recipient' => 'bounce@replytest.example']);
+$bsup = $pdo->query("SELECT source FROM marketing_suppressions WHERE email_normalized='bounce@replytest.example'")->fetchColumn();
+ok('permanent bounce suppresses', $bsup === 'bounce_permanent');
+ok('permanent bounce action=suppressed', $pdo->query("SELECT action_taken FROM marketing_reply_events WHERE gmail_message_id='m-rec-7'")->fetchColumn() === 'suppressed');
+ok('bounce_kind persisted', $pdo->query("SELECT bounce_kind FROM marketing_reply_events WHERE gmail_message_id='m-rec-7'")->fetchColumn() === 'permanent');
+
+// Temporary bounce -> hold suppression.
+$tracker->record($norm('m-rec-8', 'x', 'mailer-daemon@google.com',
+    ['subject' => 'Delivery Status Notification', 'text' => "452 4.2.2 mailbox full\nFinal-Recipient: rfc822;temp@replytest.example"]),
+    ['matched' => true, 'via' => 'email', 'contact_id' => $cTemp['id'], 'campaign_id' => null,
+     'campaign_recipient_id' => null, 'ambiguous' => false], 'delivery_failure',
+    ['class' => 'delivery_failure', 'bounce_kind' => 'temporary', 'unsubscribe_confidence' => null,
+     'failed_recipient' => 'temp@replytest.example']);
+$tsup = $pdo->query("SELECT source FROM marketing_suppressions WHERE email_normalized='temp@replytest.example'")->fetchColumn();
+ok('temporary bounce creates hold', $tsup === 'bounce_temp_hold');
+
+// Ambiguous bounce -> review only, no suppression.
+$tracker->record($norm('m-rec-9', 'x', 'mailer-daemon@google.com',
+    ['subject' => 'Delivery Status Notification', 'text' => 'Delivery delayed']),
+    ['matched' => true, 'via' => 'email', 'contact_id' => $cAmb['id'], 'campaign_id' => null,
+     'campaign_recipient_id' => null, 'ambiguous' => false], 'delivery_failure',
+    ['class' => 'delivery_failure', 'bounce_kind' => 'ambiguous', 'unsubscribe_confidence' => null,
+     'failed_recipient' => null]);
+ok('ambiguous bounce NOT suppressed', $cnt("SELECT COUNT(*) FROM marketing_suppressions WHERE email_normalized='amb@replytest.example'") === 0);
+ok('ambiguous bounce action=review', $pdo->query("SELECT action_taken FROM marketing_reply_events WHERE gmail_message_id='m-rec-9'")->fetchColumn() === 'review');
 
 /* ---------------- 4. sync() checkpoint + history ---------------- */
 // First run: initializes checkpoint, processes nothing.
@@ -240,6 +320,24 @@ ok('dashboardStats human count', ($stats['human'] ?? 0) >= 2);
 ok('dashboardStats auto count', ($stats['auto_response'] ?? 0) >= 1);
 ok('dashboardStats new_review', ($stats['new_review'] ?? 0) >= 4);
 ok('dashboardStats per_campaign', isset($stats['per_campaign'][$cid]['human']));
+ok('dashboardStats cohort replies', ($stats['cohort_replies'][$cid] ?? 0) >= 1);
+ok('dashboardStats bounce kinds', ($stats['bounce_permanent'] ?? 0) >= 1 && ($stats['bounce_temporary'] ?? 0) >= 1);
+ok('dashboardStats suppressed contacts', ($stats['suppressed_contacts'] ?? 0) >= 3);
+
+/* ---------------- 5b. backfill dry-run purity ---------------- */
+// Add a permanent-bounce message to the fake mailbox so the dry-run has a
+// suppression proposal to report.
+$addMsg('rt-msg-3', 'rt-thread-bounce', 'mailer-daemon@google.com', 'Delivery Status Notification',
+    "550 5.1.1 user unknown\nFinal-Recipient: rfc822;bounce@replytest.example");
+$beforeBackfill = $cnt("SELECT COUNT(*) FROM marketing_reply_events");
+$beforeSup = $cnt("SELECT COUNT(*) FROM marketing_suppressions WHERE email_normalized LIKE '%@replytest%'");
+$bf = $tracker->backfill(14, true);
+ok('backfill dry-run ok', !empty($bf['ok']) && !empty($bf['dry_run']));
+ok('backfill scanned messages', ($bf['scanned'] ?? 0) > 0);
+ok('backfill proposes suppressions', count($bf['proposed_suppressions'] ?? []) >= 1);
+ok('dry-run writes no reply events', $cnt("SELECT COUNT(*) FROM marketing_reply_events") === $beforeBackfill);
+ok('dry-run writes no suppressions', $cnt("SELECT COUNT(*) FROM marketing_suppressions WHERE email_normalized LIKE '%@replytest%'") === $beforeSup);
+ok('dry-run reports duplicates', isset($bf['already_tracked']));
 
 /* ---------------- 6. review workflow ---------------- */
 $rid = (int)$pdo->query("SELECT id FROM marketing_reply_events WHERE gmail_message_id='rt-msg-1'")->fetchColumn();

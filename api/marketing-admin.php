@@ -639,11 +639,47 @@ if ($method === 'GET') {
             foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r) {
                 $replyPerCampaign[$r['campaign_id']][$r['classification']] = (int)$r['n'];
             }
-            $campaignsPerf = array_map(function ($c) use ($replyPerCampaign) {
+            // Cohort numerator: distinct recipients with >=1 human reply per
+            // campaign (period-independent; immune to repeat replies).
+            $st = $pdo->query("SELECT campaign_id,
+                    COUNT(DISTINCT COALESCE(campaign_recipient_id, contact_id, gmail_message_id)) n
+                 FROM marketing_reply_events
+                 WHERE campaign_id IS NOT NULL AND classification='human'
+                 GROUP BY campaign_id");
+            $cohortReplies = $st->fetchAll(PDO::FETCH_KEY_PAIR);
+            // Verified sends per campaign from the send ledger (authoritative;
+            // imported 'Sent' statuses are not counted).
+            $st = $pdo->query("SELECT campaign_ref, COUNT(*) n FROM marketing_sends
+                 WHERE status='sent' AND campaign_ref LIKE 'mo:%' GROUP BY campaign_ref");
+            $verifiedByCamp = [];
+            foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r) {
+                $verifiedByCamp[substr($r['campaign_ref'], 3)] = (int)$r['n'];
+            }
+            // Bounce sub-kinds + suppressed-contact count for KPIs.
+            $st = $pdo->query("SELECT bounce_kind, COUNT(*) n FROM marketing_reply_events
+                 WHERE classification='delivery_failure' GROUP BY bounce_kind");
+            $bounceKinds = ['permanent' => 0, 'temporary' => 0, 'ambiguous' => 0];
+            foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r) {
+                $k = (string)($r['bounce_kind'] ?? 'ambiguous');
+                if (isset($bounceKinds[$k])) $bounceKinds[$k] = (int)$r['n'];
+                else $bounceKinds['ambiguous'] += (int)$r['n'];
+            }
+            $suppressedContacts = (int)$pdo->query(
+                "SELECT COUNT(DISTINCT c.id) FROM marketing_reply_events r
+                 JOIN marketing_contacts c ON c.id = r.contact_id
+                 JOIN marketing_suppressions ms ON ms.email_normalized = c.email_normalized")->fetchColumn();
+            $campaignsPerf = array_map(function ($c) use ($replyPerCampaign, $cohortReplies, $verifiedByCamp) {
                 $rc = $replyPerCampaign[$c['id']] ?? [];
                 $c['replies_human'] = (int)($rc['human'] ?? 0);
                 $c['replies_other'] = (int)($rc['auto_response'] ?? 0) + (int)($rc['delivery_failure'] ?? 0)
                     + (int)($rc['unsubscribe_request'] ?? 0) + (int)($rc['uncertain'] ?? 0);
+                // Cohort response rate: distinct replying recipients /
+                // verified ledger sends for this campaign. Null when there
+                // are no verified sends (rate unavailable, not zero).
+                $c['verified_sends'] = (int)($verifiedByCamp[$c['id']] ?? 0);
+                $c['cohort_replies'] = (int)($cohortReplies[$c['id']] ?? 0);
+                $c['cohort_rate'] = $c['verified_sends'] > 0
+                    ? round($c['cohort_replies'] / $c['verified_sends'] * 100, 1) : null;
                 return $c;
             }, $campaignsPerf);
             // New-review counts + last reply date per campaign.
@@ -686,6 +722,8 @@ if ($method === 'GET') {
                 'replies' => [
                     'tracked' => true,
                     'counts' => $replyCounts,
+                    'bounce_kinds' => $bounceKinds,
+                    'suppressed_contacts' => $suppressedContacts,
                     'period_human' => $replyCounts['human'],
                     'prior_human' => $repliesPrior,
                     'new_review' => $replyNew,
