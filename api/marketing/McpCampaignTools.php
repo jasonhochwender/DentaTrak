@@ -23,7 +23,12 @@ require_once __DIR__ . '/MessageHtml.php';
 
 final class McpCampaignTools
 {
-    public const MAX_RECIPIENTS = 10;
+    /** Campaign capacity mirrors the admin endpoint default (500). */
+    public const CAMPAIGN_MAX = 500;
+    /** Per-call chunk limits keep MCP payloads bounded; callers loop. */
+    public const MAX_CONTACTS_PER_CALL = 100;
+    public const MAX_MESSAGES_PER_CALL = 50;
+    public const RECIPIENTS_PAGE_MAX = 200;
 
     private PDO $pdo;
     private string $actor;
@@ -112,19 +117,30 @@ final class McpCampaignTools
         $id = trim((string)($a['campaign_id'] ?? ''));
         if ($id === '') throw new InvalidArgumentException('campaign_id required');
         $camp = $this->campaignRow($id);
+        // Recipients are paginated so a 500-recipient campaign never
+        // returns one oversized payload. page/per mirror the admin API.
+        $page = max(1, (int)($a['page'] ?? 1));
+        $per = min(self::RECIPIENTS_PAGE_MAX, max(1, (int)($a['per_page'] ?? 50)));
+        $tot = $this->pdo->prepare('SELECT COUNT(*) FROM marketing_campaign_recipients WHERE campaign_id=?');
+        $tot->execute([$id]);
+        $total = (int)$tot->fetchColumn();
+        $pages = max(1, (int)ceil($total / $per));
+        if ($page > $pages) $page = $pages;
+        $off = ($page - 1) * $per;
         $st = $this->pdo->prepare(
             "SELECT id, contact_id, prospect_email, prospect_org, prospect_contact, subject, body_html,
                     status, skip_reason, is_edited, gmail_message_id, gmail_thread_id, error, sent_at,
                     thread_status, thread_reason, thread_source, thread_subject, thread_date,
                     sheet_sync_status, sheet_sync_error, sheet_synced_at
-               FROM marketing_campaign_recipients WHERE campaign_id=? ORDER BY id"
+               FROM marketing_campaign_recipients WHERE campaign_id=? ORDER BY id LIMIT $per OFFSET $off"
         );
         $st->execute([$id]);
         return [
             'campaign' => $camp,
             'recipients' => $st->fetchAll(PDO::FETCH_ASSOC),
+            'pagination' => ['page' => $page, 'per_page' => $per, 'total' => $total, 'pages' => $pages],
             'sending' => (new MarketingSendingPolicy())->summary(),
-            'note' => 'Draft preparation only. Approval and sending remain admin actions in Marketing Outreach.',
+            'note' => 'Draft preparation only. Approval and sending remain admin actions in Marketing Outreach. Use page/per_page to page through large campaigns.',
         ];
     }
 
@@ -174,9 +190,12 @@ final class McpCampaignTools
         if ($desc !== null) $d['description'] = $desc;
         if ($tplId !== null) $d['template_id'] = $tplId;
         $contactIds = array_values(array_unique(array_filter(array_map('intval', (array)($a['contact_ids'] ?? [])))));
-        if ($contactIds) $d['contact_ids'] = array_slice($contactIds, 0, self::MAX_RECIPIENTS);
+        if (count($contactIds) > self::MAX_CONTACTS_PER_CALL) {
+            throw new InvalidArgumentException('at most ' . self::MAX_CONTACTS_PER_CALL . ' contact_ids per call - add the rest with add_campaign_recipients');
+        }
+        if ($contactIds) $d['contact_ids'] = $contactIds;
         try {
-            $r = $this->admin->createCampaign($d, self::MAX_RECIPIENTS);
+            $r = $this->admin->createCampaign($d, self::CAMPAIGN_MAX);
         } catch (InvalidArgumentException $e) {
             throw new InvalidArgumentException('create failed: ' . $e->getMessage());
         }
@@ -194,14 +213,14 @@ final class McpCampaignTools
         $this->requireEditableCampaign($cid);
         $ids = array_values(array_unique(array_filter(array_map('intval', (array)($a['contact_ids'] ?? [])))));
         if (!$ids) throw new InvalidArgumentException('contact_ids required');
-        if (count($ids) > self::MAX_RECIPIENTS) {
-            throw new InvalidArgumentException('at most ' . self::MAX_RECIPIENTS . ' contacts per call');
+        if (count($ids) > self::MAX_CONTACTS_PER_CALL) {
+            throw new InvalidArgumentException('at most ' . self::MAX_CONTACTS_PER_CALL . ' contacts per call - repeat for larger sets');
         }
         $dryRun = !empty($a['dry_run']);
         if (!$dryRun) self::requireConfirmation($a, 'add_campaign_recipients');
         $camp = $this->campaignRow($cid);
         try {
-            $r = $this->admin->addToCampaign($ids, $cid, null, self::cleanKind($camp['kind']), self::MAX_RECIPIENTS, $dryRun);
+            $r = $this->admin->addToCampaign($ids, $cid, null, self::cleanKind($camp['kind']), self::CAMPAIGN_MAX, $dryRun);
         } catch (InvalidArgumentException $e) {
             throw new InvalidArgumentException('add failed: ' . $e->getMessage());
         }
@@ -226,8 +245,8 @@ final class McpCampaignTools
         $camp = $this->requireEditableCampaign($cid);
         $msgs = (array)($a['messages'] ?? []);
         if (!$msgs || !is_array($msgs)) throw new InvalidArgumentException('messages required');
-        if (count($msgs) > self::MAX_RECIPIENTS) {
-            throw new InvalidArgumentException('at most ' . self::MAX_RECIPIENTS . ' messages per call');
+        if (count($msgs) > self::MAX_MESSAGES_PER_CALL) {
+            throw new InvalidArgumentException('at most ' . self::MAX_MESSAGES_PER_CALL . ' messages per call - repeat for larger sets');
         }
         self::requireConfirmation($a, 'save_campaign_messages');
 

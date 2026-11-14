@@ -698,6 +698,7 @@
     }
 
     function campBack() {
+        stopSendPoll();
         $('moCampaignDetail').classList.add('mo-hidden');
         $('moCampaignList').classList.remove('mo-hidden');
         campState.current = null;
@@ -914,11 +915,12 @@
             if (!d.success) { showErr(d.error || S('loadFailed')); return; }
             var c = d.campaign;
             campState.campaign = c;
-            campState.recipients = d.recipients || [];
+            campState.counts = d.recipient_counts || {};
+            campState.recipTotal = d.recipient_total || 0;
+            campState.threadsUnresolved = d.threads_unresolved || 0;
             campState.sending = d.sending || null;
             campState.signature = d.signature || null;
             var canSend = !!(campState.sending && campState.sending.enabled);
-            var recips = d.recipients || [];
             var editable = (c.status === 'draft' || c.status === 'ready');
             var retryable = (c.status === 'partial');
             $('moCampTitle').textContent = c.name;
@@ -949,8 +951,113 @@
                 if (t.kind === c.kind) ts.innerHTML += '<option value="' + t.id + '"' + ((c.template_id | 0) === (t.id | 0) ? ' selected' : '') + '>' + esc(t.name) + '</option>';
             });
             ts.disabled = !editable;
-            renderCampMessages(recips, editable, c);
+            renderProgress(c, d.recipient_counts || {}, d.recipient_total || 0);
+            renderSendControls(c);
+            recipPage = 1;
+            loadRecipients();
+            startSendPoll();
         }).catch(function (e) { if (e) console.warn('[MOCrm] campaign load', e); showErr(S('loadFailed')); });
+    }
+
+    /* ---- large-campaign recipient paging ---- */
+    var recipPage = 1, recipQ = '', recipStatus = '', recipReview = false;
+    var sendPollTimer = null;
+
+    function loadRecipients() {
+        apiGet('campaign_recipients', {
+            campaign_id: campState.current, page: recipPage, per: 25,
+            q: recipQ, status: recipStatus, review: recipReview ? 1 : 0
+        }).then(function (d) {
+            if (!d.success || !campState.campaign) { if (!d.success) showErr(d.error || S('loadFailed')); return; }
+            var c = campState.campaign;
+            var editable = (c.status === 'draft' || c.status === 'ready');
+            renderCampMessages(d.recipients || [], editable, c);
+            var pg = $('moRecipPager');
+            if (pg) {
+                pg.innerHTML = d.pages > 1
+                    ? '<button class="mo-btn secondary small" data-pg="prev"' + (d.page <= 1 ? ' disabled' : '') + '>‹</button>' +
+                      ' ' + S('pageOf').replace('{p}', d.page).replace('{n}', d.pages) +
+                      ' <button class="mo-btn secondary small" data-pg="next"' + (d.page >= d.pages ? ' disabled' : '') + '>›</button>' +
+                      ' <span>(' + d.total + ')</span>'
+                    : ' <span>(' + d.total + ')</span>';
+                pg.querySelectorAll('button[data-pg]').forEach(function (b) {
+                    b.addEventListener('click', function () {
+                        recipPage += b.dataset.pg === 'next' ? 1 : -1;
+                        loadRecipients();
+                    });
+                });
+            }
+        });
+    }
+
+    function renderProgress(c, counts, total) {
+        var el = $('moCampProgress');
+        if (!el) return;
+        if (!total) { el.classList.add('mo-hidden'); return; }
+        el.classList.remove('mo-hidden');
+        var sent = counts.sent || 0;
+        var pct = Math.round(sent / total * 100);
+        var fill = $('moCampProgressFill');
+        if (fill) { fill.style.width = pct + '%'; fill.classList.toggle('done', sent >= total); }
+        var txt = $('moCampProgressText');
+        if (txt) {
+            var parts = [S('progressSent').replace('{s}', sent).replace('{t}', total)];
+            ['draft','ready','approved','sending','failed','skipped','suppressed','uncertain'].forEach(function (k) {
+                if (counts[k]) parts.push(k + ': ' + counts[k]);
+            });
+            txt.textContent = parts.join(' · ');
+        }
+    }
+
+    function renderSendControls(c) {
+        var active = !!(c.send_requested && !c.send_paused);
+        var paused = !!(c.send_paused && c.send_requested);
+        var show = active || paused;
+        [['moCampPauseCrm', active], ['moCampResumeCrm', paused], ['moCampStopCrm', show]].forEach(function (kv) {
+            var el = $(kv[0]); if (el) el.classList.toggle('mo-hidden', !kv[1]);
+        });
+        var pg = $('moCampProgressText');
+        if (pg && show) {
+            pg.textContent = (paused ? S('sendPausedNote') + ' ' : '') +
+                (c.send_requested ? S('sendingBg').replace('{n}', moSendableLeft()) : '');
+        }
+    }
+    function moSendableLeft() {
+        var c = campState.counts || {};
+        return (c.approved || 0) + (c.uncertain || 0) + (c.sending || 0);
+    }
+
+    function stopSendPoll() { if (sendPollTimer) { clearInterval(sendPollTimer); sendPollTimer = null; } }
+    function startSendPoll() {
+        stopSendPoll();
+        var c = campState.campaign;
+        if (!c || !c.send_requested) return;
+        sendPollTimer = setInterval(function () {
+            if (!campState.current) { stopSendPoll(); return; }
+            apiGet('campaign', { id: campState.current }).then(function (d) {
+                if (!d.success || !d.campaign) { stopSendPoll(); return; }
+                var nc = d.campaign;
+                if (nc.send_requested !== c.send_requested || nc.send_paused !== c.send_paused || nc.status !== c.status) {
+                    openCampaign(campState.current);
+                } else {
+                    campState.counts = d.recipient_counts || campState.counts;
+                    renderProgress(nc, d.recipient_counts || {}, d.recipient_total || 0);
+                    renderSendControls(nc);
+                }
+            });
+        }, 10000);
+    }
+
+    function sendControl(action) {
+        var c = campState.current;
+        var msg = action === 'stop' ? S('confirmStopSend') : null;
+        var go = function () {
+            apiPost('campaign_send_control', { campaign_id: c, action: action }).then(function (d) {
+                if (!d.success) { showErr(d.error || S('loadFailed')); return; }
+                openCampaign(c);
+            });
+        };
+        if (msg) confirmModal(msg, go); else go();
     }
 
     // Plain-language explanation for a follow-up thread status, including
@@ -1078,8 +1185,7 @@
                             apiPost('send', { campaign_id: campState.current, recipient_ids: [r.id] })
                                 .then(function (d2) {
                                     if (!d2.success) { showErr(d2.error || S('loadFailed')); openCampaign(campState.current); return; }
-                                    showOk(S('sendSummary').replace('{s}', d2.sent).replace('{k}', d2.skipped).replace('{f}', d2.failed).replace('{u}', d2.uncertain));
-                                    openCampaign(campState.current);
+                                    afterSendResponse(campState.current, d2);
                                 });
                         });
                     } else if (act === 'remove') {
@@ -1201,59 +1307,89 @@
         });
     }
 
+    function afterSendResponse(c, d) {
+        // Large campaigns keep draining in the background worker; tell
+        // the admin and keep the progress view polling.
+        if (d.send_requested) {
+            showOk(S('sendSummary').replace('{s}', d.sent).replace('{k}', d.skipped)
+                .replace('{f}', d.failed).replace('{u}', d.uncertain) + ' ' +
+                S('sendingBg').replace('{n}', d.remaining || 0));
+        } else {
+            showOk(S('sendSummary').replace('{s}', d.sent).replace('{k}', d.skipped).replace('{f}', d.failed).replace('{u}', d.uncertain));
+        }
+        openCampaign(c);
+    }
     function sendCampaign() {
         var c = campState.current;
         confirmModal(S('confirmSendCampaign'), function () {
             apiPost('send', { campaign_id: c }).then(function (d) {
                 if (!d.success) { showErr(d.error || S('loadFailed')); openCampaign(c); return; }
-                showOk(S('sendSummary').replace('{s}', d.sent).replace('{k}', d.skipped).replace('{f}', d.failed).replace('{u}', d.uncertain));
-                openCampaign(c);
+                afterSendResponse(c, d);
             });
         });
     }
 
     function campGenerate() {
         var btn = $('moCampGenerateCrm'); if (btn) { btn.disabled = true; }
-        apiPost('generate', { campaign_id: campState.current }).then(function (d) {
-            if (btn) btn.disabled = false;
-            if (!d.success) { showErr(d.error || S('loadFailed')); return; }
-            showOk(S('generatedOk').replace('{n}', d.generated));
-            openCampaign(campState.current);
-        });
+        // Bounded server-side batches: loop until no draft recipients
+        // remain (each call processes at most one batch).
+        var total = 0, guard = 0;
+        function step() {
+            if (++guard > 60) { if (btn) btn.disabled = false; showErr(S('loadFailed')); return; }
+            apiPost('generate', { campaign_id: campState.current }).then(function (d) {
+                if (!d.success) { if (btn) btn.disabled = false; showErr(d.error || S('loadFailed')); return; }
+                total += d.generated || 0;
+                if (d.draft_remaining > 0) { step(); return; }
+                if (btn) btn.disabled = false;
+                showOk(S('generatedOk').replace('{n}', total));
+                openCampaign(campState.current);
+            });
+        }
+        step();
     }
     function campApprove() {
         // Approve only - never sends. Sending is the separate Send button.
         var c = campState.current;
-        var camp = campState.campaign || {};
-        var recips = campState.recipients || [];
-        // Follow-ups that could not be matched to an original Gmail thread
-        // would start NEW conversations - that fallback needs an explicit,
-        // per-approval acknowledgment.
-        var newThreads = 0;
-        if (camp.kind === 'followup') {
-            recips.forEach(function (r) {
-                if (['draft', 'ready'].includes(r.status) && r.thread_status !== 'resolved') newThreads++;
-            });
-        }
         var doApprove = function (allowNew) {
             apiPost('approve', { campaign_id: c, allow_new_threads: allowNew }).then(function (d) {
                 if (!d.success) {
-                    showErr(d.error || S('loadFailed'));
-                    if (d.error && d.error.indexOf('unresolved_threads') === 0) {
-                        // Server requires the acknowledgment - offer it.
-                        ackNewThreadsModal(newThreads);
-                    } else openCampaign(c);
+                    var err = String(d.error || '');
+                    if (err.indexOf('threads_pending:') === 0) {
+                        // Large follow-up campaigns resolve threads in
+                        // bounded chunks first, then approve retries.
+                        showOk(S('checkingThreads'));
+                        resolveThreadsLoop(function () { doApprove(allowNew); });
+                        return;
+                    }
+                    if (err.indexOf('unresolved_threads:') === 0) {
+                        // Server requires the new-thread acknowledgment.
+                        var m = err.match(/unresolved_threads:\s*(\d+)/);
+                        ackNewThreadsModal(m ? parseInt(m[1], 10) : 0, function () { doApprove(true); });
+                        return;
+                    }
+                    showErr(err || S('loadFailed'));
+                    openCampaign(c);
                     return;
                 }
                 showOk(S('approvedNotSent'));
                 openCampaign(c);
             });
         };
-        if (newThreads > 0) {
-            ackNewThreadsModal(newThreads, doApprove);
-            return;
-        }
         confirmModal(S('confirmApproveOnly'), function () { doApprove(false); });
+    }
+
+    // Chunked thread resolution: the endpoint processes a bounded batch
+    // per call and reports how many remain unresolved.
+    function resolveThreadsLoop(done) {
+        var guard = 0;
+        function step() {
+            if (++guard > 80) { if (done) done(); return; }
+            apiPost('resolve_threads', { campaign_id: campState.current }).then(function (d) {
+                if (!d.success || !d.remaining) { if (done) done(); return; }
+                step();
+            });
+        }
+        step();
     }
 
     // Modal requiring an explicit checkbox before approving follow-ups
@@ -1276,8 +1412,7 @@
         confirmModal(S('confirmSendCampaign'), function () {
             apiPost('send', { campaign_id: c }).then(function (d) {
                 if (!d.success) { showErr(d.error || S('loadFailed')); openCampaign(c); return; }
-                showOk(S('sendSummary').replace('{s}', d.sent).replace('{k}', d.skipped).replace('{f}', d.failed).replace('{u}', d.uncertain));
-                openCampaign(c);
+                afterSendResponse(c, d);
             });
         });
     }
@@ -1287,20 +1422,33 @@
         btn.disabled = true;
         var orig = btn.textContent;
         btn.textContent = S('checkingThreads');
-        apiPost('resolve_threads', { campaign_id: campState.current }).then(function (d) {
+        // Bounded batches per call; loop until nothing unresolved remains.
+        var totals = {}, guard = 0;
+        function step() {
+            if (++guard > 80) { finish(); return; }
+            apiPost('resolve_threads', { campaign_id: campState.current }).then(function (d) {
+                if (!d.success) { finish(d.error || S('loadFailed')); return; }
+                var t = d.threads || {};
+                Object.keys(t).forEach(function (k) { totals[k] = (totals[k] || 0) + (t[k] || 0); });
+                if (d.remaining > 0) { step(); return; }
+                finish(null, d.sheet_error);
+            });
+        }
+        function finish(err, sheetErr) {
             btn.disabled = false;
             btn.textContent = orig;
-            if (!d.success) { showErr(d.error || S('loadFailed')); return; }
-            var t = d.threads || {};
+            if (err) { showErr(err); openCampaign(campState.current); return; }
+            var t = totals;
             var parts = [];
             if (t.resolved) parts.push(S('threadsMatched').replace('{n}', t.resolved));
             if (t.unresolved) parts.push(S('threadsNotFound').replace('{n}', t.unresolved));
             if (t.ambiguous) parts.push(S('threadsAmbiguous').replace('{n}', t.ambiguous));
             if (t.unverifiable) parts.push(S('threadsUnverifiable').replace('{n}', t.unverifiable));
-            if (d.sheet_error) parts.push(S('threadsSheetError'));
+            if (sheetErr) parts.push(S('threadsSheetError'));
             showOk(parts.length ? parts.join(' · ') : S('threadsNone'));
             openCampaign(campState.current);
-        });
+        }
+        step();
     }
     function campReconcile() {
         apiPost('reconcile', { campaign_id: campState.current }).then(function (d) {
@@ -1396,6 +1544,20 @@
             if ($('moCampRetryCrm')) $('moCampRetryCrm').onclick = campRetry;
             if ($('moCampThreadsCrm')) $('moCampThreadsCrm').onclick = campThreads;
             if ($('moCampReconcileCrm')) $('moCampReconcileCrm').onclick = campReconcile;
+            if ($('moCampPauseCrm')) $('moCampPauseCrm').onclick = function () { sendControl('pause'); };
+            if ($('moCampResumeCrm')) $('moCampResumeCrm').onclick = function () { sendControl('resume'); };
+            if ($('moCampStopCrm')) $('moCampStopCrm').onclick = function () { sendControl('stop'); };
+            // Recipient search/filter/pagination for large campaigns.
+            var rq = $('moRecipQ');
+            if (rq) {
+                rq.addEventListener('input', debounce(function () { recipQ = rq.value.trim(); recipPage = 1; if (campState.current) loadRecipients(); }, 350));
+            }
+            if ($('moRecipStatus')) $('moRecipStatus').addEventListener('change', function () {
+                recipStatus = this.value; recipPage = 1; if (campState.current) loadRecipients();
+            });
+            if ($('moRecipReview')) $('moRecipReview').addEventListener('change', function () {
+                recipReview = this.checked; recipPage = 1; if (campState.current) loadRecipients();
+            });
             if ($('moCampSigCrm')) $('moCampSigCrm').onclick = openSignatureModal;
             if ($('moCampTplCrm')) $('moCampTplCrm').onchange = function () {
                 if (!campState.campaign) return;

@@ -54,10 +54,25 @@ require_once __DIR__ . '/marketing/ReplyTracker.php';
 require_once __DIR__ . '/marketing/CampaignContentHash.php';
 require_once __DIR__ . '/marketing/MessageHtml.php';
 require_once __DIR__ . '/marketing/SheetSyncException.php';
+require_once __DIR__ . '/marketing/CampaignSendSupport.php';
+require_once __DIR__ . '/marketing/CampaignSendRunner.php';
 setSecurityHeaders();
 header('Content-Type: application/json');
 
-const MO_MAX_RECIPIENTS = 10;
+// Campaign capacity is separate from send-batch size: a campaign may hold
+// hundreds of individually personalized recipients while each send pass -
+// synchronous request or background worker tick - processes a bounded
+// batch. MARKETING_CAMPAIGN_MAX / MARKETING_SEND_BATCH override the
+// defaults without a deploy.
+const MO_MAX_RECIPIENTS = 500;
+const MO_THREAD_BATCH = 30;
+const MO_GEN_BATCH = 25;
+const MO_RECIP_PAGE = 25;
+
+function mo_campaign_max(): int {
+    $v = (int)(getenv('MARKETING_CAMPAIGN_MAX') ?: 0);
+    return $v > 0 ? min(5000, $v) : MO_MAX_RECIPIENTS;
+}
 
 function mo_out($data, int $code = 200): void {
     http_response_code($code);
@@ -98,25 +113,6 @@ try {
     mo_fail('schema_not_migrated: run migrations/2026_11_03_marketing_admin.php and 2026_11_12_marketing_send_hardening.php', 503);
 }
 
-/** Ledger reference for a campaign's sends. */
-function mo_ref(string $campaignId): string { return 'mo:' . $campaignId; }
-
-/** Suppression + ledger facts for the eligibility rules. */
-function mo_elig_ctx(PDO $pdo, SuppressionService $svc, string $email, ?string $excludeRef = null): array {
-    $orgRef = SuppressionService::orgRefForEmail($email);
-    $sql = "SELECT 1 FROM marketing_sends WHERE email_normalized=? AND status='sent'";
-    $args = [$email];
-    if ($excludeRef !== null) { $sql .= ' AND campaign_ref<>?'; $args[] = $excludeRef; }
-    $st = $pdo->prepare($sql . ' LIMIT 1');
-    $st->execute($args);
-    return [
-        'suppressed' => $svc->isSuppressed($email),
-        'org_suppressed' => $orgRef !== null && $svc->isOrgSuppressed($orgRef),
-        'ledger_sent' => $st->fetchColumn() !== false,
-        'require_in_sheet' => true,
-    ];
-}
-
 /**
  * Resolve and persist the original Gmail conversation for one follow-up
  * recipient. When resolved, the subject is set to the reply subject Gmail
@@ -137,80 +133,6 @@ function mo_resolve_thread(PDO $pdo, MarketingMailer $mailer, array $recipient, 
     $args[] = $recipient['id'];
     $pdo->prepare($sql . ' WHERE id=?')->execute($args);
     return $t;
-}
-
-/** Recompute campaign status + counters from its recipients. */
-function mo_rollup(PDO $pdo, string $campaignId): array {
-    $cnt = $pdo->prepare('SELECT status, COUNT(*) n FROM marketing_campaign_recipients WHERE campaign_id=? GROUP BY status');
-    $cnt->execute([$campaignId]);
-    $c = [];
-    foreach ($cnt->fetchAll(PDO::FETCH_KEY_PAIR) as $k => $v) $c[$k] = (int)$v;
-    $remaining = ($c['approved'] ?? 0) + ($c['failed'] ?? 0) + ($c['uncertain'] ?? 0) + ($c['sending'] ?? 0);
-    $final = $remaining > 0 ? 'partial' : 'completed';
-    $pdo->prepare('UPDATE marketing_campaigns SET status=?, sent_count=?, skipped_count=?, failed_count=? WHERE id=?')
-        ->execute([$final, $c['sent'] ?? 0, ($c['skipped'] ?? 0) + ($c['suppressed'] ?? 0),
-            ($c['failed'] ?? 0) + ($c['uncertain'] ?? 0), $campaignId]);
-    return ['status' => $final, 'counts' => $c];
-}
-
-/**
- * Write one confirmed send back to the prospect sheet and record the
- * outcome durably. Never sends mail; safe to repeat (the Gmail note is
- * appended once, the other cells are idempotent values).
- */
-function mo_sheet_sync_one(PDO $pdo, McpSheetSync $sheet, array $recipient, array $campaign): bool {
-    $msgId = (string)($recipient['gmail_message_id'] ?? '');
-    $date = substr((string)($recipient['sent_at'] ?? ''), 0, 10) ?: gmdate('Y-m-d');
-    $followup = $campaign['kind'] === 'followup';
-    $fields = ['Last Contact Date' => $date, 'Campaign' => (string)$campaign['name']];
-    if (!$followup) {
-        // Follow-ups leave Outreach Status as it is: the row already
-        // records that the prospect was contacted.
-        $fields['Outreach Status'] = 'Sent';
-        $fields['First Contact Date'] = $date;
-        $fields['Outreach Method'] = 'Email';
-    }
-    $note = $msgId !== '' ? 'Gmail ' . $msgId . ($followup ? ' (follow-up)' : '') : '';
-    try {
-        $sheet->recordSend((string)$recipient['prospect_email'], $fields, $note);
-        $pdo->prepare("UPDATE marketing_campaign_recipients SET sheet_sync_status='synced', sheet_sync_attempts=sheet_sync_attempts+1,
-            sheet_sync_error=NULL, sheet_synced_at=UTC_TIMESTAMP() WHERE id=?")->execute([$recipient['id']]);
-        return true;
-    } catch (Throwable $e) {
-        $pdo->prepare("UPDATE marketing_campaign_recipients SET sheet_sync_status='failed', sheet_sync_attempts=sheet_sync_attempts+1,
-            sheet_sync_error=? WHERE id=?")->execute([substr($e->getMessage(), 0, 250), $recipient['id']]);
-        error_log('[marketing-admin] sheet write-back: ' . $e->getMessage());
-        return false;
-    }
-}
-
-/** Retry every outstanding sheet write-back for a campaign. No mail. */
-function mo_sheet_sync_pending(PDO $pdo, McpSheetSync $sheet, array $campaign): array {
-    $rs = $pdo->prepare("SELECT * FROM marketing_campaign_recipients WHERE campaign_id=? AND status='sent'
-        AND sheet_sync_status IN ('pending','failed') ORDER BY id");
-    $rs->execute([$campaign['id']]);
-    $ok = 0; $bad = 0;
-    foreach ($rs->fetchAll(PDO::FETCH_ASSOC) as $r) {
-        mo_sheet_sync_one($pdo, $sheet, $r, $campaign) ? $ok++ : $bad++;
-    }
-    return ['synced' => $ok, 'failed' => $bad];
-}
-
-/** Mark a recipient delivered and queue its sheet write-back. */
-function mo_mark_recipient_sent(PDO $pdo, array $recipient, string $msgId, string $threadId): array {
-    $pdo->prepare("UPDATE marketing_campaign_recipients SET status='sent', gmail_message_id=?, gmail_thread_id=?,
-        sent_at=COALESCE(sent_at, UTC_TIMESTAMP()), error=NULL, skip_reason=NULL, sheet_sync_status='pending' WHERE id=?")
-        ->execute([$msgId !== '' ? $msgId : null, $threadId !== '' ? $threadId : ($recipient['gmail_thread_id'] ?? null), $recipient['id']]);
-    $r = $pdo->prepare('SELECT * FROM marketing_campaign_recipients WHERE id=?');
-    $r->execute([$recipient['id']]);
-    return $r->fetch(PDO::FETCH_ASSOC) ?: $recipient;
-}
-
-function mo_audit(PDO $pdo, string $actor, string $action, ?string $campaignId, $detail = null): void {
-    try {
-        $pdo->prepare("INSERT INTO marketing_audit_log (actor_email,action,campaign_id,detail) VALUES (?,?,?,?)")
-            ->execute([$actor, substr($action, 0, 60), $campaignId, $detail === null ? null : json_encode($detail)]);
-    } catch (Throwable $e) { error_log('[marketing-admin] audit: ' . $e->getMessage()); }
 }
 
 function mo_uuid(): string {
@@ -929,11 +851,58 @@ if ($method === 'GET') {
             $c->execute([$id]);
             $camp = $c->fetch(PDO::FETCH_ASSOC);
             if (!$camp) mo_fail('not found', 404);
-            $r = $pdo->prepare("SELECT id,contact_id,sheet_row,prospect_email,prospect_org,prospect_contact,subject,body_html,status,skip_reason,is_edited,gmail_message_id,gmail_thread_id,error,sent_at,thread_status,thread_reason,thread_source,thread_subject,thread_date,sheet_sync_status,sheet_sync_error,sheet_synced_at FROM marketing_campaign_recipients WHERE campaign_id=? ORDER BY id");
-            $r->execute([$id]);
-            mo_out(['success' => true, 'campaign' => $camp, 'recipients' => $r->fetchAll(PDO::FETCH_ASSOC),
+            // Status counts power the progress bar; the full recipient
+            // list is served paged via campaign_recipients so large
+            // campaigns never ship hundreds of rows in one payload.
+            $cnt = $pdo->prepare("SELECT status, COUNT(*) n FROM marketing_campaign_recipients WHERE campaign_id=? GROUP BY status");
+            $cnt->execute([$id]);
+            $counts = $cnt->fetchAll(PDO::FETCH_KEY_PAIR);
+            $total = array_sum(array_map('intval', $counts));
+            $pendT = $pdo->prepare("SELECT COUNT(*) FROM marketing_campaign_recipients WHERE campaign_id=? AND status IN ('draft','ready') AND (thread_status IS NULL OR thread_status<>'resolved')");
+            $pendT->execute([$id]);
+            $sh = $pdo->prepare("SELECT COUNT(*) FROM marketing_campaign_recipients WHERE campaign_id=? AND status='sent' AND sheet_sync_status IN ('pending','failed')");
+            $sh->execute([$id]);
+            mo_out(['success' => true, 'campaign' => $camp, 'recipient_counts' => $counts,
+                'recipient_total' => $total, 'threads_unresolved' => (int)$pendT->fetchColumn(),
+                'sheet_pending' => (int)$sh->fetchColumn(),
                 'signature' => MarketingSignature::load($pdo),
                 'sending' => $sendingPolicy->summary()]);
+        }
+        case 'campaign_recipients': {
+            // Paged, searchable recipient list for large campaigns.
+            $id = (string)($_GET['campaign_id'] ?? '');
+            $c = $pdo->prepare("SELECT id FROM marketing_campaigns WHERE id=?");
+            $c->execute([$id]);
+            if (!$c->fetchColumn()) mo_fail('not found', 404);
+            $page = max(1, (int)($_GET['page'] ?? 1));
+            $per = min(100, max(1, (int)($_GET['per'] ?? MO_RECIP_PAGE)));
+            $q = trim((string)($_GET['q'] ?? ''));
+            $status = trim((string)($_GET['status'] ?? ''));
+            $review = !empty($_GET['review']);
+            $where = 'campaign_id=?'; $args = [$id];
+            if ($status !== '') {
+                $allowed = ['draft','ready','approved','sending','sent','failed','skipped','suppressed','uncertain'];
+                if (in_array($status, $allowed, true)) { $where .= ' AND status=?'; $args[] = $status; }
+            }
+            if ($review) {
+                $where .= " AND (status IN ('draft','ready') AND (subject IS NULL OR subject='' OR body_html IS NULL OR body_html='')
+                    OR status IN ('suppressed','skipped') OR status='uncertain')";
+            }
+            if ($q !== '') {
+                $where .= ' AND (prospect_email LIKE ? OR prospect_org LIKE ? OR prospect_contact LIKE ? OR CAST(contact_id AS CHAR) = ?)';
+                $like = '%' . str_replace(['%', '_'], ['\\%', '\\_'], $q) . '%';
+                array_push($args, $like, $like, $like, ctype_digit($q) ? (int)$q : -1);
+            }
+            $tot = $pdo->prepare("SELECT COUNT(*) FROM marketing_campaign_recipients WHERE $where");
+            $tot->execute($args);
+            $total = (int)$tot->fetchColumn();
+            $pages = max(1, (int)ceil($total / $per));
+            if ($page > $pages) $page = $pages;
+            $off = ($page - 1) * $per;
+            $st = $pdo->prepare("SELECT id,contact_id,sheet_row,prospect_email,prospect_org,prospect_contact,subject,body_html,status,skip_reason,is_edited,gmail_message_id,gmail_thread_id,error,sent_at,thread_status,thread_reason,thread_source,thread_subject,thread_date,sheet_sync_status,sheet_sync_error,sheet_synced_at FROM marketing_campaign_recipients WHERE $where ORDER BY id LIMIT $per OFFSET $off");
+            $st->execute($args);
+            mo_out(['success' => true, 'recipients' => $st->fetchAll(PDO::FETCH_ASSOC),
+                'page' => $page, 'per' => $per, 'total' => $total, 'pages' => $pages]);
         }
         case 'templates': {
             $rows = $pdo->query("SELECT id,name,kind,subject_tpl,body_tpl,is_default,created_by,updated_at FROM marketing_templates ORDER BY kind, is_default DESC, name")->fetchAll(PDO::FETCH_ASSOC);
@@ -963,7 +932,7 @@ switch ($action) {
         $emails = array_values(array_filter($emails, fn($e) => filter_var($e, FILTER_VALIDATE_EMAIL)));
         if ($name === '') mo_fail('name required');
         if (!$emails) mo_fail('no valid recipients');
-        if (count($emails) > MO_MAX_RECIPIENTS) mo_fail('max ' . MO_MAX_RECIPIENTS . ' recipients per campaign');
+        if (count($emails) > mo_campaign_max()) mo_fail('max ' . mo_campaign_max() . ' recipients per campaign');
 
         // Resolve each email against the prospect source (CRM when enabled,
         // otherwise the sheet); ineligible prospects are still recorded but
@@ -1046,11 +1015,17 @@ switch ($action) {
             $byEmail = [];
             foreach ($sheetProspects as $p) $byEmail[strtolower($p['fields']['email'])] = $p;
         }
-        $done = 0; $failed = []; $threads = [];
+        $done = 0; $failed = []; $threads = []; $processed = 0;
+        $genCap = $ridFilter ? count($ridFilter) : MO_GEN_BATCH;
         $threadMailer = $camp['kind'] === 'followup' ? new MarketingMailer($pdo, $baseUrl) : null;
         foreach ($recips as $r) {
             if ($ridFilter && !in_array((int)$r['id'], $ridFilter, true)) continue;
             if ($r['status'] === 'suppressed') continue; // never generate for suppressed
+            // Bounded pass: large campaigns generate in chunks (the UI
+            // loops until 'remaining' reaches 0) so one request never
+            // runs hundreds of sequential AI/Gmail calls.
+            if ($processed >= $genCap) break;
+            $processed++;
             // Stable contact_id is authoritative when present; email map is
             // the sheet-mode fallback (and covers legacy recipients).
             $p = null;
@@ -1099,7 +1074,9 @@ switch ($action) {
             $pdo->prepare("UPDATE marketing_campaigns SET status='ready' WHERE id=? AND status='draft'")->execute([$cid]);
         }
         mo_audit($pdo, $userEmail, 'campaign_generate', $cid, ['generated' => $done, 'failed' => count($failed), 'threads' => $threads]);
-        mo_out(['success' => true, 'generated' => $done, 'failed' => $failed, 'threads' => $threads]);
+        mo_out(['success' => true, 'generated' => $done, 'failed' => $failed, 'threads' => $threads,
+            'processed' => $processed,
+            'draft_remaining' => (int)$pdo->query("SELECT COUNT(*) FROM marketing_campaign_recipients WHERE campaign_id=" . $pdo->quote($cid) . " AND status='draft'")->fetchColumn()]);
     }
 
     case 'save_message': {
@@ -1237,11 +1214,17 @@ switch ($action) {
         $counts = $rs->fetchAll(PDO::FETCH_KEY_PAIR);
         $sendable = (int)($counts['ready'] ?? 0);
         if ($sendable === 0) mo_fail('no generated messages to approve');
-        if ($sendable > MO_MAX_RECIPIENTS) mo_fail('approval limited to ' . MO_MAX_RECIPIENTS . ' recipients');
+        if ($sendable > mo_campaign_max()) mo_fail('approval limited to ' . mo_campaign_max() . ' recipients');
         if ($camp['kind'] === 'followup') {
             // Every follow-up gets a thread decision before the content
             // hash is taken, so what is approved is what is sent.
-            $pend = $pdo->prepare("SELECT * FROM marketing_campaign_recipients WHERE campaign_id=? AND status='ready' AND thread_status IS NULL");
+            // Bounded inline: large campaigns resolve via the chunked
+            // resolve_threads pass first (the UI loops it automatically).
+            $pendCount = (int)$pdo->query("SELECT COUNT(*) FROM marketing_campaign_recipients WHERE campaign_id=" . $pdo->quote($cid) . " AND status='ready' AND thread_status IS NULL")->fetchColumn();
+            if ($pendCount > MO_THREAD_BATCH) {
+                mo_fail('threads_pending: ' . $pendCount . ' follow-up(s) still need thread resolution - run Recheck threads first', 409);
+            }
+            $pend = $pdo->prepare("SELECT * FROM marketing_campaign_recipients WHERE campaign_id=? AND status='ready' AND thread_status IS NULL LIMIT " . MO_THREAD_BATCH);
             $pend->execute([$cid]);
             $pending = $pend->fetchAll(PDO::FETCH_ASSOC);
             if ($pending) {
@@ -1318,185 +1301,52 @@ switch ($action) {
         // A 'sending' claim older than the stale window belongs to an
         // interrupted run and may be taken over; its in-flight recipients
         // are reconciled through the ledger, not blindly resent.
-        $claim = $pdo->prepare("UPDATE marketing_campaigns SET status='sending', updated_at=NOW() WHERE id=? AND (
+        // send_requested marks the campaign for the background worker to
+        // keep draining remaining recipients in paced batches; an explicit
+        // admin Send also clears any pause.
+        $claim = $pdo->prepare("UPDATE marketing_campaigns SET status='sending', send_requested=1, send_paused=0, updated_at=NOW() WHERE id=? AND (
             status IN ('approved','partial')
             OR (status='sending' AND updated_at < NOW() - INTERVAL " . (int)MarketingMailer::STALE_RUNNING_SECONDS . " SECOND))");
         $claim->execute([$cid]);
         if ($claim->rowCount() !== 1) mo_fail('send already in progress', 409);
-        $restoreStatus = $camp['status'] === 'approved' ? 'approved' : 'partial';
 
-        // CRM mode (MARKETING_CRM_READS): MySQL is authoritative for
-        // send-time verification and confirmed-send write-back. mo_crm()
-        // fails closed when the flag is on but the schema is missing, so a
-        // half-migrated CRM can never send unverified. Sheet mode is
-        // unchanged while the flag is off.
-        $crm = mo_crm($pdo);
-        $crmMode = $crm !== null;
-        $admin = $crmMode ? mo_crm_admin($pdo, $userEmail) : null;
-
-        $sheet = null;
-        if (!$crmMode) {
-            try { $sheet = new McpSheetSync(); $sheet->sheet(); } catch (Throwable $e) {
-                // Sheet unreachable: fail closed before any send so eligibility
-                // and status write-back stay honest.
-                $pdo->prepare("UPDATE marketing_campaigns SET status=? WHERE id=?")->execute([$restoreStatus, $cid]);
-                mo_fail('prospect sheet unreachable - send aborted', 502);
-            }
-        }
-
-        // Outstanding sheet write-backs from earlier runs first (no mail).
-        // In CRM mode there are none: recordSend() completes the write-back
-        // synchronously, so 'pending' rows are a sheet-era leftover only.
-        $sheetRetry = $crmMode ? ['synced' => 0, 'failed' => 0] : mo_sheet_sync_pending($pdo, $sheet, $camp);
-
-        // Optional per-recipient selection: recipient_ids narrows the batch
-        // to specific recipient rows (pilot sends). It can only shrink the
-        // sendable set - every other gate still applies to each row.
+        // Optional per-recipient selection: recipient_ids narrows this
+        // synchronous batch to specific rows (pilot / single sends). It
+        // can only shrink the sendable set - every other gate still
+        // applies to each row. Larger campaigns drain via the worker.
         $recipIds = [];
         foreach ((array)($in['recipient_ids'] ?? []) as $ridRaw) {
             $rid = (int)$ridRaw;
             if ($rid > 0) $recipIds[$rid] = true;
         }
         $recipIds = array_keys($recipIds);
-        if (count($recipIds) > MO_MAX_RECIPIENTS) mo_fail('too many recipients');
-        $idFilter = $recipIds ? ' AND id IN (' . implode(',', $recipIds) . ')' : '';
-        $rs = $pdo->prepare("SELECT * FROM marketing_campaign_recipients
-            WHERE campaign_id=? AND status IN ('approved','failed','uncertain','sending')$idFilter ORDER BY id LIMIT " . MO_MAX_RECIPIENTS);
-        $rs->execute([$cid]);
-        $recips = $rs->fetchAll(PDO::FETCH_ASSOC);
-        $ref = mo_ref($cid);
+        $batchSize = mo_send_batch_size();
+        if (count($recipIds) > $batchSize) mo_fail('too many recipients (max ' . $batchSize . ' per batch)');
 
-        // One batched CRM lookup for the whole send batch (no N+1).
-        $crmByEmail = [];
-        if ($crmMode) {
-            $crmByEmail = $crm->findByEmails(array_map(static fn($r) => (string)$r['prospect_email'], $recips));
-        }
-
-        $sent = 0; $skipped = 0; $failed = 0; $uncertain = 0; $blocked = 0; $sheetFailed = 0; $results = [];
-        foreach ($recips as $r) {
-            // Claim the recipient row. Rows already 'sending' are leftovers
-            // of an interrupted run that this request now owns.
-            if ($r['status'] !== 'sending') {
-                $cl = $pdo->prepare("UPDATE marketing_campaign_recipients SET status='sending' WHERE id=? AND status=?");
-                $cl->execute([$r['id'], $r['status']]);
-                if ($cl->rowCount() !== 1) { $skipped++; continue; }
-            }
-            $email = SuppressionService::normalizeEmail($r['prospect_email']);
-
-            // 0) Recipient-level delivery control (test allowlist).
-            $gate = $mailer->policy()->check($email);
-            if (!$gate['allowed']) {
-                $pdo->prepare("UPDATE marketing_campaign_recipients SET status='approved', skip_reason=? WHERE id=?")
-                    ->execute([$gate['reason'], $r['id']]);
-                $blocked++; $results[] = ['email' => $email, 'status' => 'blocked', 'reason' => $gate['reason']];
-                continue;
-            }
-
-            // 1) Eligibility re-check immediately before send: suppression
-            //    store, sheet Do Not Contact / unsubscribed / bounced, and
-            //    the rule for this campaign's kind. A send already recorded
-            //    for THIS campaign is not "prior outreach" for that rule.
-            $ctx = mo_elig_ctx($pdo, $svc, $email, $ref);
-            if ($ctx['suppressed'] || $ctx['org_suppressed']) {
-                $pdo->prepare("UPDATE marketing_campaign_recipients SET status='suppressed', skip_reason='suppressed_recheck' WHERE id=?")->execute([$r['id']]);
-                $skipped++; $results[] = ['email' => $email, 'status' => 'suppressed'];
-                continue;
-            }
-            // An uncertain/interrupted send must reach the ledger so it is
-            // reconciled; the sheet may legitimately show it as contacted.
-            // Permanent exclusions still stop it.
-            $resuming = in_array($r['status'], ['uncertain', 'sending'], true);
-            if ($crmMode) {
-                // Database-backed gate: annotated CRM record + suppression
-                // ctx. 'not_in_crm' mirrors the sheet's not_in_sheet.
-                $gate = $admin->sendPrecheck($crmByEmail[$email] ?? null, $camp['kind'], $resuming);
-                if ($gate['action'] === 'suppressed') {
-                    $pdo->prepare("UPDATE marketing_campaign_recipients SET status='suppressed', skip_reason=? WHERE id=?")
-                        ->execute([substr((string)$gate['reason'], 0, 190), $r['id']]);
-                    $skipped++; $results[] = ['email' => $email, 'status' => 'suppressed', 'reason' => $gate['reason']];
-                    continue;
-                }
-                if ($gate['action'] !== 'send') {
-                    $pdo->prepare("UPDATE marketing_campaign_recipients SET status='skipped', skip_reason=?, error=? WHERE id=?")
-                        ->execute([substr(implode(',', $gate['flags']), 0, 190), 'crm_precheck', $r['id']]);
-                    $skipped++; $results[] = ['email' => $email, 'status' => 'skipped', 'reason' => implode(',', $gate['flags'])];
-                    continue;
-                }
-            } else {
-                $pre = $sheet->preCheck($email, $camp['kind'], $ctx);
-                if (!$pre['ok'] && !($resuming && !$pre['hard'])) {
-                    $pdo->prepare("UPDATE marketing_campaign_recipients SET status='skipped', skip_reason=?, error=? WHERE id=?")
-                        ->execute([substr(implode(',', $pre['flags']), 0, 190), 'sheet_precheck', $r['id']]);
-                    $skipped++; $results[] = ['email' => $email, 'status' => 'skipped', 'reason' => implode(',', $pre['flags'])];
-                    continue;
-                }
-            }
-
-            // 2) Send via the shared mailer (ledger-idempotent, footer,
-            //    RFC 8058). Follow-ups reply in the resolved conversation.
-            $thread = null;
-            if ($camp['kind'] === 'followup') {
-                if (($r['thread_status'] ?? '') === 'resolved') {
-                    $thread = ['thread_id' => (string)$r['gmail_thread_id'],
-                        'in_reply_to' => (string)$r['thread_rfc_message_id'],
-                        'references' => (string)$r['thread_references']];
-                } elseif ((int)($camp['new_thread_ack'] ?? 0) !== 1) {
-                    // Unthreaded follow-ups are a new conversation; they
-                    // require the explicit approval-time acknowledgment.
-                    $pdo->prepare("UPDATE marketing_campaign_recipients SET status='skipped', skip_reason='new_thread_not_acknowledged', error='new_thread_not_acknowledged' WHERE id=?")
-                        ->execute([$r['id']]);
-                    $skipped++; $results[] = ['email' => $email, 'status' => 'skipped', 'reason' => 'new_thread_not_acknowledged'];
-                    continue;
-                }
-            }
-            $res = $mailer->send([
-                'to' => $email, 'subject' => (string)$r['subject'],
-                'html' => (string)$r['body_html'], 'campaign' => $ref,
-                'thread' => $thread,
-            ]);
-            $st = $res['status'] ?? 'uncertain';
-            // The ledger already holds a confirmed send for this recipient.
-            if ($st === 'already_recorded') $st = 'sent';
-
-            if ($st === 'sent') {
-                $row = mo_mark_recipient_sent($pdo, $r, (string)($res['message_id'] ?? ''), (string)($res['thread_id'] ?? ''));
-                // Confirmed-send write-back. CRM mode updates MySQL
-                // synchronously (source of truth, no sheet required); a
-                // failure is recorded on the recipient row, never silently.
-                // Sheet mode queues the sheet write-back for later retry.
-                if ($crmMode) {
-                    if (!$admin->recordSend($row, $camp)) $sheetFailed++;
-                } elseif (!mo_sheet_sync_one($pdo, $sheet, $row, $camp)) {
-                    $sheetFailed++;
-                }
-                $sent++; $results[] = ['email' => $email, 'status' => 'sent', 'message_id' => $res['message_id'] ?? '',
-                    'reconciled' => !empty($res['reconciled'])];
-            } elseif ($st === 'skipped_suppressed') {
-                $pdo->prepare("UPDATE marketing_campaign_recipients SET status='suppressed', skip_reason='suppressed' WHERE id=?")->execute([$r['id']]);
-                $skipped++; $results[] = ['email' => $email, 'status' => 'suppressed'];
-            } elseif ($st === 'sending_disabled' || $st === 'recipient_not_allowlisted') {
-                $pdo->prepare("UPDATE marketing_campaign_recipients SET status='approved', skip_reason=? WHERE id=?")->execute([$st, $r['id']]);
-                $blocked++; $results[] = ['email' => $email, 'status' => 'blocked', 'reason' => $st];
-            } elseif ($st === 'uncertain' || $st === 'in_progress') {
-                // Outcome unknown: held for reconciliation, never resent blindly.
-                $err = substr((string)($res['error'] ?? $st), 0, 250);
-                $pdo->prepare("UPDATE marketing_campaign_recipients SET status='uncertain', error=? WHERE id=?")->execute([$err, $r['id']]);
-                $uncertain++; $results[] = ['email' => $email, 'status' => 'uncertain', 'error' => $err];
-            } else {
-                $err = substr((string)($res['error'] ?? $st), 0, 250);
-                $pdo->prepare("UPDATE marketing_campaign_recipients SET status='failed', error=? WHERE id=?")->execute([$err, $r['id']]);
-                $failed++; $results[] = ['email' => $email, 'status' => 'failed', 'error' => $err];
-            }
+        $runner = new CampaignSendRunner($pdo, $baseUrl, $mailer);
+        $recips = $runner->nextBatch($cid, $batchSize, $recipIds ?: null, true);
+        $r = $runner->runBatch($camp, $recips);
+        if (isset($r['error'])) {
+            mo_rollup($pdo, $cid);
+            mo_fail($r['error'], 502);
         }
 
         $roll = mo_rollup($pdo, $cid);
-        mo_audit($pdo, $userEmail, 'campaign_send', $cid, ['sent' => $sent, 'skipped' => $skipped, 'failed' => $failed,
-            'uncertain' => $uncertain, 'blocked' => $blocked, 'sheet_failed' => $sheetFailed,
-            'mode' => $mailer->policy()->mode(), 'recipient_ids' => $recipIds ?: null]);
-        mo_out(['success' => true, 'sent' => $sent, 'skipped' => $skipped, 'failed' => $failed,
-            'uncertain' => $uncertain, 'blocked' => $blocked,
-            'sheet_failed' => $sheetFailed + $sheetRetry['failed'], 'sheet_retried' => $sheetRetry['synced'],
-            'results' => $results, 'campaign_status' => $roll['status']]);
+        // When nothing auto-sendable remains the worker has nothing left
+        // to do; 'failed' rows stay available for a manual retry batch.
+        if (mo_sendable_remaining($pdo, $cid) === 0) {
+            $pdo->prepare('UPDATE marketing_campaigns SET send_requested=0 WHERE id=?')->execute([$cid]);
+        }
+        mo_audit($pdo, $userEmail, 'campaign_send', $cid, ['sent' => $r['sent'], 'skipped' => $r['skipped'], 'failed' => $r['failed'],
+            'uncertain' => $r['uncertain'], 'blocked' => $r['blocked'], 'sheet_failed' => $r['sheet_failed'],
+            'mode' => $mailer->policy()->mode(), 'recipient_ids' => $recipIds ?: null,
+            'send_requested' => mo_sendable_remaining($pdo, $cid) > 0]);
+        mo_out(['success' => true, 'sent' => $r['sent'], 'skipped' => $r['skipped'], 'failed' => $r['failed'],
+            'uncertain' => $r['uncertain'], 'blocked' => $r['blocked'],
+            'sheet_failed' => $r['sheet_failed'], 'sheet_retried' => $r['sheet_retried'],
+            'results' => $r['results'], 'campaign_status' => $roll['status'],
+            'send_requested' => mo_sendable_remaining($pdo, $cid) > 0,
+            'remaining' => mo_sendable_remaining($pdo, $cid)]);
     }
 
     case 'resolve_threads': {
@@ -1529,7 +1379,15 @@ switch ($action) {
                 }
             }
         }
-        $rs = $pdo->prepare("SELECT * FROM marketing_campaign_recipients WHERE campaign_id=? AND status IN ('draft','ready') ORDER BY id");
+        // Bounded pass: large campaigns resolve in chunks so one request
+        // never makes hundreds of sequential Gmail lookups. Only
+        // non-resolved rows are (re)checked - resolved threads are final.
+        $pendWhere = "campaign_id=? AND status IN ('draft','ready')
+            AND (thread_status IS NULL OR thread_status<>'resolved')";
+        $pend = $pdo->prepare("SELECT COUNT(*) FROM marketing_campaign_recipients WHERE $pendWhere");
+        $pend->execute([$cid]);
+        $pendingTotal = (int)$pend->fetchColumn();
+        $rs = $pdo->prepare("SELECT * FROM marketing_campaign_recipients WHERE $pendWhere ORDER BY id LIMIT " . MO_THREAD_BATCH);
         $rs->execute([$cid]);
         $tm = new MarketingMailer($pdo, $baseUrl);
         $counts = [];
@@ -1539,7 +1397,10 @@ switch ($action) {
             $counts[$t['status']] = ($counts[$t['status']] ?? 0) + 1;
         }
         mo_audit($pdo, $userEmail, 'campaign_resolve_threads', $cid, $counts);
-        mo_out(['success' => true, 'threads' => $counts, 'sheet_error' => $dir === null ? $sheetErr2 : null]);
+        $left = $pdo->prepare("SELECT COUNT(*) FROM marketing_campaign_recipients WHERE $pendWhere");
+        $left->execute([$cid]);
+        mo_out(['success' => true, 'threads' => $counts, 'sheet_error' => $dir === null ? $sheetErr2 : null,
+            'processed' => array_sum($counts), 'remaining' => (int)$left->fetchColumn(), 'pending_total' => $pendingTotal]);
     }
 
     case 'reconcile': {
@@ -1775,7 +1636,7 @@ switch ($action) {
         $dryRun = !empty($in['dry_run']);
         try {
             $r = $admin->addToCampaign($ids, $cid !== '' ? $cid : null,
-                $newName !== '' ? $newName : null, $kind, MO_MAX_RECIPIENTS, $dryRun);
+                $newName !== '' ? $newName : null, $kind, mo_campaign_max(), $dryRun);
         } catch (InvalidArgumentException $e) { mo_fail($e->getMessage()); }
         if (!$dryRun) {
             mo_audit($pdo, $userEmail, 'campaign_add_recipients', $r['campaign_id'],
@@ -1796,7 +1657,7 @@ switch ($action) {
                 'description' => $in['description'] ?? null,
                 'template_id' => $in['template_id'] ?? null,
                 'contact_ids' => $ids,
-            ], MO_MAX_RECIPIENTS);
+            ], mo_campaign_max());
         } catch (InvalidArgumentException $e) { mo_fail($e->getMessage()); }
         mo_audit($pdo, $userEmail, 'campaign_create', $r['campaign_id'],
             ['name' => (string)($in['name'] ?? ''), 'kind' => (string)($in['kind'] ?? 'initial'), 'recipients' => $r['added']]);
@@ -1822,6 +1683,36 @@ switch ($action) {
         catch (InvalidArgumentException $e) { mo_fail($e->getMessage()); }
         mo_audit($pdo, $userEmail, 'campaign_recipient_remove', $cid, ['recipient_id' => $rid]);
         mo_out(['success' => true] + $r);
+    }
+
+    case 'campaign_send_control': {
+        // Pause/resume/stop for background campaign sending. Pause only
+        // stops the worker from starting NEW batches - an in-flight
+        // synchronous batch always finishes. Stop cancels the request
+        // entirely; remaining approved recipients can be sent later.
+        $cid = trim((string)($in['campaign_id'] ?? ''));
+        $action = (string)($in['action'] ?? '');
+        if ($cid === '') mo_fail('campaign_id required');
+        if (!in_array($action, ['pause', 'resume', 'stop'], true)) mo_fail('action must be pause, resume or stop');
+        $c = $pdo->prepare("SELECT * FROM marketing_campaigns WHERE id=?");
+        $c->execute([$cid]);
+        $camp = $c->fetch(PDO::FETCH_ASSOC);
+        if (!$camp) mo_fail('not found', 404);
+        if (!in_array($camp['status'], ['approved', 'partial', 'sending'], true)) mo_fail('campaign is not sending');
+        if ($action === 'pause') {
+            $pdo->prepare('UPDATE marketing_campaigns SET send_paused=1 WHERE id=?')->execute([$cid]);
+        } elseif ($action === 'resume') {
+            $pdo->prepare('UPDATE marketing_campaigns SET send_paused=0 WHERE id=? AND send_requested=1')->execute([$cid]);
+            if ($pdo->query("SELECT send_paused FROM marketing_campaigns WHERE id=" . $pdo->quote($cid))->fetchColumn() != 0) {
+                mo_fail('nothing to resume - start sending first', 409);
+            }
+        } else { // stop
+            $pdo->prepare('UPDATE marketing_campaigns SET send_requested=0, send_paused=1 WHERE id=?')->execute([$cid]);
+        }
+        mo_audit($pdo, $userEmail, 'campaign_send_' . $action, $cid, null);
+        $st = $pdo->prepare('SELECT send_requested, send_paused, status FROM marketing_campaigns WHERE id=?');
+        $st->execute([$cid]);
+        mo_out(['success' => true, 'send' => $st->fetch(PDO::FETCH_ASSOC)]);
     }
 
     case 'import_preview': {

@@ -87,21 +87,20 @@ $TOOLS = [
       'kind'=>['type'=>'string','enum'=>['initial','followup']],
       'status'=>['type'=>'string','enum'=>['draft','ready','approved','partial','sending','completed']],
       'limit'=>['type'=>'integer']]]],
-  'get_campaign' => ['description'=>'Full campaign detail: metadata, every recipient with message status, content, thread resolution, and send state. Read-only.',
-    'inputSchema'=>['type'=>'object','properties'=>['campaign_id'=>['type'=>'string']],'required'=>['campaign_id']]],
-  'create_campaign' => ['description'=>'Create a DRAFT outreach campaign (never approves or sends). Optional contact_ids seeds recipients (max 10). Identical open drafts by the same actor are returned instead of duplicated - retries are safe. Set dry_run=true to preview first. REQUIRES confirm=true for the actual create.',
+  'get_campaign' => ['description'=>'Campaign detail: metadata plus a PAGINATED recipient page (page/per_page, default 50, max 200) with message status, content, thread resolution, and send state. Large campaigns return one page at a time - loop page until pages is reached. Read-only.',
+    'inputSchema'=>['type'=>'object','properties'=>['campaign_id'=>['type'=>'string'],'page'=>['type'=>'integer'],'per_page'=>['type'=>'integer']],'required'=>['campaign_id']]],
+  'create_campaign' => ['description'=>'Create a DRAFT outreach campaign (never approves or sends; capacity up to 500 recipients). Optional contact_ids seeds recipients (max 100/call - add the rest with add_campaign_recipients). Identical open drafts by the same actor are returned instead of duplicated - retries are safe. Set dry_run=true to preview first. REQUIRES confirm=true for the actual create.',
     'inputSchema'=>['type'=>'object','properties'=>[
       'name'=>['type'=>'string'],'kind'=>['type'=>'string','enum'=>['initial','followup']],
       'description'=>['type'=>'string'],'template_id'=>['type'=>'integer'],
-      'contact_ids'=>['type'=>'array','items'=>['type'=>'integer']],'limit'=>['type'=>'integer'],
-      'dry_run'=>['type'=>'boolean'],'confirm'=>['type'=>'boolean']],'required'=>['name']]],
-  'add_campaign_recipients' => ['description'=>'Add CRM contacts (stable contact_ids, max 10/call) to an editable draft campaign. Rechecks eligibility; suppressed/DNC contacts are recorded as suppressed, never bypassed. Returns per-contact results. Set dry_run=true to preview. REQUIRES confirm=true.',
+      'contact_ids'=>['type'=>'array','items'=>['type'=>'integer'],'maxItems'=>100],'dry_run'=>['type'=>'boolean'],'confirm'=>['type'=>'boolean']],'required'=>['name']]],
+  'add_campaign_recipients' => ['description'=>'Add CRM contacts (stable contact_ids, max 100/call - repeat for larger sets) to an editable draft campaign (capacity up to 500). Rechecks eligibility; suppressed/DNC contacts are recorded as suppressed, never bypassed. Returns per-contact results. Set dry_run=true to preview. REQUIRES confirm=true.',
     'inputSchema'=>['type'=>'object','properties'=>[
-      'campaign_id'=>['type'=>'string'],'contact_ids'=>['type'=>'array','items'=>['type'=>'integer']],'dry_run'=>['type'=>'boolean'],'confirm'=>['type'=>'boolean']],'required'=>['campaign_id','contact_ids']]],
-  'save_campaign_messages' => ['description'=>'Save individually personalized email drafts (subject + HTML body) for up to 10 campaign recipients in one call. Each recipient keeps their own content - no shared template required. Same sanitizer/thread-subject rules as the admin UI; sent or in-flight recipients are refused. REQUIRES confirm=true. Never approves or sends.',
+      'campaign_id'=>['type'=>'string'],'contact_ids'=>['type'=>'array','items'=>['type'=>'integer'],'maxItems'=>100],'dry_run'=>['type'=>'boolean'],'confirm'=>['type'=>'boolean']],'required'=>['campaign_id','contact_ids']]],
+  'save_campaign_messages' => ['description'=>'Save individually personalized email drafts (subject + HTML body) for up to 50 campaign recipients per call - repeat for larger sets. Each recipient keeps their own content - no shared template required. Same sanitizer/thread-subject rules as the admin UI; sent or in-flight recipients are refused. REQUIRES confirm=true. Never approves or sends.',
     'inputSchema'=>['type'=>'object','properties'=>[
       'campaign_id'=>['type'=>'string'],
-      'messages'=>['type'=>'array','maxItems'=>10,'items'=>['type'=>'object','properties'=>[
+      'messages'=>['type'=>'array','maxItems'=>50,'items'=>['type'=>'object','properties'=>[
         'recipient_id'=>['type'=>'integer'],'contact_id'=>['type'=>'integer'],
         'subject'=>['type'=>'string'],'body_html'=>['type'=>'string'],'text'=>['type'=>'string']],
         'required'=>['subject','body_html']]],

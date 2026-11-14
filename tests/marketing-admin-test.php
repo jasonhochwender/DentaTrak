@@ -82,21 +82,49 @@ assertContains($api, '/mo_fail\(\'forbidden\', 403\)/', 'API must 403 unauthoriz
 assertContains($api, '/mo_fail\(\'not_found\', 404\)/', 'API must 404 when flag disabled');
 
 // ---- 5. Send safety ----
-assertContains($api, '/const MO_MAX_RECIPIENTS = 10/', 'campaign cap must be 10 recipients');
+assertContains($api, '/const MO_MAX_RECIPIENTS = 500/', 'campaign cap must allow large campaigns (500 default)');
+assertContains($api, '/function mo_campaign_max\(\)/', 'campaign cap must be configurable via MARKETING_CAMPAIGN_MAX');
 assertContains($api, '/content_hash/', 'approval must bind a content hash');
 assertContains($api, '/content changed since approval/', 'send must refuse content edited after approval');
-assertContains($api, '/isSuppressed\(\$email\)/', 'send must re-check email suppression');
-assertContains($api, '/isOrgSuppressed\(\$orgRef\)/', 'send must re-check org suppression');
-assertContains($api, '/preCheck\(\$email, \$camp\[\'kind\'\], \$ctx\)/', 'send must run the kind-aware sheet pre-check');
+$runner = $baseDir . '/api/marketing/CampaignSendRunner.php';
+$support = $baseDir . '/api/marketing/CampaignSendSupport.php';
+assertContains($support, '/isSuppressed\(\$email\)/', 'send must re-check email suppression');
+assertContains($support, '/isOrgSuppressed\(\$orgRef\)/', 'send must re-check org suppression');
+assertContains($runner, '/preCheck\(\$email, \$camp\[\'kind\'\], \$ctx\)/', 'send must run the kind-aware sheet pre-check');
+assertContains($runner, '/mo_elig_ctx\(/', 'send must build per-recipient eligibility context');
+assertContains($runner, '/new_thread_not_acknowledged/', 'send must skip unacknowledged unthreaded follow-ups');
 assertContains($api, '/mo_audit\(/', 'mutations must write the audit log');
-assertContains($api, '/SET status=\'sending\', updated_at=NOW\(\) WHERE id=\? AND \(/', 'send must atomically claim the campaign');
+assertContains($api, '/send_requested=1, send_paused=0/', 'send must mark the campaign for the background worker');
 assertContains($api, '/send already in progress/', 'concurrent send must be refused');
+
+// ---- 5c. Large campaigns: paging, batching, pause/resume, worker ----
+assertContains($api, "/case 'campaign_recipients'/", 'API must serve paged campaign recipients');
+assertContains($api, '/recipient_counts/', 'campaign detail must return status counts for progress');
+assertContains($api, "/case 'campaign_send_control'/", 'API must expose pause/resume/stop');
+assertContains($api, '/send_paused=1/', 'pause must set the worker gate');
+assertContains($api, '/MO_THREAD_BATCH/', 'thread resolution must be bounded per request');
+assertContains($api, '/MO_GEN_BATCH/', 'message generation must be bounded per request');
+$worker = $baseDir . '/api/marketing-send-worker.php';
+assertContains($worker, '/requireQueueWorkerToken\(\)/', 'send worker must require the queue worker token');
+assertContains($worker, '/send_requested=1 AND send_paused=0/', 'worker must only drain authorized unpaused campaigns');
+assertContains($worker, '/CampaignSendRunner/', 'worker must reuse the shared send runner');
+assertContains($worker, '/hash_equals/', 'worker must re-verify the approval content hash');
+assertContains($baseDir . '/scripts/provision-send-worker.sh', '/marketing-send-worker\.php/', 'scheduler provisioning must target the send worker');
+assertContains($baseDir . '/cloudbuild.yaml', '/provision-send-worker\.sh/', 'cloudbuild must provision the send worker schedule');
+assertContains($baseDir . '/migrations/2026_11_22_marketing_large_campaigns.php', '/send_requested/', 'migration must add send_requested');
+assertContains($baseDir . '/migrations/2026_11_22_marketing_large_campaigns.php', '/send_paused/', 'migration must add send_paused');
+assertContains($baseDir . '/js/marketing-crm.js', '/campaign_recipients/', 'CRM UI must page recipients through the API');
+assertContains($baseDir . '/js/marketing-crm.js', '/campaign_send_control/', 'CRM UI must expose send controls');
+assertContains($page, '/id="moRecipBar"/', 'page must render the recipient filter bar');
+assertContains($page, '/id="moCampProgress"/', 'page must render the campaign progress bar');
+assertContains($baseDir . '/api/marketing/McpCampaignTools.php', '/RECIPIENTS_PAGE_MAX/', 'MCP get_campaign must paginate recipients');
+assertContains($baseDir . '/api/marketing/McpCampaignTools.php', '/CAMPAIGN_MAX = 500/', 'MCP campaign capacity must match the raised cap');
 
 // ---- 5a. Controlled pilot: per-recipient send selection ----
 // recipient_ids may only narrow the sendable set; every other gate still
 // applies per row. The env allowlist remains the hard delivery gate.
 assertContains($api, '/\$in\[\'recipient_ids\'\]/', 'send must accept an optional recipient_ids selection');
-assertContains($api, '/AND id IN \(/', 'recipient_ids must filter the recipient query');
+assertContains($runner, '/AND id IN \(/', 'recipient_ids must filter the recipient query');
 assertContains($api, '/\'recipient_ids\' => \$recipIds/', 'send audit must record the recipient selection');
 assertContains($baseDir . '/js/marketing-crm.js', '/data-act="sendone"/', 'campaign UI must offer a per-recipient send action');
 assertContains($baseDir . '/js/marketing-crm.js', '/recipient_ids: \[r\.id\]/', 'per-recipient send must pass recipient_ids to the API');
@@ -122,7 +150,7 @@ assertContains($elig, '/KIND_INITIAL/', 'eligibility must define campaign kinds'
 assertContains($elig, '/no_prior_outreach/', 'follow-ups must require prior outreach');
 assertContains($elig, '/already_contacted/', 'initial outreach must refuse contacted prospects');
 assertContains($elig, '/do_not_contact/', 'eligibility must enforce Do Not Contact');
-assertContains($api, '/mo_elig_ctx\(/', 'send must build per-recipient eligibility context');
+assertContains($runner, '/mo_elig_ctx\(/', 'send must build per-recipient eligibility context (5c duplicate guard)');
 // Threading
 assertContains($thread, '/campaign_record/', 'thread resolver must use campaign records');
 assertContains($thread, '/send_ledger/', 'thread resolver must use the send ledger');
@@ -208,7 +236,7 @@ foreach (glob($baseDir . '/locales/*.json') as $f) {
 assertContains($api, '/allow_new_threads/', 'approve must require explicit new-thread acknowledgment');
 assertContains($api, '/unresolved_threads/', 'approve must fail closed when unthreaded follow-ups are unacknowledged');
 assertContains($api, '/new_thread_ack/', 'campaign must persist the new-thread acknowledgment');
-assertContains($api, '/new_thread_not_acknowledged/', 'send must skip unacknowledged unthreaded follow-ups');
+assertContains($runner, '/new_thread_not_acknowledged/', 'send must skip unacknowledged unthreaded follow-ups');
 $mig17 = $baseDir . '/migrations/2026_11_17_marketing_new_thread_ack.php';
 assertContains($mig17, '/new_thread_ack/', 'migration must add new_thread_ack column');
 // Outbound mail is multipart/alternative with a plain-text part so the

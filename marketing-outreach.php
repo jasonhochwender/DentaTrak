@@ -128,6 +128,10 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
         .mo-nowrap { white-space: nowrap; }
         .mo-crm-table th.mo-crm-check, .mo-crm-table td.mo-crm-check { width: 30px; }
         .mo-pager { display: flex; gap: 8px; align-items: center; margin-top: 12px; font-size: 0.82rem; color: #6b7280; }
+        .mo-progress { display: flex; align-items: center; gap: 12px; margin: 10px 0 4px; }
+        .mo-progress-track { flex: 1; max-width: 420px; height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden; }
+        .mo-progress-fill { height: 100%; width: 0; background: #2563eb; transition: width .3s ease; }
+        .mo-progress-fill.done { background: #059669; }
         .mo-step-note { font-size: 0.78rem; color: #6b7280; margin-top: 6px; }
         /* Phase 3 CRM */
         .mo-sub { color: #6b7280; font-size: 0.75rem; }
@@ -420,9 +424,31 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
                 <button class="mo-btn secondary mo-hidden" id="moCampThreadsCrm"><?php echo h(ma('recheck_threads')); ?></button>
                 <button class="mo-btn secondary mo-hidden" id="moCampReconcileCrm"><?php echo h(ma('reconcile_uncertain')); ?></button>
                 <button class="mo-btn secondary" id="moCampSigCrm"><?php echo h(ma('sender_signature')); ?></button>
+                <button class="mo-btn secondary mo-hidden" id="moCampPauseCrm"><?php echo h(ma('pause_sending')); ?></button>
+                <button class="mo-btn secondary mo-hidden" id="moCampResumeCrm"><?php echo h(ma('resume_sending')); ?></button>
+                <button class="mo-btn danger mo-hidden" id="moCampStopCrm"><?php echo h(ma('stop_sending')); ?></button>
                 <span class="mo-step-note" id="moCampStepCrm"></span>
             </div>
             <?php endif; ?>
+            <div class="mo-progress mo-hidden" id="moCampProgress">
+                <div class="mo-progress-track"><div class="mo-progress-fill" id="moCampProgressFill"></div></div>
+                <span class="mo-step-note" id="moCampProgressText"></span>
+            </div>
+            <div class="mo-toolbar" id="moRecipBar">
+                <input type="search" id="moRecipQ" placeholder="<?php echo h(ma('recip_search_ph')); ?>" style="max-width:220px;">
+                <select id="moRecipStatus">
+                    <option value=""><?php echo h(ma('all_statuses')); ?></option>
+                    <option value="draft">draft</option><option value="ready">ready</option>
+                    <option value="approved">approved</option><option value="sending">sending</option>
+                    <option value="sent">sent</option><option value="failed">failed</option>
+                    <option value="skipped">skipped</option><option value="suppressed">suppressed</option>
+                    <option value="uncertain">uncertain</option>
+                </select>
+                <label class="mo-step-note" style="display:flex;gap:6px;align-items:center;">
+                    <input type="checkbox" id="moRecipReview"> <?php echo h(ma('needs_review_only')); ?>
+                </label>
+                <span class="mo-step-note" id="moRecipPager"></span>
+            </div>
             <div id="moCampMessages" class="mo-msg-list"></div>
         </div>
     </div>
@@ -552,6 +578,9 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
         confirmSendTest: <?php echo json_encode(ma('confirm_send_test')); ?>,
         sendResult: <?php echo json_encode(ma('send_result')); ?>,
         sendResultExtra: <?php echo json_encode(ma('send_result_extra')); ?>,
+        pageOf: <?php echo json_encode(ma('page_of')); ?>,
+        progressSent: <?php echo json_encode(ma('progress_sent')); ?>,
+        sendingBg: <?php echo json_encode(ma('sending_bg')); ?>,
         thread: {
             resolved: <?php echo json_encode(ma('thread_resolved')); ?>,
             unresolved: <?php echo json_encode(ma('thread_new')); ?>,
@@ -729,6 +758,7 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
     function sendSummary(d) {
         var msg = STR.sendResult.replace('{sent}', d.sent).replace('{skipped}', d.skipped).replace('{failed}', d.failed);
         if (d.uncertain || d.blocked) msg += ' ' + STR.sendResultExtra.replace('{uncertain}', d.uncertain || 0).replace('{blocked}', d.blocked || 0);
+        if (d.send_requested) msg += ' ' + STR.sendingBg.replace('{n}', d.remaining || 0);
         return msg;
     }
     function fmtDate(ts) { return ts ? new Date(ts * 1000).toISOString().slice(0, 10) : ''; }
@@ -1423,9 +1453,9 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
             var c = d.campaign;
             renderSending(d.sending);
             var canSend = !!(state.sending && state.sending.enabled);
-            var recips = d.recipients || [];
-            var hasUncertain = recips.some(function (r) { return r.status === 'uncertain'; });
-            var hasSheetWork = recips.some(function (r) { return r.status === 'sent' && (r.sheet_sync_status === 'pending' || r.sheet_sync_status === 'failed'); });
+            var counts = d.recipient_counts || {};
+            var hasUncertain = !!(counts.uncertain > 0);
+            var hasSheetWork = (d.sheet_pending || 0) > 0;
             document.getElementById('moCampApprove').textContent = canSend ? STR.approveAndSend : STR.approveOnly;
             document.getElementById('moCampReconcile').classList.toggle('mo-hidden', !hasUncertain);
             document.getElementById('moCampSheetSync').classList.toggle('mo-hidden', !hasSheetWork);
@@ -1433,6 +1463,7 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
                 !(c.kind === 'followup' && (c.status === 'draft' || c.status === 'ready')));
             document.getElementById('moCampRetry').disabled = !canSend;
             state.currentKind = c.kind;
+            state.campaignStatus = c.status;
             document.getElementById('moCampTitle').textContent = c.name;
             document.getElementById('moCampMeta').textContent =
                 c.kind + ' · ' + c.status + (c.created_by ? ' · ' + c.created_by : '') +
@@ -1449,9 +1480,76 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
             document.getElementById('moCampApprove').classList.toggle('mo-hidden', retryable);
             document.getElementById('moCampRetry').classList.toggle('mo-hidden', !retryable);
             document.getElementById('moCampStep').textContent = editable ? <?php echo json_encode(ma('step_edit')); ?> : '';
-            renderMessages(d.recipients, editable);
+            state.recipPage = 1;
+            renderProgress(d.recipient_counts || {}, d.recipient_total || 0);
+            loadLegacyRecipients(editable);
         }).catch(function () { showErr(STR.loadFailed); });
     }
+
+    // Paged recipient list for large campaigns (shared toolbar markup).
+    var recipFilters = { q: '', status: '', review: false, page: 1 };
+    function loadLegacyRecipients(editable) {
+        apiGet('campaign_recipients', {
+            campaign_id: state.currentCampaign, page: recipFilters.page, per: 25,
+            q: recipFilters.q, status: recipFilters.status, review: recipFilters.review ? 1 : 0
+        }).then(function (d) {
+            if (!d.success) { showErr(d.error || STR.loadFailed); return; }
+            renderMessages(d.recipients || [], editable);
+            var pg = document.getElementById('moRecipPager');
+            if (pg) {
+                pg.innerHTML = d.pages > 1
+                    ? '<button class="mo-btn secondary small" data-pg="prev"' + (d.page <= 1 ? ' disabled' : '') + '>‹</button> ' +
+                      STR.pageOf.replace('{p}', d.page).replace('{n}', d.pages) +
+                      ' <button class="mo-btn secondary small" data-pg="next"' + (d.page >= d.pages ? ' disabled' : '') + '>›</button>' +
+                      ' <span>(' + d.total + ')</span>'
+                    : ' <span>(' + d.total + ')</span>';
+                pg.querySelectorAll('button[data-pg]').forEach(function (b) {
+                    b.addEventListener('click', function () {
+                        recipFilters.page += b.dataset.pg === 'next' ? 1 : -1;
+                        loadLegacyRecipients(editable);
+                    });
+                });
+            }
+        }).catch(function () { showErr(STR.loadFailed); });
+    }
+    function renderProgress(counts, total) {
+        var el = document.getElementById('moCampProgress');
+        if (!el) return;
+        if (!total) { el.classList.add('mo-hidden'); return; }
+        el.classList.remove('mo-hidden');
+        var sent = counts.sent || 0;
+        var fill = document.getElementById('moCampProgressFill');
+        if (fill) { fill.style.width = Math.round(sent / total * 100) + '%'; fill.classList.toggle('done', sent >= total); }
+        var txt = document.getElementById('moCampProgressText');
+        if (txt) {
+            var parts = [STR.progressSent.replace('{s}', sent).replace('{t}', total)];
+            ['draft','ready','approved','sending','failed','skipped','suppressed','uncertain'].forEach(function (k) {
+                if (counts[k]) parts.push(k + ': ' + counts[k]);
+            });
+            txt.textContent = parts.join(' · ');
+        }
+    }
+    // Wire the shared recipient toolbar once.
+    (function () {
+        var rq = document.getElementById('moRecipQ');
+        if (rq) rq.addEventListener('input', function () {
+            recipFilters.q = rq.value.trim(); recipFilters.page = 1;
+            if (state.currentCampaign) {
+                var ed = ['draft','ready'].includes((state.campaignStatus || ''));
+                loadLegacyRecipients(ed);
+            }
+        });
+        var rs = document.getElementById('moRecipStatus');
+        if (rs) rs.addEventListener('change', function () {
+            recipFilters.status = rs.value; recipFilters.page = 1;
+            if (state.currentCampaign) loadLegacyRecipients(['draft','ready'].includes(state.campaignStatus || ''));
+        });
+        var rr = document.getElementById('moRecipReview');
+        if (rr) rr.addEventListener('change', function () {
+            recipFilters.review = rr.checked; recipFilters.page = 1;
+            if (state.currentCampaign) loadLegacyRecipients(['draft','ready'].includes(state.campaignStatus || ''));
+        });
+    })();
 
     function renderMessages(recipients, editable) {
         var host = document.getElementById('moCampMessages');
@@ -1827,7 +1925,7 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
                 tagsPh: <?php echo json_encode(ma('tags_ph')); ?>,
                 save: <?php echo json_encode(ma('save')); ?>,
                 cancel: <?php echo json_encode(ma('cancel')); ?>,
-                maxRecipients: '10',
+                maxRecipients: <?php echo json_encode(ma('max_recipients_label')); ?>,
                 noCampaigns: <?php echo json_encode(ma('no_campaigns')); ?>,
                 colTags: <?php echo json_encode(ma('col_tags')); ?>,
                 newDraftCampaign: <?php echo json_encode(ma('new_draft_campaign')); ?>,
@@ -1977,7 +2075,12 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
                 threadsAmbiguous: <?php echo json_encode(ma('threads_ambiguous')); ?>,
                 threadsUnverifiable: <?php echo json_encode(ma('threads_unverifiable')); ?>,
                 threadsSheetError: <?php echo json_encode(ma('threads_sheet_error')); ?>,
-                threadsNone: <?php echo json_encode(ma('threads_none')); ?>
+                threadsNone: <?php echo json_encode(ma('threads_none')); ?>,
+                pageOf: <?php echo json_encode(ma('page_of')); ?>,
+                progressSent: <?php echo json_encode(ma('progress_sent')); ?>,
+                sendingBg: <?php echo json_encode(ma('sending_bg')); ?>,
+                sendPausedNote: <?php echo json_encode(ma('send_paused_note')); ?>,
+                confirmStopSend: <?php echo json_encode(ma('confirm_stop_send')); ?>
             }
         });
     }

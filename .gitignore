@@ -168,6 +168,7 @@ screenshots/
 !/tests/marketing-reply-test.php
 !/tests/marketing-crm-render-test.php
 !/tests/marketing-mcp-campaign-test.php
+!/tests/marketing-large-campaign-test.php
 !/tests/landing-page-refresh-test.js
 !/tests/lab-insights-recs-test.php
 !/tests/lab-quality-test.php
