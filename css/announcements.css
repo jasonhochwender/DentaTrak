@@ -46,6 +46,7 @@
 
 .dt-announcement-message {
   margin: 0;
+  padding-bottom: 4px;
   white-space: pre-line;
   overflow-wrap: anywhere;
 }
