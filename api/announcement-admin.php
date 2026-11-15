@@ -199,11 +199,13 @@ function handlePostRequest(string $action): void {
             $published = !empty($input['published']) ? 1 : 0;
             $enabled   = array_key_exists('enabled', $input) ? (!empty($input['enabled']) ? 1 : 0) : 1;
 
-            if (!checkScheduleConflict($pdo, null, $window['start_utc'], $window['end_utc'], (bool)$published, (bool)$enabled)) {
-                return;
-            }
-
             if ($action === 'create') {
+                // Creates have no self to exclude; updates re-validate below
+                // with the row id so an announcement never conflicts with
+                // itself when its schedule is unchanged.
+                if (!checkScheduleConflict($pdo, null, $window['start_utc'], $window['end_utc'], (bool)$published, (bool)$enabled)) {
+                    return;
+                }
                 $stmt = $pdo->prepare("INSERT INTO announcements
                     (title, message, type, audience, visible_to, display_start_utc, display_end_utc, display_timezone, published, enabled, created_by)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");

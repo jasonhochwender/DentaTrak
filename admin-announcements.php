@@ -481,11 +481,11 @@ var ANN_I18N = <?= json_encode([
                         + '<div class="ann-msg">' + esc(VIS_LABELS[a.visible_to] || a.visible_to || 'all') + '</div></td>' +
                     '<td>' + fmtWindow(a) + '<div class="ann-msg">' + esc(a.display_timezone || 'UTC') + '</div></td>' +
                     '<td><span class="ann-pill ann-pill-' + esc(a.status) + '">' + esc(STATUS_LABELS[a.status] || a.status) + '</span></td>' +
-                    '<td><button type="button" class="ann-link-btn" data-act="toggle-enabled" data-id="' + a.id + '" data-val="' + (a.enabled ? 0 : 1) + '">' + (a.enabled ? ANN_I18N.btnDisable : ANN_I18N.btnEnable) + '</button></td>' +
+                    '<td><button type="button" class="ann-link-btn" data-act="set_enabled" data-id="' + a.id + '" data-val="' + (a.enabled ? 0 : 1) + '">' + (a.enabled ? ANN_I18N.btnDisable : ANN_I18N.btnEnable) + '</button></td>' +
                     '<td><div class="ann-actions">' +
                         '<button type="button" class="ann-link-btn" data-act="edit" data-id="' + a.id + '">' + ANN_I18N.btnEdit + '</button>' +
                         '<button type="button" class="ann-link-btn" data-act="duplicate" data-id="' + a.id + '">' + ANN_I18N.btnDuplicate + '</button>' +
-                        '<button type="button" class="ann-link-btn" data-act="toggle-published" data-id="' + a.id + '" data-val="' + (a.published ? 0 : 1) + '">' + (a.published ? ANN_I18N.btnUnpublish : ANN_I18N.btnPublish) + '</button>' +
+                        '<button type="button" class="ann-link-btn" data-act="set_published" data-id="' + a.id + '" data-val="' + (a.published ? 0 : 1) + '">' + (a.published ? ANN_I18N.btnUnpublish : ANN_I18N.btnPublish) + '</button>' +
                         '<button type="button" class="ann-link-btn danger" data-act="delete" data-id="' + a.id + '">' + ANN_I18N.btnDelete + '</button>' +
                     '</div></td>';
                 tb.appendChild(tr);
@@ -612,15 +612,15 @@ var ANN_I18N = <?= json_encode([
             });
             return;
         }
-        if (act === 'toggle-enabled' || act === 'toggle-published') {
+        if (act === 'set_enabled' || act === 'set_published') {
             var val = parseInt(btn.dataset.val, 10);
             // Pre-check enabling/publishing against the schedule rule.
             if (val === 1) {
                 var row = null;
                 for (var i = 0; i < annRows.length; i++) { if (annRows[i].id === id) { row = annRows[i]; break; } }
                 if (row) {
-                    var effEnabled = act === 'toggle-enabled' ? 1 : Number(row.enabled);
-                    var effPublished = act === 'toggle-published' ? 1 : Number(row.published);
+                    var effEnabled = act === 'set_enabled' ? 1 : Number(row.enabled);
+                    var effPublished = act === 'set_published' ? 1 : Number(row.published);
                     var rs = utcParse(row.display_start_utc), re = utcParse(row.display_end_utc);
                     if (effEnabled && effPublished && rs && re && re.getTime() > Date.now()) {
                         var cf2 = findClientConflict(rs, re, id);

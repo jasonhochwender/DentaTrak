@@ -9,10 +9,17 @@
   flex-direction: column;
   gap: 8px;
   padding: 10px 24px 0;
+  margin-bottom: 14px;
   max-width: 1400px;
-  margin: 0 auto;
+  margin-left: auto;
+  margin-right: auto;
   width: 100%;
   box-sizing: border-box;
+}
+
+/* No banner -> no reserved space at all. */
+.dt-announcements:empty {
+  display: none;
 }
 
 .dt-announcement {
