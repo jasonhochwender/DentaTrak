@@ -127,6 +127,11 @@ final class CampaignSendRunner
         }
 
         $svc = new SuppressionService($pdo);
+        // Campaign-scoped send authorization, read fresh for this batch:
+        // lifts only the recipient allowlist for THIS campaign. Every
+        // other gate (MARKETING_SENDING, suppression, eligibility,
+        // content hash upstream, ledger idempotency) still applies.
+        $sendAuthorized = mo_campaign_send_authorized($pdo, $cid);
         $sent = 0; $skipped = 0; $failed = 0; $uncertain = 0; $blocked = 0; $sheetFailed = 0; $results = [];
         foreach ($recips as $r) {
             if ($paceMicros > 0) usleep($paceMicros);
@@ -139,8 +144,9 @@ final class CampaignSendRunner
             }
             $email = SuppressionService::normalizeEmail($r['prospect_email']);
 
-            // 0) Recipient-level delivery control (test allowlist).
-            $gate = $mailer->policy()->check($email);
+            // 0) Recipient-level delivery control (test allowlist, lifted
+            //    only for an explicitly send-authorized campaign).
+            $gate = $mailer->deliveryCheck($email, $sendAuthorized);
             if (!$gate['allowed']) {
                 $pdo->prepare("UPDATE marketing_campaign_recipients SET status='approved', skip_reason=? WHERE id=?")
                     ->execute([$gate['reason'], $r['id']]);
@@ -208,7 +214,7 @@ final class CampaignSendRunner
             $res = $mailer->send([
                 'to' => $email, 'subject' => (string)$r['subject'],
                 'html' => (string)$r['body_html'], 'campaign' => $ref,
-                'thread' => $thread,
+                'thread' => $thread, 'campaign_authorized' => $sendAuthorized,
             ]);
             $st = $res['status'] ?? 'uncertain';
             // The ledger already holds a confirmed send for this recipient.

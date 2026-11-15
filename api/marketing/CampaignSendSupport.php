@@ -59,6 +59,22 @@ function mo_sendable_remaining(PDO $pdo, string $campaignId): int {
     return (int)$st->fetchColumn();
 }
 
+/**
+ * Whether an administrator has explicitly authorized THIS campaign's
+ * recipients to receive mail (lifts only the recipient allowlist for
+ * this campaign's sends). Read fresh per batch so a revocation takes
+ * effect on the next pass. Fails closed when the column is absent.
+ */
+function mo_campaign_send_authorized(PDO $pdo, string $campaignId): bool {
+    try {
+        $st = $pdo->prepare('SELECT send_authorized FROM marketing_campaigns WHERE id=?');
+        $st->execute([$campaignId]);
+        return (bool)$st->fetchColumn();
+    } catch (Throwable $e) {
+        return false;
+    }
+}
+
 /** Recompute campaign status + counters from its recipients. */
 function mo_rollup(PDO $pdo, string $campaignId): array {
     $cnt = $pdo->prepare('SELECT status, COUNT(*) n FROM marketing_campaign_recipients WHERE campaign_id=? GROUP BY status');

@@ -120,6 +120,19 @@ assertContains($page, '/id="moCampProgress"/', 'page must render the campaign pr
 assertContains($baseDir . '/api/marketing/McpCampaignTools.php', '/RECIPIENTS_PAGE_MAX/', 'MCP get_campaign must paginate recipients');
 assertContains($baseDir . '/api/marketing/McpCampaignTools.php', '/CAMPAIGN_MAX = 500/', 'MCP campaign capacity must match the raised cap');
 
+// ---- 5d. Campaign-scoped send authorization ----
+assertContains($api, "/case 'campaign_send_auth'/", 'API must expose per-campaign send authorization');
+assertContains($api, '/campaign_send_authorized/', 'authorization must be audit-logged');
+assertContains($api, '/campaign_send_unauthorized/', 'revocation must be audit-logged');
+assertContains($baseDir . '/api/marketing/CampaignSendSupport.php', '/function mo_campaign_send_authorized/', 'runner must read authorization fresh per batch');
+assertContains($baseDir . '/api/marketing/MarketingMailer.php', '/function deliveryCheck/', 'mailer must expose the campaign-aware delivery gate');
+assertContains($baseDir . '/api/marketing/MarketingMailer.php', "/'campaign_authorized'/", 'send must honor the server-side authorization flag');
+assertContains($baseDir . '/api/marketing/CampaignSendRunner.php', '/campaign_authorized/', 'runner must pass authorization to the mailer');
+assertContains($baseDir . '/migrations/2026_11_23_marketing_campaign_send_auth.php', '/send_authorized/', 'migration must add send_authorized');
+assertContains($baseDir . '/js/marketing-crm.js', '/campaign_send_auth/', 'CRM UI must expose the authorization control');
+assertContains($page, '/id="moCampAuthCrm"/', 'page must render the authorization button');
+assertContains($page, '/sendAuthBadge/', 'page must pass the authorized badge string');
+
 // ---- 5a. Controlled pilot: per-recipient send selection ----
 // recipient_ids may only narrow the sendable set; every other gate still
 // applies per row. The env allowlist remains the hard delivery gate.

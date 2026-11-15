@@ -927,7 +927,13 @@
             $('moCampMeta').textContent = c.kind + ' · ' + c.status +
                 (c.created_by ? ' · ' + c.created_by : '') +
                 (c.approved_by ? ' · ' + S('approvedBy') + ' ' + c.approved_by : '') +
+                (c.send_authorized ? ' · ' + S('sendAuthBadge') + (c.send_authorized_by ? ' (' + c.send_authorized_by + ')' : '') : '') +
                 (c.description ? ' — ' + c.description : '');
+            var authBtn = $('moCampAuthCrm');
+            if (authBtn) {
+                authBtn.textContent = c.send_authorized ? S('revokeSendAuth') : S('authorizeSending');
+                authBtn.title = c.send_authorized ? S('confirmRevokeSendAuth') : S('confirmAuthorizeSend');
+            }
             var warn = $('moCampApproveWarn');
             if (c.status === 'approved' || c.status === 'partial') {
                 warn.textContent = S('approveWarn'); warn.classList.remove('mo-hidden');
@@ -1378,6 +1384,22 @@
         confirmModal(S('confirmApproveOnly'), function () { doApprove(false); });
     }
 
+    // Per-campaign send authorization: lifts ONLY the recipient allowlist
+    // for this campaign. Never sends anything by itself - approval and an
+    // explicit Send action are still required.
+    function campToggleSendAuth() {
+        var c = campState.campaign;
+        if (!c) return;
+        var on = !c.send_authorized;
+        confirmModal(on ? S('confirmAuthorizeSend') : S('confirmRevokeSendAuth'), function () {
+            apiPost('campaign_send_auth', { campaign_id: c.id, authorized: on }).then(function (d) {
+                if (!d.success) { showErr(d.error || S('loadFailed')); return; }
+                showOk(S('sendAuthDone'));
+                openCampaign(c.id);
+            });
+        });
+    }
+
     // Chunked thread resolution: the endpoint processes a bounded batch
     // per call and reports how many remain unresolved.
     function resolveThreadsLoop(done) {
@@ -1559,6 +1581,7 @@
                 recipReview = this.checked; recipPage = 1; if (campState.current) loadRecipients();
             });
             if ($('moCampSigCrm')) $('moCampSigCrm').onclick = openSignatureModal;
+            if ($('moCampAuthCrm')) $('moCampAuthCrm').onclick = campToggleSendAuth;
             if ($('moCampTplCrm')) $('moCampTplCrm').onchange = function () {
                 if (!campState.campaign) return;
                 apiPost('campaign_update', { campaign_id: campState.campaign.id, template_id: this.value || null })

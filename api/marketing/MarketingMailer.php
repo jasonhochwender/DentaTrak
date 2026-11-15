@@ -91,6 +91,23 @@ final class MarketingMailer
     }
 
     /**
+     * Effective delivery gate for one recipient. Identical to
+     * policy->check() except that an explicitly send-authorized campaign
+     * lifts ONLY the recipient allowlist (recipient_not_allowlisted).
+     * sending_disabled, suppression, and every other gate still apply.
+     * The flag must come from the campaign row server-side - callers
+     * outside the campaign send path never set it.
+     */
+    public function deliveryCheck(string $email, bool $campaignAuthorized = false): array
+    {
+        $gate = $this->policy->check($email);
+        if (!$gate['allowed'] && $gate['reason'] === 'recipient_not_allowlisted' && $campaignAuthorized) {
+            return ['allowed' => true, 'reason' => 'campaign_authorized'];
+        }
+        return $gate;
+    }
+
+    /**
      * Send one marketing email.
      *
      * @param array $in to, subject, html, campaign, dry_run?,
@@ -117,11 +134,14 @@ final class MarketingMailer
         if (!empty($in['dry_run'])) {
             return ['status' => 'dry_run', 'email' => $to,
                 'eligible' => $this->svc->eligibility([$to])[0]['eligible'],
-                'sending' => $this->policy->check($to)];
+                'sending' => $this->deliveryCheck($to, !empty($in['campaign_authorized']))];
         }
 
         // Delivery control first: nothing is recorded or sent when blocked.
-        $gate = $this->policy->check($to);
+        // campaign_authorized is set only by the campaign send runner after
+        // reading the campaign row - it lifts the recipient allowlist for
+        // this campaign's sends and nothing else.
+        $gate = $this->deliveryCheck($to, !empty($in['campaign_authorized']));
         if (!$gate['allowed']) {
             return ['status' => $gate['reason'], 'email' => $to, 'error' => $gate['reason']];
         }
