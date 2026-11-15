@@ -51,7 +51,20 @@
   --warning-color: #f59e0b;
   --error-color: #ef4444;
   --info-color: #3b82f6;
-  
+
+  /* Case urgency palette - Late (red), Coming Due (blue), Appt Risk (purple).
+     *-edge is the saturated same-hue gradient end used behind card/row
+     * backgrounds; *-soft is a readable tint for small flag chips. */
+  --urgency-late: #C72E42;
+  --urgency-late-edge: #E08C97;
+  --urgency-duesoon: #286AC4;
+  --urgency-duesoon-edge: #89ADDF;
+  --urgency-appt-risk: #7443B8;
+  --urgency-appt-risk-edge: #B398D8;
+  --urgency-late-soft: #F3DDE0;
+  --urgency-duesoon-soft: #DFE9F7;
+  --urgency-appt-risk-soft: #E4DEF3;
+
   /* Environment-specific colors */
   --dev-bg-light: #fef3c7; /* Amber 100 */
   --dev-bg-gradient-start: #fef3c7;
@@ -2380,40 +2393,40 @@ body {
   letter-spacing: 0.5px;
   padding: 2px 6px;
   border-radius: var(--radius-sm);
-  background-color: #fef2f2;
-  color: #dc2626 !important;
+  background-color: var(--urgency-late-soft, #FBE4E8);
+  color: var(--urgency-late) !important;
   margin-left: 8px;
   vertical-align: middle;
 }
 
 /* Past due card highlighting - strong red border and background */
 .kanban-card-past-due {
-  border-color: #dc2626;
-  background: linear-gradient(135deg, #ffffff 0%, #fecaca 100%);
+  border-color: var(--urgency-late);
+  background: linear-gradient(135deg, #ffffff 0%, var(--urgency-late-edge) 100%);
 }
 
 .kanban-card-past-due .late-indicator {
   color: #fff !important;
   font-weight: 700;
-  background-color: #dc2626;
+  background-color: var(--urgency-late);
 }
 
 /* Coming-due card highlighting - strong blue border and background */
 .kanban-card-coming-due {
-  border-color: #2563eb;
-  background: linear-gradient(135deg, #ffffff 0%, #bfdbfe 100%);
+  border-color: var(--urgency-duesoon);
+  background: linear-gradient(135deg, #ffffff 0%, var(--urgency-duesoon-edge) 100%);
 }
 
 .kanban-card-coming-due .late-indicator {
   color: #fff !important;
   font-weight: 700;
-  background-color: #2563eb;
+  background-color: var(--urgency-duesoon);
 }
 
 /* Appointment-risk card highlighting - strong purple border and background */
 .kanban-card-appointment-risk {
-  border-color: #7e22ce;
-  background: linear-gradient(135deg, #ffffff 0%, #ddd6fe 100%);
+  border-color: var(--urgency-appt-risk);
+  background: linear-gradient(135deg, #ffffff 0%, var(--urgency-appt-risk-edge) 100%);
 }
 
 .appointment-risk-indicator {
@@ -2424,7 +2437,7 @@ body {
   font-size: 0.58rem;
   font-weight: 700;
   color: #fff;
-  background-color: #7e22ce;
+  background-color: var(--urgency-appt-risk);
   vertical-align: middle;
 }
 

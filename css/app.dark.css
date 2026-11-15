@@ -69,13 +69,28 @@
 
   /* Highlighted case-card tokens: Late = red, Appointment Risk = violet,
      Due Soon = blue. Hues are deliberately far apart so the states are
-     distinguishable at a glance on dark surfaces. */
-  --case-late-accent: #f87171;
-  --case-late-tint: rgba(220, 38, 38, 0.45);
-  --case-risk-accent: #c084fc;
-  --case-risk-tint: rgba(168, 85, 247, 0.38);
-  --case-duesoon-accent: #60a5fa;
-  --case-duesoon-tint: rgba(37, 99, 235, 0.38);
+     distinguishable at a glance on dark surfaces. Accent values are
+     lightened variants of the shared light-theme urgency hues. */
+  --urgency-late: #d96a7d;
+  --urgency-late-edge: #3d1f26;
+  --urgency-late-soft: rgba(217, 106, 125, 0.18);
+  --urgency-duesoon: #6f9be0;
+  --urgency-duesoon-edge: #1c2a44;
+  --urgency-duesoon-soft: rgba(111, 155, 224, 0.18);
+  --urgency-appt-risk: #9a7bd4;
+  --urgency-appt-risk-edge: #2b2140;
+  --urgency-appt-risk-soft: rgba(154, 123, 212, 0.18);
+  /* Solid chip/badge fills keep the canonical hues so white label text
+     stays above 4.5:1 contrast on dark surfaces. */
+  --urgency-late-solid: #C72E42;
+  --urgency-duesoon-solid: #286AC4;
+  --urgency-appt-risk-solid: #7443B8;
+  --case-late-accent: #d96a7d;
+  --case-late-tint: rgba(199, 46, 66, 0.45);
+  --case-risk-accent: #9a7bd4;
+  --case-risk-tint: rgba(116, 67, 184, 0.42);
+  --case-duesoon-accent: #6f9be0;
+  --case-duesoon-tint: rgba(40, 106, 196, 0.42);
   --case-highlight-fg: #e2e8f0;
   --case-highlight-sub: #cbd5e1;
 
@@ -1636,11 +1651,17 @@
   background: linear-gradient(135deg, #1e293b 0%, var(--case-late-tint) 100%);
 }
 
+/* Base indicator chips (outside highlighted cards) use the soft dark tints */
+[data-theme="dark"] .late-indicator {
+  background: var(--urgency-late-soft);
+  color: var(--urgency-late);
+}
+
 [data-theme="dark"] .kanban-card-past-due .late-indicator,
 [data-theme="dark"] .case-card-past-due .late-indicator,
 [data-theme="dark"] .past-due .late-indicator {
-  color: #fff;
-  background-color: #dc2626;
+  color: #fff !important;
+  background-color: var(--urgency-late-solid);
 }
 
 [data-theme="dark"] .kanban-card-coming-due,
@@ -1653,8 +1674,8 @@
 [data-theme="dark"] .kanban-card-coming-due .late-indicator,
 [data-theme="dark"] .case-card-coming-due .late-indicator,
 [data-theme="dark"] .coming-due .late-indicator {
-  color: #fff;
-  background-color: #2563eb;
+  color: #fff !important;
+  background-color: var(--urgency-duesoon-solid);
 }
 
 [data-theme="dark"] .kanban-card-appointment-risk,
@@ -1667,7 +1688,7 @@
 [data-theme="dark"] .kanban-card-appointment-risk .appointment-risk-indicator,
 [data-theme="dark"] .appointment-risk .appointment-risk-indicator {
   color: #fff;
-  background-color: #a855f7;
+  background-color: var(--urgency-appt-risk-solid);
 }
 
 /* Card text stays readable on the tinted highlight surfaces */

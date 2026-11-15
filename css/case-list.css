@@ -279,18 +279,18 @@
 }
 
 .cl-flag-late {
-  color: #b91c1c;
-  background: #fef2f2;
+  color: #fff;
+  background: var(--urgency-late);
 }
 
 .cl-flag-duesoon {
-  color: #1d4ed8;
-  background: #eff6ff;
+  color: #fff;
+  background: var(--urgency-duesoon);
 }
 
 .cl-flag-appt {
-  color: #7e22ce;
-  background: #faf5ff;
+  color: #fff;
+  background: var(--urgency-appt-risk);
 }
 
 .cl-flag-atrisk {
@@ -299,13 +299,34 @@
 }
 
 .cl-due-late {
-  color: #b91c1c;
+  color: var(--urgency-late);
   font-weight: 600;
 }
 
 .cl-appt-risk {
-  color: #7e22ce;
+  color: var(--urgency-appt-risk);
   font-weight: 600;
+}
+
+/* Whole-row urgency treatment, mirroring the Kanban card precedence
+   (Late > Appt Risk > Due Soon). The gradient stays saturated but light
+   enough for body text; hover/focus deepen it via an inset overlay so
+   the urgency color is never obscured. */
+.case-list-row.cl-urgency-late {
+  background: linear-gradient(135deg, #ffffff 0%, var(--urgency-late-edge) 100%);
+}
+
+.case-list-row.cl-urgency-duesoon {
+  background: linear-gradient(135deg, #ffffff 0%, var(--urgency-duesoon-edge) 100%);
+}
+
+.case-list-row.cl-urgency-appt {
+  background: linear-gradient(135deg, #ffffff 0%, var(--urgency-appt-risk-edge) 100%);
+}
+
+.case-list-row[class*="cl-urgency-"]:hover,
+.case-list-row[class*="cl-urgency-"]:focus-within {
+  box-shadow: inset 0 0 0 100px rgba(15, 23, 42, 0.06);
 }
 
 /* Review chip inside the list reuses .kanban-card-review styles;
@@ -538,10 +559,28 @@
 
 
 /* Dark theme - flag chips */
-[data-theme="dark"] .cl-flag-late { color: #fca5a5; background: rgba(248, 113, 113, 0.15); }
-[data-theme="dark"] .cl-flag-duesoon { color: #93c5fd; background: rgba(96, 165, 250, 0.15); }
-[data-theme="dark"] .cl-flag-appt { color: #d8b4fe; background: rgba(192, 132, 252, 0.15); }
+[data-theme="dark"] .cl-flag-late { color: #fff; background: var(--urgency-late-solid); }
+[data-theme="dark"] .cl-flag-duesoon { color: #fff; background: var(--urgency-duesoon-solid); }
+[data-theme="dark"] .cl-flag-appt { color: #fff; background: var(--urgency-appt-risk-solid); }
 [data-theme="dark"] .cl-flag-atrisk { color: #fdba74; background: rgba(251, 146, 60, 0.15); }
-[data-theme="dark"] .cl-due-late { color: #fca5a5; }
-[data-theme="dark"] .cl-appt-risk { color: #d8b4fe; }
+[data-theme="dark"] .cl-due-late { color: #E78CA0; }
+[data-theme="dark"] .cl-appt-risk { color: #B79AE8; }
+
+/* Dark theme - whole-row urgency gradients over the dark surface */
+[data-theme="dark"] .case-list-row.cl-urgency-late {
+  background: linear-gradient(135deg, rgba(199, 46, 66, 0.10) 0%, rgba(199, 46, 66, 0.30) 100%);
+}
+
+[data-theme="dark"] .case-list-row.cl-urgency-duesoon {
+  background: linear-gradient(135deg, rgba(40, 106, 196, 0.10) 0%, rgba(40, 106, 196, 0.30) 100%);
+}
+
+[data-theme="dark"] .case-list-row.cl-urgency-appt {
+  background: linear-gradient(135deg, rgba(116, 67, 184, 0.10) 0%, rgba(116, 67, 184, 0.32) 100%);
+}
+
+[data-theme="dark"] .case-list-row[class*="cl-urgency-"]:hover,
+[data-theme="dark"] .case-list-row[class*="cl-urgency-"]:focus-within {
+  box-shadow: inset 0 0 0 100px rgba(255, 255, 255, 0.05);
+}
 

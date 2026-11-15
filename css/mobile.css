@@ -518,21 +518,21 @@
   }
 
   .mobile-case-badge-late {
-    background: #fef2f2;
-    color: #b91c1c;
-    border: 1px solid #fecaca;
+    background: var(--urgency-late);
+    color: #fff;
+    border: 1px solid var(--urgency-late);
   }
 
   .mobile-case-badge-appointment-risk {
-    background: #f3e8ff;
-    color: #7e22ce;
-    border: 1px solid #e9d5ff;
+    background: var(--urgency-appt-risk);
+    color: #fff;
+    border: 1px solid var(--urgency-appt-risk);
   }
 
   .mobile-case-badge-due-soon {
-    background: #eff6ff;
-    color: #1d4ed8;
-    border: 1px solid #dbeafe;
+    background: var(--urgency-duesoon);
+    color: #fff;
+    border: 1px solid var(--urgency-duesoon);
   }
 
   .mobile-case-badge-revisions {
@@ -2656,21 +2656,21 @@
 
 /* Dark theme - hardcoded surfaces */
 [data-theme="dark"] .mobile-case-badge-late {
-  background: rgba(248, 113, 113, 0.15);
-  color: #fca5a5;
-  border-color: rgba(248, 113, 113, 0.4);
+  background: var(--urgency-late-solid);
+  color: #fff;
+  border-color: var(--urgency-late-solid);
 }
 
 [data-theme="dark"] .mobile-case-badge-appointment-risk {
-  background: rgba(192, 132, 252, 0.15);
-  color: #d8b4fe;
-  border-color: rgba(192, 132, 252, 0.4);
+  background: var(--urgency-appt-risk-solid);
+  color: #fff;
+  border-color: var(--urgency-appt-risk-solid);
 }
 
 [data-theme="dark"] .mobile-case-badge-due-soon {
-  background: rgba(96, 165, 250, 0.15);
-  color: #93c5fd;
-  border-color: rgba(96, 165, 250, 0.4);
+  background: var(--urgency-duesoon-solid);
+  color: #fff;
+  border-color: var(--urgency-duesoon-solid);
 }
 
 [data-theme="dark"] .mobile-case-badge-revisions {

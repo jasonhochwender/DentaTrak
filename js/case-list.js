@@ -528,7 +528,12 @@
     var isAtRisk = !!(window.featureFlags && window.featureFlags.SHOW_AT_RISK &&
       caseData.atRisk && caseData.atRisk.isAtRisk);
 
-    var html = '<tr class="case-list-row" data-case-id="' + esc(id) + '"' +
+    // Row-level urgency tint mirrors the card precedence: Late > Appt Risk > Due Soon.
+    var urgencyClass = flags.late ? ' cl-urgency-late'
+      : (flags.apptRisk ? ' cl-urgency-appt'
+      : (flags.dueSoon ? ' cl-urgency-duesoon' : ''));
+
+    var html = '<tr class="case-list-row' + urgencyClass + '" data-case-id="' + esc(id) + '"' +
       (caseData.archived ? ' data-archived="1"' : '') + '>';
 
     // Expand chevron
