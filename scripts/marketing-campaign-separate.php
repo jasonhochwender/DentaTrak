@@ -112,8 +112,8 @@ function sep_flag_state(PDO $pdo, string $campaignId): array {
 
 /* ---------------- Verify ---------------- */
 
-function sep_verify(PDO $pdo): array {
-    $report = ['campaigns' => [], 'checks' => [], 'all_campaigns' => []];
+function sep_verify(PDO $pdo, bool $postApply = false): array {
+    $report = ['campaigns' => [], 'checks' => [], 'all_campaigns' => [], 'post_apply' => $postApply];
     $problems = [];
 
     // All campaigns overview (identifies the completed 10-recipient one).
@@ -172,19 +172,52 @@ function sep_verify(PDO $pdo): array {
         'present' => count(array_intersect(SEP_FOLLOWUP_CONTACT_IDS, $origFu)),
         'missing' => array_values(array_diff(SEP_FOLLOWUP_CONTACT_IDS, $origFu)),
     ];
-    if ($report['checks']['orig_followup_listed_present']['missing']) $problems[] = 'orig_followup missing listed contacts';
     $report['checks']['orig_initial_listed_present'] = [
         'expected' => count(SEP_INITIAL_CONTACT_IDS),
         'present' => count(array_intersect(SEP_INITIAL_CONTACT_IDS, $origIn)),
         'missing' => array_values(array_diff(SEP_INITIAL_CONTACT_IDS, $origIn)),
     ];
-    if ($report['checks']['orig_initial_listed_present']['missing']) $problems[] = 'orig_initial missing listed contacts';
+    if (!$postApply) {
+        if ($report['checks']['orig_followup_listed_present']['missing']) $problems[] = 'orig_followup missing listed contacts';
+        if ($report['checks']['orig_initial_listed_present']['missing']) $problems[] = 'orig_initial missing listed contacts';
+    }
 
-    // No contact may appear in both an original campaign and its DSO pair.
+    // Membership overlap between an original campaign and its DSO pair.
+    // Pre-apply the transferred contacts are expected to sit in BOTH
+    // campaigns (that is what the separation removes); post-apply any
+    // overlap is a hard failure.
     $report['checks']['followup_overlap'] = array_values(array_intersect($origFu, $dsoFu));
     $report['checks']['initial_overlap'] = array_values(array_intersect($origIn, $dsoIn));
-    if ($report['checks']['followup_overlap'] || $report['checks']['initial_overlap']) {
-        $problems[] = 'contact overlap between original and DSO campaigns';
+    sort($report['checks']['followup_overlap']);
+    sort($report['checks']['initial_overlap']);
+    $expectedFuOverlap = SEP_DSO_FOLLOWUP_CONTACT_IDS; sort($expectedFuOverlap);
+    $expectedInOverlap = SEP_INITIAL_CONTACT_IDS; sort($expectedInOverlap);
+    if (!$postApply) {
+        if ($report['checks']['followup_overlap'] !== $expectedFuOverlap) {
+            $problems[] = 'pre-apply follow-up overlap does not equal the expected 22 transferred contacts';
+        }
+        if ($report['checks']['initial_overlap'] !== $expectedInOverlap) {
+            $problems[] = 'pre-apply intro overlap does not equal contacts 1778,1811';
+        }
+    } else {
+        if ($report['checks']['followup_overlap'] !== [] || $report['checks']['initial_overlap'] !== []) {
+            $problems[] = 'contact overlap remains between original and DSO campaigns';
+        }
+        $fuRows = sep_campaign_count($pdo, SEP_CAMPAIGNS['orig_followup']);
+        $inRows = sep_campaign_count($pdo, SEP_CAMPAIGNS['orig_initial']);
+        $report['checks']['final_counts'] = [
+            'orig_followup' => $fuRows, 'orig_initial' => $inRows,
+            'dso_followup' => sep_campaign_count($pdo, SEP_CAMPAIGNS['dso_followup']),
+            'dso_initial' => sep_campaign_count($pdo, SEP_CAMPAIGNS['dso_initial']),
+        ];
+        if ($fuRows !== 246) $problems[] = "orig_followup has $fuRows rows, expected 246";
+        if ($inRows !== 99) $problems[] = "orig_initial has $inRows rows, expected 99";
+        if ($report['checks']['final_counts']['dso_followup'] !== 22) $problems[] = 'dso_followup row count != 22';
+        if ($report['checks']['final_counts']['dso_initial'] !== 2) $problems[] = 'dso_initial row count != 2';
+        // Listed contacts must be gone from the originals.
+        $stillFu = array_values(array_intersect(SEP_FOLLOWUP_CONTACT_IDS, $origFu));
+        $stillIn = array_values(array_intersect(SEP_INITIAL_CONTACT_IDS, $origIn));
+        if ($stillFu || $stillIn) $problems[] = 'listed contacts still present in original campaigns';
     }
 
     // Expected post-removal counts.
@@ -248,7 +281,7 @@ function sep_apply(PDO $pdo): int {
     ])]);
 
     echo "\n== post-apply verify ==\n";
-    $after = sep_verify($pdo);
+    $after = sep_verify($pdo, true);
     foreach (['orig_followup', 'orig_initial', 'dso_followup', 'dso_initial'] as $k) {
         $c = $after['campaigns'][$k] ?? null;
         if ($c) echo "  $k: rows={$c['actual_rows']} status={$c['status']} recipient_count_col={$c['recipient_count_col']} breakdown=" . json_encode($c['status_breakdown']) . "\n";
