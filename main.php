@@ -782,6 +782,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   
   <!-- Mobile responsiveness CSS -->
   <link rel="stylesheet" href="<?= appAssetUrl('css/mobile.css') ?>">
+  <link rel="stylesheet" href="<?= appAssetUrl('css/announcements.css') ?>">
   
   <!-- Non-critical CSS - deferred loading -->
   <?php if (isFeatureEnabled('SHOW_TOUR')): ?>
@@ -1169,6 +1170,13 @@ endif;
         </div>
       </div>
     </header>
+
+    <!-- Platform announcements (scheduled, audience-targeted, per-user dismissible) -->
+    <div id="dtAnnouncements" class="dt-announcements" aria-label="<?php echo htmlspecialchars(t('announcements.region_label')); ?>"></div>
+    <script type="application/json" id="dtAnnouncementsConfig"><?= json_encode([
+        'csrfToken' => $csrfToken ?? '',
+        'i18n' => ['dismiss' => t('announcements.dismiss')],
+    ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?></script>
 
     <main class="dashboard">
       <!-- Main Tabs -->
@@ -5309,6 +5317,7 @@ endif;
   <script src="<?= appAssetUrl('js/patient-search.js') ?>" defer></script>
   <script src="<?= appAssetUrl('js/realtime-updates.js') ?>" defer></script>
   <script src="<?= appAssetUrl('js/case-list.js') ?>" defer></script>
+  <script src="<?= appAssetUrl('js/announcements.js') ?>" defer></script>
   <script src="<?= appAssetUrl('js/case-actions-menu.js') ?>" defer></script>
   <script src="<?= appAssetUrl('js/od-send-case.js') ?>" defer></script>
   <script src="<?= appAssetUrl('js/case-remakes.js') ?>" defer></script>

@@ -1,0 +1,119 @@
+/* ============================================
+   Platform announcements - user-facing banners
+   Rendered by js/announcements.js into
+   #dtAnnouncements, directly below .main-header.
+   ============================================ */
+
+.dt-announcements {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 24px 0;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.dt-announcement {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.dt-announcement-icon {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+}
+
+.dt-announcement-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.dt-announcement-title {
+  font-weight: 700;
+  margin: 0 0 2px;
+}
+
+.dt-announcement-message {
+  margin: 0;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.dt-announcement-close {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0.75;
+  padding: 0;
+}
+
+.dt-announcement-close:hover,
+.dt-announcement-close:focus-visible {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.dt-announcement-close:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 1px;
+}
+
+/* Type variants - saturated, professional hues matching the urgency palette */
+.dt-announcement-info {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1e3a8a;
+}
+
+.dt-announcement-warning {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #78350f;
+}
+
+.dt-announcement-critical {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #7f1d1d;
+}
+
+.dt-announcement-success {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #065f46;
+}
+
+/* Multiple stacked notices collapse gracefully */
+.dt-announcement + .dt-announcement {
+  margin-top: 0;
+}
+
+@media (max-width: 720px) {
+  .dt-announcements {
+    padding: 8px 12px 0;
+  }
+
+  .dt-announcement {
+    padding: 10px 12px;
+    font-size: 0.85rem;
+  }
+}

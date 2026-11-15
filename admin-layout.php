@@ -25,6 +25,7 @@ if (!function_exists('paAdminSections')) {
             'practices' => ['admin-practices.php', 'admin_nav.practices'],
             'usage' => ['practice-usage-report.php', 'admin_nav.usage'],
             'ai' => ['dev-ask-usage.php', 'admin_nav.ai_analytics'],
+            'announcements' => ['admin-announcements.php', 'admin_nav.announcements'],
             'test' => ['test-diagnostics.php', 'admin_nav.test_diag'],
         ];
         // Marketing Outreach stays hidden until the feature flag is enabled.

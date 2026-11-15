@@ -147,76 +147,74 @@ $successRate = $summary['total'] > 0 ? round(100 * $summary['answered'] / $summa
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title><?php echo h(t('admin_nav.ai_analytics')); ?> - <?php echo h($appConfig['appName']); ?></title>
+    <?php require __DIR__ . '/partials/brand-icons.php'; ?>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?= appAssetUrl('css/app.css') ?>">
     <link rel="stylesheet" href="<?= appAssetUrl('css/admin.css') ?>">
     <style>
-        body { font-family: 'Poppins','Inter',sans-serif; background: #f3f4f6; margin: 0; }
-        .admin-container { max-width: 1400px; margin: 0 auto; }
-        .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .admin-header h1 { font-size: 1.5rem; margin: 0; }
-        .back-link { color: #6366f1; text-decoration: none; font-size: 0.9rem; }
-        .filter-bar { background: #fff; border-radius: 8px; padding: 14px 16px; margin-bottom: 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-        .filter-bar select, .filter-bar input { padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.85rem; }
-        .filter-bar button { padding: 7px 14px; background: #6366f1; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; }
-        .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 16px; }
-        .metric-card { background: #fff; border-radius: 8px; padding: 14px; }
-        .metric-card .m-val { font-size: 1.4rem; font-weight: 600; }
-        .metric-card .m-label { font-size: 0.78rem; color: #6b7280; margin-top: 2px; }
-        .panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-bottom: 16px; }
-        .panel { background: #fff; border-radius: 8px; padding: 16px; }
-        .panel h3 { margin: 0 0 10px; font-size: 0.95rem; }
-        .panel table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
-        .panel td { padding: 4px 6px; border-bottom: 1px solid #f3f4f6; }
-        .panel td:last-child { text-align: right; font-variant-numeric: tabular-nums; color: #374151; }
-        .events-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; background: #fff; border-radius: 8px; overflow: hidden; }
-        .events-table th { text-align: left; padding: 10px 12px; background: #f9fafb; font-weight: 600; color: #374151; white-space: nowrap; }
-        .events-table td { padding: 8px 12px; border-top: 1px solid #f3f4f6; white-space: nowrap; }
+        .au-filter { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .au-filter select, .au-filter input { padding: 7px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.85rem; font-family: inherit; }
+        .au-filter button { padding: 8px 16px; background: #1e40af; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 600; }
+        .au-filter button:hover { background: #1d4ed8; }
+        .au-panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; margin-bottom: 20px; }
+        .au-panel { background: #fff; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); padding: 16px 18px; }
+        .au-panel h3 { margin: 0 0 10px; font-size: 0.95rem; color: #111827; }
+        .au-panel table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+        .au-panel td { padding: 4px 6px; border-bottom: 1px solid #f3f4f6; color: #374151; }
+        .au-panel td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+        .au-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+        .au-table th { text-align: left; padding: 10px 12px; background: #f9fafb; font-weight: 600; color: #374151; white-space: nowrap; }
+        .au-table td { padding: 8px 12px; border-top: 1px solid #f3f4f6; white-space: nowrap; color: #374151; }
+        .au-table-wrap { overflow-x: auto; }
         .outcome-pill { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 0.75rem; background: #eef2ff; color: #4338ca; }
         .outcome-pill.err { background: #fef2f2; color: #b91c1c; }
         .outcome-pill.warn { background: #fffbeb; color: #b45309; }
         .pagination { display: flex; gap: 12px; align-items: center; margin-top: 14px; font-size: 0.85rem; }
-        .pagination a { color: #6366f1; text-decoration: none; }
-        .empty-note { background: #fff; border-radius: 8px; padding: 24px; text-align: center; color: #6b7280; }
+        .pagination a { color: #1e40af; text-decoration: none; }
+        .pagination a:hover { text-decoration: underline; }
     </style>
 </head>
 <?php paAdminChrome('ai', t('admin_nav.ai_analytics'), t('admin_nav.ai_subtitle')); ?>
-<div class="admin-container">
 
-    <form class="filter-bar" method="get" action="dev-ask-usage.php">
-        <label for="range"><?php echo h(u('range', 'Range')); ?></label>
-        <select name="range" id="range">
-            <option value="7" <?php echo $range==='7'?'selected':''; ?>><?php echo h(u('range_7', 'Last 7 days')); ?></option>
-            <option value="30" <?php echo $range==='30'?'selected':''; ?>><?php echo h(u('range_30', 'Last 30 days')); ?></option>
-            <option value="90" <?php echo $range==='90'?'selected':''; ?>><?php echo h(u('range_90', 'Last 90 days')); ?></option>
-            <option value="all" <?php echo $range==='all'?'selected':''; ?>><?php echo h(u('range_all', 'All time')); ?></option>
-            <option value="custom" <?php echo $range==='custom'?'selected':''; ?>><?php echo h(u('range_custom', 'Custom')); ?></option>
-        </select>
-        <input type="date" name="from" value="<?php echo h($customFrom ?? ''); ?>" aria-label="<?php echo h(u('from', 'From')); ?>">
-        <input type="date" name="to" value="<?php echo h($customTo ?? ''); ?>" aria-label="<?php echo h(u('to', 'To')); ?>">
-        <button type="submit"><?php echo h(u('apply', 'Apply')); ?></button>
-    </form>
-
-    <?php if ($tableMissing): ?>
-        <div class="empty-note"><?php echo h(u('no_table', 'Telemetry table not present - run the migration first.')); ?></div>
-    <?php elseif ($queryFailed): ?>
-        <div class="empty-note"><?php echo h(u('query_failed', 'Usage data could not be loaded. See the application error log.')); ?></div>
-    <?php elseif ($summary['total'] === 0): ?>
-        <div class="empty-note"><?php echo h(u('no_data', 'No usage events in this range.')); ?></div>
-    <?php else: ?>
-
-    <div class="metric-grid">
-        <div class="metric-card"><div class="m-val"><?php echo $summary['total']; ?></div><div class="m-label"><?php echo h(u('m_questions', 'Total questions')); ?></div></div>
-        <div class="metric-card"><div class="m-val"><?php echo $summary['users']; ?></div><div class="m-label"><?php echo h(u('m_users', 'Unique users')); ?></div></div>
-        <div class="metric-card"><div class="m-val"><?php echo $summary['practices']; ?></div><div class="m-label"><?php echo h(u('m_practices', 'Unique practices')); ?></div></div>
-        <div class="metric-card"><div class="m-val"><?php echo $successRate; ?>%</div><div class="m-label"><?php echo h(u('m_answered', 'Answered rate')); ?></div></div>
-        <div class="metric-card"><div class="m-val"><?php echo $summary['clarify']; ?></div><div class="m-label"><?php echo h(u('m_clarify', 'Clarifications')); ?></div></div>
-        <div class="metric-card"><div class="m-val"><?php echo $summary['errors']; ?></div><div class="m-label"><?php echo h(u('m_errors', 'Errors')); ?></div></div>
-        <div class="metric-card"><div class="m-val"><?php echo $summary['redirects']; ?></div><div class="m-label"><?php echo h(u('m_redirects', 'Insights redirects')); ?></div></div>
-        <div class="metric-card"><div class="m-val"><?php echo $summary['avg_latency'] !== null ? $summary['avg_latency'].'ms' : '–'; ?></div><div class="m-label"><?php echo h(u('m_latency', 'Avg latency')); ?></div></div>
-        <div class="metric-card"><div class="m-val"><?php echo $summary['fb_up']; ?> / <?php echo $summary['fb_down']; ?></div><div class="m-label"><?php echo h(u('m_feedback', 'Feedback (+ / -)')); ?></div></div>
+    <div class="pa-scope-bar au-filter">
+        <form method="get" action="dev-ask-usage.php" class="au-filter">
+            <label for="range"><?php echo h(u('range', 'Range')); ?></label>
+            <select name="range" id="range">
+                <option value="7" <?php echo $range==='7'?'selected':''; ?>><?php echo h(u('range_7', 'Last 7 days')); ?></option>
+                <option value="30" <?php echo $range==='30'?'selected':''; ?>><?php echo h(u('range_30', 'Last 30 days')); ?></option>
+                <option value="90" <?php echo $range==='90'?'selected':''; ?>><?php echo h(u('range_90', 'Last 90 days')); ?></option>
+                <option value="all" <?php echo $range==='all'?'selected':''; ?>><?php echo h(u('range_all', 'All time')); ?></option>
+                <option value="custom" <?php echo $range==='custom'?'selected':''; ?>><?php echo h(u('range_custom', 'Custom')); ?></option>
+            </select>
+            <input type="date" name="from" value="<?php echo h($customFrom ?? ''); ?>" aria-label="<?php echo h(u('from', 'From')); ?>">
+            <input type="date" name="to" value="<?php echo h($customTo ?? ''); ?>" aria-label="<?php echo h(u('to', 'To')); ?>">
+            <button type="submit"><?php echo h(u('apply', 'Apply')); ?></button>
+        </form>
     </div>
 
-    <div class="panels">
+    <?php if ($tableMissing): ?>
+        <div class="pa-card"><div class="pa-empty"><?php echo h(u('no_table', 'Telemetry table not present - run the migration first.')); ?></div></div>
+    <?php elseif ($queryFailed): ?>
+        <div class="pa-card"><div class="pa-empty"><?php echo h(u('query_failed', 'Usage data could not be loaded. See the application error log.')); ?></div></div>
+    <?php elseif ($summary['total'] === 0): ?>
+        <div class="pa-card"><div class="pa-empty"><?php echo h(u('no_data', 'No usage events in this range.')); ?></div></div>
+    <?php else: ?>
+
+    <div class="pa-grid">
+        <div class="pa-metric"><div class="pa-metric-value"><?php echo $summary['total']; ?></div><div class="pa-metric-label"><?php echo h(u('m_questions', 'Total questions')); ?></div></div>
+        <div class="pa-metric"><div class="pa-metric-value"><?php echo $summary['users']; ?></div><div class="pa-metric-label"><?php echo h(u('m_users', 'Unique users')); ?></div></div>
+        <div class="pa-metric"><div class="pa-metric-value"><?php echo $summary['practices']; ?></div><div class="pa-metric-label"><?php echo h(u('m_practices', 'Unique practices')); ?></div></div>
+        <div class="pa-metric"><div class="pa-metric-value"><?php echo $successRate; ?>%</div><div class="pa-metric-label"><?php echo h(u('m_answered', 'Answered rate')); ?></div></div>
+        <div class="pa-metric"><div class="pa-metric-value"><?php echo $summary['clarify']; ?></div><div class="pa-metric-label"><?php echo h(u('m_clarify', 'Clarifications')); ?></div></div>
+        <div class="pa-metric"><div class="pa-metric-value"><?php echo $summary['errors']; ?></div><div class="pa-metric-label"><?php echo h(u('m_errors', 'Errors')); ?></div></div>
+        <div class="pa-metric"><div class="pa-metric-value"><?php echo $summary['redirects']; ?></div><div class="pa-metric-label"><?php echo h(u('m_redirects', 'Insights redirects')); ?></div></div>
+        <div class="pa-metric"><div class="pa-metric-value"><?php echo $summary['avg_latency'] !== null ? $summary['avg_latency'].'ms' : '–'; ?></div><div class="pa-metric-label"><?php echo h(u('m_latency', 'Avg latency')); ?></div></div>
+        <div class="pa-metric"><div class="pa-metric-value"><?php echo $summary['fb_up']; ?> / <?php echo $summary['fb_down']; ?></div><div class="pa-metric-label"><?php echo h(u('m_feedback', 'Feedback (+ / -)')); ?></div></div>
+    </div>
+
+    <div class="au-panels">
         <?php
         $panelDefs = [
             'category' => u('top_categories', 'Top categories'),
@@ -228,7 +226,7 @@ $successRate = $summary['total'] > 0 ? round(100 * $summary['answered'] / $summa
         ];
         foreach ($panelDefs as $key => $title):
             if (!$top[$key]) continue; ?>
-        <div class="panel">
+        <div class="au-panel">
             <h3><?php echo h($title); ?></h3>
             <table>
                 <?php foreach ($top[$key] as $r): ?>
@@ -239,7 +237,8 @@ $successRate = $summary['total'] > 0 ? round(100 * $summary['answered'] / $summa
         <?php endforeach; ?>
     </div>
 
-    <table class="events-table">
+    <div class="au-table-wrap">
+    <table class="au-table">
         <thead>
             <tr>
                 <th><?php echo h(u('c_time', 'Time')); ?></th>
@@ -278,6 +277,7 @@ $successRate = $summary['total'] > 0 ? round(100 * $summary['answered'] / $summa
             <?php endforeach; ?>
         </tbody>
     </table>
+    </div>
 
     <div class="pagination">
         <?php if ($page > 1): ?><a href="<?php echo h($pageQs($page - 1)); ?>">&larr; <?php echo h(u('prev', 'Previous')); ?></a><?php endif; ?>
@@ -286,6 +286,5 @@ $successRate = $summary['total'] > 0 ? round(100 * $summary['answered'] / $summa
     </div>
 
     <?php endif; ?>
-</div>
 <?php paAdminChromeEnd(); ?>
 </html>
