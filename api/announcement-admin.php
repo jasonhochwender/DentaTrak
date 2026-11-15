@@ -205,16 +205,17 @@ function handlePostRequest(string $action): void {
 
             if ($action === 'create') {
                 $stmt = $pdo->prepare("INSERT INTO announcements
-                    (title, message, type, audience, display_start_utc, display_end_utc, display_timezone, published, enabled, created_by)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    (title, message, type, audience, visible_to, display_start_utc, display_end_utc, display_timezone, published, enabled, created_by)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                 $stmt->execute([
-                    $fields['title'], $fields['message'], $fields['type'], $fields['audience'],
+                    $fields['title'], $fields['message'], $fields['type'], $fields['audience'], $fields['visible_to'],
                     $window['start_utc'], $window['end_utc'], $window['timezone'],
                     $published, $enabled, $_SESSION['db_user_id'],
                 ]);
                 $id = (int)$pdo->lastInsertId();
                 logAnnouncementAdminAction('announcement_created', [
                     'announcement_id' => $id, 'type' => $fields['type'], 'audience' => $fields['audience'],
+                    'visible_to' => $fields['visible_to'],
                     'published' => $published, 'enabled' => $enabled,
                 ]);
                 echo json_encode(['success' => true, 'id' => $id]);
@@ -232,24 +233,33 @@ function handlePostRequest(string $action): void {
             // Preserve lifecycle flags unless the caller supplies them.
             $published = array_key_exists('published', $input) ? $published : (int)$existing['published'];
             $enabled   = array_key_exists('enabled', $input) ? $enabled : (int)$existing['enabled'];
+            // Same for targeting: an update that omits visible_to must not
+            // silently widen an admin-only announcement to all users.
+            if (!array_key_exists('visible_to', $input)) {
+                $fields['visible_to'] = $existing['visible_to'] ?? 'all';
+            }
+            if (!array_key_exists('audience', $input)) {
+                $fields['audience'] = $existing['audience'] ?? 'all';
+            }
 
             if (!checkScheduleConflict($pdo, $id, $window['start_utc'], $window['end_utc'], (bool)$published, (bool)$enabled)) {
                 return;
             }
 
             $stmt = $pdo->prepare("UPDATE announcements SET
-                title = ?, message = ?, type = ?, audience = ?,
+                title = ?, message = ?, type = ?, audience = ?, visible_to = ?,
                 display_start_utc = ?, display_end_utc = ?, display_timezone = ?,
                 published = ?, enabled = ?
                 WHERE id = ?");
             $stmt->execute([
-                $fields['title'], $fields['message'], $fields['type'], $fields['audience'],
+                $fields['title'], $fields['message'], $fields['type'], $fields['audience'], $fields['visible_to'],
                 $window['start_utc'], $window['end_utc'], $window['timezone'],
                 $published, $enabled, $id,
             ]);
             // Editing content/dates intentionally does NOT clear dismissals.
             logAnnouncementAdminAction('announcement_updated', [
                 'announcement_id' => $id, 'type' => $fields['type'], 'audience' => $fields['audience'],
+                'visible_to' => $fields['visible_to'],
             ]);
             echo json_encode(['success' => true, 'id' => $id]);
             return;
@@ -265,10 +275,11 @@ function handlePostRequest(string $action): void {
             $copyTitle = $existing['title'];
             $copyTitle = $copyTitle === null ? 'Copy' : mb_substr($copyTitle, 0, 190) . ' (copy)';
             $stmt = $pdo->prepare("INSERT INTO announcements
-                (title, message, type, audience, display_start_utc, display_end_utc, display_timezone, published, enabled, created_by)
-                VALUES (?, ?, ?, ?, ?, ?, ?, 0, 1, ?)");
+                (title, message, type, audience, visible_to, display_start_utc, display_end_utc, display_timezone, published, enabled, created_by)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 1, ?)");
             $stmt->execute([
                 $copyTitle, $existing['message'], $existing['type'], $existing['audience'],
+                $existing['visible_to'] ?? 'all',
                 $existing['display_start_utc'], $existing['display_end_utc'], $existing['display_timezone'],
                 $_SESSION['db_user_id'],
             ]);

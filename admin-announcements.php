@@ -152,8 +152,15 @@ function a($k, $f = '') { $v = t('admin_ann.' . $k); return $v !== '' ? $v : $f;
             <div class="ann-field">
                 <label for="fAudience"><?php echo h(a('f_audience', 'Audience')); ?></label>
                 <select id="fAudience">
-                    <option value="all"><?php echo h(a('aud_all', 'All Users')); ?></option>
-                    <option value="fabg"><?php echo h(a('aud_fabg', 'FABG Members Only')); ?></option>
+                    <option value="all"><?php echo h(a('aud_all', 'All Practices')); ?></option>
+                    <option value="fabg"><?php echo h(a('aud_fabg', 'FABG Practices Only')); ?></option>
+                </select>
+            </div>
+            <div class="ann-field">
+                <label for="fVisibleTo"><?php echo h(a('f_visible_to', 'Visible To')); ?></label>
+                <select id="fVisibleTo">
+                    <option value="all"><?php echo h(a('vis_all', 'All Users')); ?></option>
+                    <option value="admin"><?php echo h(a('vis_admin', 'Practice Administrators Only')); ?></option>
                 </select>
             </div>
             <div class="ann-field">
@@ -240,12 +247,15 @@ var ANN_I18N = <?= json_encode([
     'previewPlaceholder' => a('preview_placeholder', '(preview appears here)'),
     'dismiss' => t('announcements.dismiss'),
     'audiencePrefix' => a('col_audience', 'Audience') . ': ',
+    'visibleToPrefix' => a('visible_to_prefix', 'Visible to: '),
     'typeInfo' => a('type_info', 'Information'),
     'typeWarning' => a('type_warning', 'Warning'),
     'typeCritical' => a('type_critical', 'Critical'),
     'typeSuccess' => a('type_success', 'Success'),
-    'audAll' => a('aud_all', 'All Users'),
-    'audFabg' => a('aud_fabg', 'FABG Members Only'),
+    'audAll' => a('aud_all', 'All Practices'),
+    'audFabg' => a('aud_fabg', 'FABG Practices Only'),
+    'visAll' => a('vis_all', 'All Users'),
+    'visAdmin' => a('vis_admin', 'Practice Administrators Only'),
     'stDraft' => a('status_draft', 'Draft'),
     'stScheduled' => a('status_scheduled', 'Scheduled'),
     'stActive' => a('status_active', 'Active'),
@@ -278,6 +288,7 @@ var ANN_I18N = <?= json_encode([
     };
     var TYPE_LABELS = { info: ANN_I18N.typeInfo, warning: ANN_I18N.typeWarning, critical: ANN_I18N.typeCritical, success: ANN_I18N.typeSuccess };
     var AUD_LABELS = { all: ANN_I18N.audAll, fabg: ANN_I18N.audFabg };
+    var VIS_LABELS = { all: ANN_I18N.visAll, admin: ANN_I18N.visAdmin };
     var STATUS_LABELS = { draft: ANN_I18N.stDraft, scheduled: ANN_I18N.stScheduled, active: ANN_I18N.stActive, expired: ANN_I18N.stExpired, disabled: ANN_I18N.stDisabled };
     var editingId = null;
     var annRows = [];
@@ -399,6 +410,7 @@ var ANN_I18N = <?= json_encode([
         var title = document.getElementById('fTitle').value.trim();
         var message = document.getElementById('fMessage').value.trim();
         var audience = document.getElementById('fAudience').value;
+        var visibleTo = document.getElementById('fVisibleTo').value;
         var start = document.getElementById('fStart').value;
         var end = document.getElementById('fEnd').value;
         var tz = document.getElementById('fTz').value;
@@ -415,11 +427,12 @@ var ANN_I18N = <?= json_encode([
         html += '<button type="button" class="dt-announcement-close" aria-label="' + esc(ANN_I18N.dismiss) + '" title="' + esc(ANN_I18N.dismiss) + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>';
         html += '</div>';
         html += '<div class="ann-tz-note" style="margin-top:6px">' + esc(ANN_I18N.audiencePrefix) + esc(AUD_LABELS[audience] || audience)
+            + ' &middot; ' + esc(ANN_I18N.visibleToPrefix) + esc(VIS_LABELS[visibleTo] || visibleTo)
             + (start && end ? ' &middot; ' + esc(start.replace('T', ' ')) + ' &rarr; ' + esc(end.replace('T', ' ')) + ' ' + esc(tz) : '') + '</div>';
         box.innerHTML = html;
     }
 
-    ['fTitle', 'fMessage', 'fType', 'fAudience', 'fStart', 'fEnd', 'fTz'].forEach(function (id) {
+    ['fTitle', 'fMessage', 'fType', 'fAudience', 'fVisibleTo', 'fStart', 'fEnd', 'fTz'].forEach(function (id) {
         document.getElementById(id).addEventListener('input', renderPreview);
         document.getElementById(id).addEventListener('change', renderPreview);
     });
@@ -455,7 +468,8 @@ var ANN_I18N = <?= json_encode([
                 tr.innerHTML =
                     '<td><div class="ann-title">' + title + '</div><div class="ann-msg">' + esc(a.message) + '</div></td>' +
                     '<td><span class="ann-type" style="color:inherit">' + ICONS[a.type] + esc(TYPE_LABELS[a.type] || a.type) + '</span></td>' +
-                    '<td>' + esc(AUD_LABELS[a.audience] || a.audience) + '</td>' +
+                    '<td>' + esc(AUD_LABELS[a.audience] || a.audience)
+                        + '<div class="ann-msg">' + esc(VIS_LABELS[a.visible_to] || a.visible_to || 'all') + '</div></td>' +
                     '<td>' + fmtWindow(a) + '<div class="ann-msg">' + esc(a.display_timezone || 'UTC') + '</div></td>' +
                     '<td><span class="ann-pill ann-pill-' + esc(a.status) + '">' + esc(STATUS_LABELS[a.status] || a.status) + '</span></td>' +
                     '<td><button type="button" class="ann-link-btn" data-act="toggle-enabled" data-id="' + a.id + '" data-val="' + (a.enabled ? 0 : 1) + '">' + (a.enabled ? ANN_I18N.btnDisable : ANN_I18N.btnEnable) + '</button></td>' +
@@ -482,6 +496,7 @@ var ANN_I18N = <?= json_encode([
         ['fTitle','fMessage','fStart','fEnd'].forEach(function (id) { document.getElementById(id).value = ''; });
         document.getElementById('fType').value = 'info';
         document.getElementById('fAudience').value = 'all';
+        document.getElementById('fVisibleTo').value = 'all';
         document.getElementById('fTz').value = 'America/New_York';
         document.getElementById('fEnabled').checked = true;
         document.getElementById('fPublished').checked = false;
@@ -514,6 +529,7 @@ var ANN_I18N = <?= json_encode([
             document.getElementById('fMessage').value = a.message || '';
             document.getElementById('fType').value = a.type;
             document.getElementById('fAudience').value = a.audience;
+            document.getElementById('fVisibleTo').value = a.visible_to || 'all';
             document.getElementById('fTz').value = a.display_timezone || 'UTC';
             document.getElementById('fStart').value = utcToLocalInput(a.display_start_utc, a.display_timezone);
             document.getElementById('fEnd').value = utcToLocalInput(a.display_end_utc, a.display_timezone);
@@ -530,6 +546,7 @@ var ANN_I18N = <?= json_encode([
             message: document.getElementById('fMessage').value.trim(),
             type: document.getElementById('fType').value,
             audience: document.getElementById('fAudience').value,
+            visible_to: document.getElementById('fVisibleTo').value,
             display_start: document.getElementById('fStart').value,
             display_end: document.getElementById('fEnd').value,
             display_timezone: document.getElementById('fTz').value,

@@ -53,6 +53,7 @@ if ($method === 'GET') {
             'message'    => $r['message'],
             'type'       => $r['type'],
             'audience'   => $r['audience'],
+            'visible_to' => $r['visible_to'] ?? 'all',
             'starts_at'  => $r['display_start_utc'],
             'ends_at'    => $r['display_end_utc'],
             'timezone'   => $r['display_timezone'],

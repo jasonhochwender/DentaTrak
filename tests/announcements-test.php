@@ -79,19 +79,27 @@ $mkPractice = function (string $name, int $fabg, int $createdBy) use ($pdo, &$cr
     return $id;
 };
 
+$mkMember = function (int $userId, int $practiceId, string $role) use ($pdo): void {
+    $pdo->prepare("INSERT INTO practice_users (practice_id, user_id, role, is_owner, created_at)
+                   VALUES (?, ?, ?, 0, NOW())")
+        ->execute([$practiceId, $userId, $role]);
+};
+
 $mkAnnouncement = function (array $over) use ($pdo, &$createdAnnouncementIds): int {
     $defaults = [
         'title' => null, 'message' => 'test', 'type' => 'info', 'audience' => 'all',
+        'visible_to' => 'all',
         'display_start_utc' => gmdate('Y-m-d H:i:s', time() - 3600),
         'display_end_utc'   => gmdate('Y-m-d H:i:s', time() + 86400),
         'display_timezone'  => 'UTC', 'published' => 1, 'enabled' => 1,
     ];
     $a = array_merge($defaults, $over);
     $pdo->prepare("INSERT INTO announcements
-        (title, message, type, audience, display_start_utc, display_end_utc, display_timezone, published, enabled, created_by)
-        VALUES (:t, :m, :ty, :au, :s, :e, :tz, :p, :en, NULL)")
+        (title, message, type, audience, visible_to, display_start_utc, display_end_utc, display_timezone, published, enabled, created_by)
+        VALUES (:t, :m, :ty, :au, :vt, :s, :e, :tz, :p, :en, NULL)")
         ->execute([
             't' => $a['title'], 'm' => $a['message'], 'ty' => $a['type'], 'au' => $a['audience'],
+            'vt' => $a['visible_to'],
             's' => $a['display_start_utc'], 'e' => $a['display_end_utc'],
             'tz' => $a['display_timezone'], 'p' => $a['published'], 'en' => $a['enabled'],
         ]);
@@ -162,6 +170,9 @@ try {
     assertTrue('empty message rejected', is_string(parseAnnouncementFields(['message' => '  '])));
     assertTrue('bad type rejected', is_string(parseAnnouncementFields(['message' => 'x', 'type' => 'mega'])));
     assertTrue('bad audience rejected', is_string(parseAnnouncementFields(['message' => 'x', 'audience' => 'everyone'])));
+    assertTrue('bad visible_to rejected', is_string(parseAnnouncementFields(['message' => 'x', 'visible_to' => 'everyone'])));
+    assertEquals('visible_to defaults to all', 'all', parseAnnouncementFields(['message' => 'x'])['visible_to']);
+    assertEquals('visible_to admin accepted', 'admin', parseAnnouncementFields(['message' => 'x', 'visible_to' => 'admin'])['visible_to']);
     assertTrue('long title rejected', is_string(parseAnnouncementFields(['message' => 'x', 'title' => str_repeat('a', 201)])));
     assertTrue('empty title -> null', parseAnnouncementFields(['message' => 'x', 'title' => '  '])['title'] === null);
 
@@ -279,6 +290,50 @@ try {
     assertTrue('disabled announcement disappears immediately', !in_array($aNew, $visibleIds($userA, $practiceNormal), true));
     $pdo->prepare("UPDATE announcements SET enabled = 1 WHERE id = ?")->execute([$aNew]);
     assertTrue('re-enabled announcement returns', in_array($aNew, $visibleIds($userA, $practiceNormal), true));
+
+    // ---------------------------------------------------------------
+    echo "--- role targeting (visible_to) ---\n";
+
+    $userAdmin  = $mkUser('announce-test-admin@test.local');
+    $userMember = $mkUser('announce-test-member@test.local');
+    $mkMember($userAdmin, $practiceNormal, 'admin');
+    $mkMember($userMember, $practiceNormal, 'user');
+    // Same user is only a regular member of a second practice.
+    $practiceNormal2 = $mkPractice('AnnounceTest Normal2', 0, $userAdmin);
+    $mkMember($userAdmin, $practiceNormal2, 'user');
+
+    $aAdminOnly = $mkAnnouncement(['message' => 'admins only', 'type' => 'critical', 'visible_to' => 'admin']);
+    $aEveryone  = $mkAnnouncement(['message' => 'everyone sees', 'type' => 'info']);
+
+    $visAdmin = $visibleIds($userAdmin, $practiceNormal);
+    assertTrue('practice admin sees admin-only announcement', in_array($aAdminOnly, $visAdmin, true));
+    $visMember = $visibleIds($userMember, $practiceNormal);
+    assertTrue('regular member does NOT see admin-only announcement', !in_array($aAdminOnly, $visMember, true));
+    assertTrue('regular member still sees all-users announcement', in_array($aEveryone, $visMember, true));
+
+    // Role is evaluated against the CURRENT practice: same user who is
+    // admin in practiceNormal is 'user' in practiceNormal2.
+    $visSwitched = $visibleIds($userAdmin, $practiceNormal2);
+    assertTrue('admin role does not carry across practices', !in_array($aAdminOnly, $visSwitched, true));
+    assertTrue('all-users announcement still visible in second practice', in_array($aEveryone, $visSwitched, true));
+
+    // Super users preview admin-only announcements.
+    $visSuperAdmin = $visibleIds($userMember, $practiceNormal, true);
+    assertTrue('super user sees admin-only announcement for preview', in_array($aAdminOnly, $visSuperAdmin, true));
+
+    // FABG + admin combination: audience and role targeting compose.
+    $mkMember($userAdmin, $practiceFabg, 'admin');
+    $mkMember($userMember, $practiceFabg, 'user');
+    $aFabgAdmin = $mkAnnouncement([
+        'message' => 'fabg admins only', 'type' => 'warning',
+        'audience' => 'fabg', 'visible_to' => 'admin',
+    ]);
+
+    $visFabgAdmin = $visibleIds($userAdmin, $practiceFabg);
+    assertTrue('FABG practice admin sees FABG+admin announcement', in_array($aFabgAdmin, $visFabgAdmin, true));
+    $visFabgMember = $visibleIds($userMember, $practiceFabg);
+    assertTrue('FABG regular user does NOT see FABG+admin', !in_array($aFabgAdmin, $visFabgMember, true));
+    assertTrue('non-FABG practice admin does NOT see FABG+admin', !in_array($aFabgAdmin, $visAdmin, true));
 
     // ---------------------------------------------------------------
     echo "--- schedule conflict detection ---\n";

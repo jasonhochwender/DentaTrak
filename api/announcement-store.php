@@ -13,6 +13,7 @@
 
 const ANN_TYPES = ['info', 'warning', 'critical', 'success'];
 const ANN_AUDIENCES = ['all', 'fabg'];
+const ANN_VISIBLE_TO = ['all', 'admin'];
 const ANN_TZ_FALLBACK = 'America/New_York';
 
 /** Whether the announcements schema is installed. */
@@ -25,6 +26,10 @@ function announcementsSchemaReady(PDO $pdo): bool {
             if ($ready) {
                 $check2 = $pdo->query("SHOW TABLES LIKE 'announcement_dismissals'");
                 $ready = $check2 && $check2->rowCount() > 0;
+                if ($ready) {
+                    $check3 = $pdo->query("SHOW COLUMNS FROM announcements LIKE 'visible_to'");
+                    $ready = $check3 && $check3->rowCount() > 0;
+                }
             }
         } catch (PDOException $e) {
             error_log('[announcements] schema check failed: ' . $e->getMessage());
@@ -87,8 +92,11 @@ function announcementsPracticeIsFabg(PDO $pdo, int $practiceId): bool {
  * Returns published + enabled announcements inside their UTC display
  * window whose audience matches (all users, or FABG when the current
  * practice is flagged fabg_pilot or the caller is a platform super user)
- * and that the user has not dismissed. Ordered critical > warning >
- * info > success, then by start time. Returns [] on any failure.
+ * and whose role targeting matches (visible_to='admin' requires the
+ * 'admin' role in practice_users for the current practice, or a platform
+ * super user), excluding announcements the user has dismissed. Ordered
+ * critical > warning > info > success, then by start time. Returns [] on
+ * any failure.
  */
 function getVisibleAnnouncements(PDO $pdo, int $userId, int $practiceId, bool $isSuperUser): array {
     if (!announcementsSchemaReady($pdo)) {
@@ -97,7 +105,21 @@ function getVisibleAnnouncements(PDO $pdo, int $userId, int $practiceId, bool $i
     try {
         $fabg = $isSuperUser || announcementsPracticeIsFabg($pdo, $practiceId);
 
-        $sql = "SELECT a.id, a.title, a.message, a.type, a.audience,
+        // Role targeting: 'admin' announcements require the administrator
+        // role in the CURRENTLY SELECTED practice (practice_users.role),
+        // evaluated per request so practice switching re-evaluates. Platform
+        // super users bypass for preview, same as the FABG audience.
+        $isPracticeAdmin = false;
+        if ($practiceId > 0) {
+            $roleStmt = $pdo->prepare(
+                "SELECT role FROM practice_users WHERE user_id = ? AND practice_id = ? LIMIT 1"
+            );
+            $roleStmt->execute([$userId, $practiceId]);
+            $isPracticeAdmin = $roleStmt->fetchColumn() === 'admin';
+        }
+        $canSeeAdminOnly = $isSuperUser || $isPracticeAdmin;
+
+        $sql = "SELECT a.id, a.title, a.message, a.type, a.audience, a.visible_to,
                        a.display_start_utc, a.display_end_utc, a.display_timezone,
                        a.published, a.enabled
                 FROM announcements a
@@ -107,7 +129,9 @@ function getVisibleAnnouncements(PDO $pdo, int $userId, int $practiceId, bool $i
                   AND a.display_end_utc >= UTC_TIMESTAMP()
                   AND (a.audience = 'all'"
                 . ($fabg ? " OR a.audience = 'fabg'" : "")
-                . ")
+                . ")"
+                . ($canSeeAdminOnly ? "" : " AND a.visible_to = 'all'")
+                . "
                   AND NOT EXISTS (
                       SELECT 1 FROM announcement_dismissals d
                       WHERE d.announcement_id = a.id AND d.user_id = :uid
@@ -277,6 +301,7 @@ function parseAnnouncementFields(array $input) {
     $message  = trim((string)($input['message'] ?? ''));
     $type     = (string)($input['type'] ?? 'info');
     $audience = (string)($input['audience'] ?? 'all');
+    $visibleTo = (string)($input['visible_to'] ?? 'all');
 
     if ($message === '') {
         return 'error:Message is required';
@@ -293,11 +318,15 @@ function parseAnnouncementFields(array $input) {
     if (!in_array($audience, ANN_AUDIENCES, true)) {
         return 'error:Invalid audience';
     }
+    if (!in_array($visibleTo, ANN_VISIBLE_TO, true)) {
+        return 'error:Invalid visibility target';
+    }
 
     return [
-        'title'    => $title === '' ? null : $title,
-        'message'  => $message,
-        'type'     => $type,
-        'audience' => $audience,
+        'title'      => $title === '' ? null : $title,
+        'message'    => $message,
+        'type'       => $type,
+        'audience'   => $audience,
+        'visible_to' => $visibleTo,
     ];
 }
