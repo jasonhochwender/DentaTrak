@@ -67,10 +67,15 @@ function ur($k) { return h(t('usage_report.' . $k)); }
         .admin-header h1 { font-size: 1.5rem; margin: 0; }
         .admin-header .subtitle { font-size: 0.85rem; color: #6b7280; margin-top: 4px; }
         .back-link { color: #6366f1; text-decoration: none; font-size: 0.9rem; white-space: nowrap; }
-        .filter-bar { background: #fff; border-radius: 8px; padding: 14px 16px; margin-bottom: 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-        .filter-bar input, .filter-bar select { padding: 7px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.85rem; }
-        .filter-bar input { flex: 1 1 220px; min-width: 0; }
-        .included-note { font-size: 0.8rem; color: #6b7280; }
+        .filter-bar { background: #fff; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .filter-bar input[type="search"], .filter-bar input[type="text"], .filter-bar input[type="date"], .filter-bar select { padding: 7px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.85rem; }
+        .filter-bar input[type="search"] { flex: 1 1 240px; min-width: 0; }
+        .filter-bar select { flex: 0 0 auto; }
+        .filter-bar .pa-scope-toggle { flex: 0 0 auto; white-space: nowrap; margin-left: auto; }
+        .filter-bar .pa-scope-toggle span { white-space: nowrap; }
+        @media (max-width: 720px) {
+            .filter-bar .pa-scope-toggle { margin-left: 0; }
+        }
         .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 16px; }
         .metric-card { background: #fff; border-radius: 8px; padding: 14px; }
         .metric-card .m-val { font-size: 1.4rem; font-weight: 600; }
@@ -123,8 +128,6 @@ function ur($k) { return h(t('usage_report.' . $k)); }
             <input type="checkbox" id="urIncludeHidden">
             <span><?php echo ur('include_hidden'); ?></span>
         </label>
-        <span class="included-note" id="urScopeText"></span>
-        <span class="included-note" id="urIncludedNote"></span>
     </div>
 
     <div id="urError" class="empty-note" hidden><?php echo ur('load_failed'); ?></div>
@@ -413,17 +416,6 @@ function ur($k) { return h(t('usage_report.' . $k)); }
 
     function renderAll() {
         const included = includedPractices();
-        const sc = state.scope || {};
-        const scopeEl = document.getElementById('urScopeText');
-        if (sc.visible != null) {
-            scopeEl.textContent = sc.include_hidden
-                ? <?php echo json_encode(t('usage_report.scope_all')); ?>.replace('{count}', sc.visible)
-                : <?php echo json_encode(t('usage_report.scope_visible')); ?>.replace('{count}', sc.visible);
-        } else {
-            scopeEl.textContent = '';
-        }
-        document.getElementById('urIncludedNote').textContent = <?php echo json_encode(t('usage_report.included_note')); ?>
-            .replace('{included}', included.length).replace('{total}', state.practices.length);
         renderSummary(included);
         renderCharts(included);
         renderTable(included);
@@ -453,7 +445,6 @@ function ur($k) { return h(t('usage_report.' . $k)); }
                     return;
                 }
                 state.practices = data.practices || [];
-                state.scope = data.scope || null;
                 document.getElementById('urGenerated').textContent = <?php echo json_encode(t('usage_report.generated')); ?>
                     .replace('{time}', formatDateTime(data.generated_at));
                 renderAll();
