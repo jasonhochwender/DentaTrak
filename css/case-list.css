@@ -60,8 +60,12 @@
   border: 1px solid var(--border-light);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-xs);
-  overflow: auto;
-  max-height: calc(100vh - 220px);
+  /* Single page scrollbar: the list expands with its content instead of
+     scrolling internally. overflow:clip (with hidden fallback) clips the
+     rounded corners WITHOUT creating a scroll container, so the sticky
+     table header still engages against document scroll. */
+  overflow: hidden;
+  overflow: clip;
 }
 
 /* While filters/search refetch, the board carries .loading - dim the list
@@ -309,19 +313,19 @@
 }
 
 /* Whole-row urgency treatment, mirroring the Kanban card precedence
-   (Late > Appt Risk > Due Soon). The gradient stays saturated but light
-   enough for body text; hover/focus deepen it via an inset overlay so
-   the urgency color is never obscured. */
+   (Late > Appt Risk > Due Soon). Solid same-hue fills keep every column
+   - including actions - visually uniform; hover/focus deepen via an
+   inset overlay so the urgency color is never obscured. */
 .case-list-row.cl-urgency-late {
-  background: linear-gradient(135deg, #ffffff 0%, var(--urgency-late-edge) 100%);
+  background: var(--urgency-late-edge);
 }
 
 .case-list-row.cl-urgency-duesoon {
-  background: linear-gradient(135deg, #ffffff 0%, var(--urgency-duesoon-edge) 100%);
+  background: var(--urgency-duesoon-edge);
 }
 
 .case-list-row.cl-urgency-appt {
-  background: linear-gradient(135deg, #ffffff 0%, var(--urgency-appt-risk-edge) 100%);
+  background: var(--urgency-appt-risk-edge);
 }
 
 .case-list-row[class*="cl-urgency-"]:hover,
@@ -475,6 +479,11 @@
     box-shadow: var(--shadow-xs);
   }
 
+  /* Urgency rows keep their solid fill; tint the card border to match */
+  .case-list-row.cl-urgency-late { border-color: rgba(199, 46, 66, 0.45); }
+  .case-list-row.cl-urgency-duesoon { border-color: rgba(40, 106, 196, 0.45); }
+  .case-list-row.cl-urgency-appt { border-color: rgba(116, 67, 184, 0.45); }
+
   .cl-td {
     padding: 0;
     white-space: normal;
@@ -566,17 +575,17 @@
 [data-theme="dark"] .cl-due-late { color: #E78CA0; }
 [data-theme="dark"] .cl-appt-risk { color: #B79AE8; }
 
-/* Dark theme - whole-row urgency gradients over the dark surface */
+/* Dark theme - whole-row urgency fills over the dark surface */
 [data-theme="dark"] .case-list-row.cl-urgency-late {
-  background: linear-gradient(135deg, rgba(199, 46, 66, 0.10) 0%, rgba(199, 46, 66, 0.30) 100%);
+  background: rgba(199, 46, 66, 0.32);
 }
 
 [data-theme="dark"] .case-list-row.cl-urgency-duesoon {
-  background: linear-gradient(135deg, rgba(40, 106, 196, 0.10) 0%, rgba(40, 106, 196, 0.30) 100%);
+  background: rgba(40, 106, 196, 0.34);
 }
 
 [data-theme="dark"] .case-list-row.cl-urgency-appt {
-  background: linear-gradient(135deg, rgba(116, 67, 184, 0.10) 0%, rgba(116, 67, 184, 0.32) 100%);
+  background: rgba(116, 67, 184, 0.36);
 }
 
 [data-theme="dark"] .case-list-row[class*="cl-urgency-"]:hover,
