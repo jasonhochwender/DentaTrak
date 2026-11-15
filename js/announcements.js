@@ -78,7 +78,13 @@
     });
 
     container.textContent = '';
-    list.forEach(function (a) {
+    // Scheduling validation guarantees at most one live announcement, but
+    // legacy/conflicting rows may still exist. Render only the first
+    // (highest-priority, earliest-start, lowest-id) entry so two banners
+    // can never appear simultaneously; the deterministic server ordering
+    // decides which one wins.
+    var visible = list.slice(0, 1);
+    visible.forEach(function (a) {
       var node = existing[String(a.id)] || buildBanner(a);
       container.appendChild(node);
     });

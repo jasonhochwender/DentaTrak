@@ -81,6 +81,45 @@ function fetchAnnouncement(PDO $pdo, int $id): ?array {
     return $row ?: null;
 }
 
+/** Emit a 409 schedule-conflict response including the conflicting row. */
+function scheduleConflictResponse(array $conflict): void {
+    http_response_code(409);
+    echo json_encode([
+        'success' => false,
+        'code'    => 'schedule_conflict',
+        'message' => announcementConflictMessage($conflict),
+        'conflict' => [
+            'id'         => (int)$conflict['id'],
+            'title'      => $conflict['title'],
+            'start_utc'  => $conflict['display_start_utc'],
+            'end_utc'    => $conflict['display_end_utc'],
+            'timezone'   => $conflict['display_timezone'],
+        ],
+    ]);
+}
+
+/**
+ * Enforce the global single-announcement schedule rule: a published+enabled
+ * row may not overlap another published+enabled, not-yet-expired row.
+ * Returns true when the change may proceed; otherwise emits a 409 and
+ * returns false.
+ */
+function checkScheduleConflict(PDO $pdo, ?int $excludeId, string $startUtc, string $endUtc, bool $published, bool $enabled): bool {
+    if (!$published || !$enabled) {
+        return true;
+    }
+    // A window that has already fully elapsed reserves nothing.
+    if ($endUtc <= gmdate('Y-m-d H:i:s')) {
+        return true;
+    }
+    $conflict = findAnnouncementConflict($pdo, $excludeId, $startUtc, $endUtc);
+    if ($conflict === null) {
+        return true;
+    }
+    scheduleConflictResponse($conflict);
+    return false;
+}
+
 function handleGetRequest(string $action): void {
     global $pdo;
     if (!announcementsSchemaReady($pdo)) {
@@ -131,6 +170,16 @@ function handlePostRequest(string $action): void {
         return;
     }
 
+    // Serialize all announcement writes so concurrent admin requests cannot
+    // both pass the overlap check and create conflicting schedules.
+    $lockStmt = $pdo->query("SELECT GET_LOCK('announcements_schedule_admin', 10)");
+    $locked = $lockStmt !== false && (int)$lockStmt->fetchColumn() === 1;
+    if (!$locked) {
+        http_response_code(503);
+        echo json_encode(['success' => false, 'message' => 'Announcement service is busy, please retry']);
+        return;
+    }
+    try {
     switch ($action) {
         case 'create':
         case 'update':
@@ -149,6 +198,10 @@ function handlePostRequest(string $action): void {
 
             $published = !empty($input['published']) ? 1 : 0;
             $enabled   = array_key_exists('enabled', $input) ? (!empty($input['enabled']) ? 1 : 0) : 1;
+
+            if (!checkScheduleConflict($pdo, null, $window['start_utc'], $window['end_utc'], (bool)$published, (bool)$enabled)) {
+                return;
+            }
 
             if ($action === 'create') {
                 $stmt = $pdo->prepare("INSERT INTO announcements
@@ -179,6 +232,10 @@ function handlePostRequest(string $action): void {
             // Preserve lifecycle flags unless the caller supplies them.
             $published = array_key_exists('published', $input) ? $published : (int)$existing['published'];
             $enabled   = array_key_exists('enabled', $input) ? $enabled : (int)$existing['enabled'];
+
+            if (!checkScheduleConflict($pdo, $id, $window['start_utc'], $window['end_utc'], (bool)$published, (bool)$enabled)) {
+                return;
+            }
 
             $stmt = $pdo->prepare("UPDATE announcements SET
                 title = ?, message = ?, type = ?, audience = ?,
@@ -247,6 +304,13 @@ function handlePostRequest(string $action): void {
                 return;
             }
             $col = $action === 'set_enabled' ? 'enabled' : 'published';
+            // Re-validate the schedule whenever the resulting row is
+            // published+enabled (covers re-enable and publish of drafts).
+            $newEnabled   = $action === 'set_enabled' ? $flag : (int)$existing['enabled'];
+            $newPublished = $action === 'set_published' ? $flag : (int)$existing['published'];
+            if (!checkScheduleConflict($pdo, $id, (string)$existing['display_start_utc'], (string)$existing['display_end_utc'], (bool)$newPublished, (bool)$newEnabled)) {
+                return;
+            }
             $pdo->prepare("UPDATE announcements SET {$col} = ? WHERE id = ?")->execute([$flag, $id]);
             logAnnouncementAdminAction('announcement_' . ($action === 'set_enabled' ? 'enabled_changed' : 'published_changed'), [
                 'announcement_id' => $id, 'value' => $flag,
@@ -257,6 +321,9 @@ function handlePostRequest(string $action): void {
         default:
             http_response_code(400);
             echo json_encode(['success' => false, 'message' => 'Unknown action']);
+    }
+    } finally {
+        try { $pdo->query("SELECT RELEASE_LOCK('announcements_schedule_admin')"); } catch (Throwable $e) {}
     }
 }
 

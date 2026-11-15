@@ -178,6 +178,96 @@ function parseAnnouncementWindow(array $input): array {
 }
 
 /**
+ * Scheduling conflict detection.
+ *
+ * At most ONE published+enabled announcement may occupy a display window at
+ * any time, globally (audience does not matter). Draft and disabled rows
+ * reserve nothing, and already-expired windows (display_end_utc <= now)
+ * do not block new schedules. Adjacent windows are allowed: a new
+ * announcement may start exactly when another ends.
+ *
+ * All comparisons use the stored UTC timestamps.
+ */
+
+/** Whether two UTC windows overlap. Adjacent (end == start) does NOT overlap. */
+function announcementWindowsOverlap(string $startA, string $endA, string $startB, string $endB): bool {
+    return $startA < $endB && $endA > $startB;
+}
+
+/**
+ * Find a published+enabled, not-yet-expired announcement whose window
+ * overlaps the given UTC window. Returns the conflicting row or null.
+ */
+function findAnnouncementConflict(PDO $pdo, ?int $excludeId, string $startUtc, string $endUtc): ?array {
+    if (!announcementsSchemaReady($pdo)) {
+        return null;
+    }
+    $sql = "SELECT id, title, message, type, audience,
+                   display_start_utc, display_end_utc, display_timezone
+            FROM announcements
+            WHERE published = 1 AND enabled = 1
+              AND display_end_utc > UTC_TIMESTAMP()
+              AND display_start_utc < :new_end
+              AND display_end_utc > :new_start";
+    $params = [':new_end' => $endUtc, ':new_start' => $startUtc];
+    if ($excludeId !== null && $excludeId > 0) {
+        $sql .= " AND id != :exid";
+        $params[':exid'] = $excludeId;
+    }
+    $sql .= " ORDER BY FIELD(type, 'critical','warning','info','success'), display_start_utc ASC, id ASC LIMIT 1";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    return $row ?: null;
+}
+
+/** Friendly label for a stored IANA timezone (falls back to the raw name). */
+function announcementTimezoneLabel(string $tz): string {
+    static $labels = [
+        'America/New_York'    => 'Eastern Time',
+        'America/Chicago'     => 'Central Time',
+        'America/Denver'      => 'Mountain Time',
+        'America/Phoenix'     => 'Arizona Time',
+        'America/Los_Angeles' => 'Pacific Time',
+        'America/Anchorage'   => 'Alaska Time',
+        'Pacific/Honolulu'    => 'Hawaii Time',
+        'UTC'                 => 'UTC',
+    ];
+    return $labels[$tz] ?? $tz;
+}
+
+/**
+ * Format an announcement's display window in its own stored timezone for
+ * admin-facing messages, e.g. "December 3 at 8:00 PM through December 4 at
+ * 2:00 AM Eastern Time".
+ */
+function formatAnnouncementWindowForMessage(array $a): string {
+    $tzName = (string)($a['display_timezone'] ?? 'UTC');
+    $tz = in_array($tzName, DateTimeZone::listIdentifiers(), true)
+        ? new DateTimeZone($tzName) : new DateTimeZone('UTC');
+    $utc = new DateTimeZone('UTC');
+    $fmt = function (string $utcStr) use ($tz, $utc): string {
+        $d = (new DateTimeImmutable($utcStr, $utc))->setTimezone($tz);
+        return $d->format('F j \a\t g:i A');
+    };
+    $label = announcementTimezoneLabel($tzName);
+    return $fmt((string)$a['display_start_utc']) . ' through ' . $fmt((string)$a['display_end_utc']) . ' ' . $label;
+}
+
+/**
+ * Build the administrator-facing overlap error for a conflicting row.
+ * Includes the conflicting title and its window in its own timezone.
+ */
+function announcementConflictMessage(array $conflict): string {
+    $title = trim((string)($conflict['title'] ?? ''));
+    if ($title === '') {
+        $title = '(untitled)';
+    }
+    return "This announcement overlaps with '" . $title . "', which is scheduled from "
+        . formatAnnouncementWindowForMessage($conflict) . ". Please choose a different display period.";
+}
+
+/**
  * Validate + normalize content fields.
  * Returns the field array, or a string 'error:<message>'.
  * Content is stored as plain text; all rendering escapes it.

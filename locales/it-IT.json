@@ -7327,8 +7327,10 @@
         "f_tz_hint": "Gli orari sono salvati in UTC; il fuso selezionato è usato per inserimento e visualizzazione.",
         "f_start": "Inizio visualizzazione",
         "f_end": "Fine visualizzazione",
-        "f_enabled": "Abilitato (visibile nella finestra)",
-        "f_published": "Pubblica (deseleziona per tenere come bozza)",
+        "f_enabled": "Abilitato",
+        "f_enabled_help": "Consente a questo annuncio di essere visualizzato durante il periodo programmato.",
+        "f_published": "Pubblicato",
+        "f_published_help": "Rende questo annuncio disponibile per il pubblico selezionato. Lasciare deselezionato per salvare come bozza.",
         "preview_label": "Anteprima",
         "preview_placeholder": "(l’anteprima appare qui)",
         "btn_save": "Salva",
@@ -7360,6 +7362,7 @@
         "msg_updated": "Aggiornato.",
         "msg_failed": "Richiesta non riuscita",
         "confirm_delete": "Eliminare questo annuncio? L’operazione non può essere annullata.",
+        "overlap_msg": "Questo annuncio si sovrappone a “{title}”, programmato dal {window}. Scegliere un periodo di visualizzazione diverso.",
         "untitled": "(senza titolo)"
     },
     "admin_overview": {

@@ -7327,8 +7327,10 @@
         "f_tz_hint": "Os horários são armazenados em UTC; o fuso selecionado é usado para entrada e exibição.",
         "f_start": "Início da exibição",
         "f_end": "Fim da exibição",
-        "f_enabled": "Ativado (visível durante o período)",
-        "f_published": "Publicar (desmarque para manter como rascunho)",
+        "f_enabled": "Ativado",
+        "f_enabled_help": "Permite que este anúncio apareça durante seu período programado.",
+        "f_published": "Publicado",
+        "f_published_help": "Disponibiliza este anúncio para o público selecionado. Deixe desmarcado para salvar como rascunho.",
         "preview_label": "Prévia",
         "preview_placeholder": "(a prévia aparece aqui)",
         "btn_save": "Salvar",
@@ -7360,6 +7362,7 @@
         "msg_updated": "Atualizado.",
         "msg_failed": "A solicitação falhou",
         "confirm_delete": "Excluir este anúncio? Isso não pode ser desfeito.",
+        "overlap_msg": "Este anúncio se sobrepõe a “{title}”, programado de {window}. Escolha um período de exibição diferente.",
         "untitled": "(sem título)"
     },
     "admin_overview": {

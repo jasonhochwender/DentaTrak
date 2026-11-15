@@ -280,6 +280,89 @@ try {
     $pdo->prepare("UPDATE announcements SET enabled = 1 WHERE id = ?")->execute([$aNew]);
     assertTrue('re-enabled announcement returns', in_array($aNew, $visibleIds($userA, $practiceNormal), true));
 
+    // ---------------------------------------------------------------
+    echo "--- schedule conflict detection ---\n";
+
+    // Pure window math: overlap vs adjacency.
+    assertTrue('overlapping windows detected',
+        announcementWindowsOverlap('2026-01-01 00:00:00', '2026-01-02 00:00:00', '2026-01-01 12:00:00', '2026-01-03 00:00:00'));
+    assertTrue('adjacent windows do NOT overlap',
+        !announcementWindowsOverlap('2026-01-01 00:00:00', '2026-01-02 00:00:00', '2026-01-02 00:00:00', '2026-01-03 00:00:00'));
+    assertTrue('disjoint windows do NOT overlap',
+        !announcementWindowsOverlap('2026-01-01 00:00:00', '2026-01-02 00:00:00', '2026-01-03 00:00:00', '2026-01-04 00:00:00'));
+
+    // A published+enabled announcement reserves its window. Use an isolated
+    // far-future window so no other fixture can produce a conflict.
+    $cfStart = gmdate('Y-m-d H:i:s', time() + 120000);
+    $cfEnd   = gmdate('Y-m-d H:i:s', time() + 130000);
+    $aConf = $mkAnnouncement([
+        'title' => 'Conflicting Notice', 'message' => 'x', 'type' => 'warning',
+        'display_start_utc' => $cfStart, 'display_end_utc' => $cfEnd,
+        'display_timezone' => 'America/New_York',
+    ]);
+
+    $c = findAnnouncementConflict($pdo, null,
+        gmdate('Y-m-d H:i:s', time() + 125000), gmdate('Y-m-d H:i:s', time() + 126000));
+    assertTrue('overlapping new window finds conflict', $c !== null && (int)$c['id'] === $aConf);
+
+    // Adjacent: starting exactly at the other's end is allowed.
+    $cAdj = findAnnouncementConflict($pdo, null, $cfEnd, gmdate('Y-m-d H:i:s', time() + 140000));
+    assertTrue('adjacent window allowed', $cAdj === null);
+
+    // Self-exclusion for edits.
+    $cSelf = findAnnouncementConflict($pdo, $aConf, $cfStart, $cfEnd);
+    assertTrue('editing row excludes itself', $cSelf === null);
+
+    // Draft rows reserve nothing (isolated far-future window).
+    $mkAnnouncement([
+        'message' => 'draft far', 'published' => 0,
+        'display_start_utc' => gmdate('Y-m-d H:i:s', time() + 200000),
+        'display_end_utc'   => gmdate('Y-m-d H:i:s', time() + 201000),
+    ]);
+    $cDraft = findAnnouncementConflict($pdo, null,
+        gmdate('Y-m-d H:i:s', time() + 200000), gmdate('Y-m-d H:i:s', time() + 201000));
+    assertTrue('draft schedule does not reserve', $cDraft === null);
+
+    // Disabled rows reserve nothing.
+    $mkAnnouncement([
+        'message' => 'disabled far', 'enabled' => 0,
+        'display_start_utc' => gmdate('Y-m-d H:i:s', time() + 220000),
+        'display_end_utc'   => gmdate('Y-m-d H:i:s', time() + 221000),
+    ]);
+    $cDis = findAnnouncementConflict($pdo, null,
+        gmdate('Y-m-d H:i:s', time() + 220000), gmdate('Y-m-d H:i:s', time() + 221000));
+    assertTrue('disabled schedule does not reserve', $cDis === null);
+
+    // Expired published+enabled rows do not block new schedules.
+    $cExp = findAnnouncementConflict($pdo, null,
+        gmdate('Y-m-d H:i:s', time() - 90000), gmdate('Y-m-d H:i:s', time() - 80000));
+    assertTrue('expired schedule does not reserve', $cExp === null);
+
+    // Audience does not bypass the global rule: an 'all' announcement blocks
+    // a hypothetical 'fabg' one in the same window.
+    $mkAnnouncement([
+        'message' => 'all far', 'audience' => 'all', 'type' => 'info',
+        'display_start_utc' => gmdate('Y-m-d H:i:s', time() + 250000),
+        'display_end_utc'   => gmdate('Y-m-d H:i:s', time() + 251000),
+    ]);
+    $cAud = findAnnouncementConflict($pdo, null,
+        gmdate('Y-m-d H:i:s', time() + 250500), gmdate('Y-m-d H:i:s', time() + 252000));
+    assertTrue('FABG vs All-Users overlap still conflicts', $cAud !== null);
+
+    // Conflict message includes title, formatted window.
+    $msg = announcementConflictMessage($cAud);
+    assertTrue('conflict message built', strpos($msg, 'through') !== false);
+
+    $msgTz = announcementConflictMessage($c);
+    assertTrue('conflict message uses stored timezone label', strpos($msgTz, 'Eastern Time') !== false);
+    assertTrue('conflict message names the announcement', strpos($msgTz, 'Conflicting Notice') !== false);
+
+    // Write-lock primitive used by the admin API is acquirable/releasable.
+    $lock = $pdo->query("SELECT GET_LOCK('announcements_schedule_admin', 5)")->fetchColumn();
+    assertTrue('schedule admin lock acquires', (int)$lock === 1);
+    $pdo->query("SELECT RELEASE_LOCK('announcements_schedule_admin')");
+    assertTrue('schedule admin lock releases', true);
+
 } finally {
     // Cleanup fixtures (dismissals first).
     if ($createdAnnouncementIds) {

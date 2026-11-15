@@ -7327,8 +7327,10 @@
         "f_tz_hint": "Les heures sont stockées en UTC ; le fuseau choisi sert à la saisie et à l’affichage.",
         "f_start": "Début d’affichage",
         "f_end": "Fin d’affichage",
-        "f_enabled": "Activée (visible pendant la période)",
-        "f_published": "Publier (décocher pour garder comme brouillon)",
+        "f_enabled": "Activée",
+        "f_enabled_help": "Permet à cette annonce d’apparaître pendant sa période prévue.",
+        "f_published": "Publiée",
+        "f_published_help": "Rend cette annonce disponible pour l’audience sélectionnée. Laissez décoché pour enregistrer comme brouillon.",
         "preview_label": "Aperçu",
         "preview_placeholder": "(l’aperçu apparaît ici)",
         "btn_save": "Enregistrer",
@@ -7360,6 +7362,7 @@
         "msg_updated": "Mis à jour.",
         "msg_failed": "La requête a échoué",
         "confirm_delete": "Supprimer cette annonce ? Cette action est irréversible.",
+        "overlap_msg": "Cette annonce chevauche « {title} », prévue du {window}. Veuillez choisir une autre période d’affichage.",
         "untitled": "(sans titre)"
     },
     "admin_overview": {

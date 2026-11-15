@@ -7327,8 +7327,10 @@
         "f_tz_hint": "Las horas se guardan en UTC; la zona seleccionada se usa para la entrada y la visualización.",
         "f_start": "Inicio de visualización",
         "f_end": "Fin de visualización",
-        "f_enabled": "Activado (los usuarios lo ven durante el período)",
-        "f_published": "Publicar (desmarque para conservar como borrador)",
+        "f_enabled": "Activado",
+        "f_enabled_help": "Permite que este anuncio aparezca durante su período programado.",
+        "f_published": "Publicado",
+        "f_published_help": "Hace este anuncio disponible para su audiencia seleccionada. Deje sin marcar para guardarlo como borrador.",
         "preview_label": "Vista previa",
         "preview_placeholder": "(la vista previa aparece aquí)",
         "btn_save": "Guardar",
@@ -7360,6 +7362,7 @@
         "msg_updated": "Actualizado.",
         "msg_failed": "La solicitud falló",
         "confirm_delete": "¿Eliminar este anuncio? No se puede deshacer.",
+        "overlap_msg": "Este anuncio se solapa con «{title}», programado desde {window}. Elija un período de visualización diferente.",
         "untitled": "(sin título)"
     },
     "admin_overview": {

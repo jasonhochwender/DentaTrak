@@ -7327,8 +7327,10 @@
         "f_tz_hint": "Zeiten werden in UTC gespeichert; die gewählte Zone wird für Eingabe und Anzeige verwendet.",
         "f_start": "Anzeige Beginn",
         "f_end": "Anzeige Ende",
-        "f_enabled": "Aktiviert (Benutzer sehen sie im Zeitfenster)",
-        "f_published": "Veröffentlichen (deaktivieren für Entwurf)",
+        "f_enabled": "Aktiviert",
+        "f_enabled_help": "Ermöglicht, dass diese Ankündigung während des geplanten Zeitraums angezeigt wird.",
+        "f_published": "Veröffentlicht",
+        "f_published_help": "Macht diese Ankündigung für die ausgewählte Zielgruppe verfügbar. Deaktiviert bleibt sie ein Entwurf.",
         "preview_label": "Vorschau",
         "preview_placeholder": "(Vorschau erscheint hier)",
         "btn_save": "Speichern",
@@ -7360,6 +7362,7 @@
         "msg_updated": "Aktualisiert.",
         "msg_failed": "Anfrage fehlgeschlagen",
         "confirm_delete": "Diese Ankündigung löschen? Dies kann nicht rückgängig gemacht werden.",
+        "overlap_msg": "Diese Ankündigung überschneidet sich mit „{title}“, die vom {window} geplant ist. Bitte wählen Sie einen anderen Anzeigezeitraum.",
         "untitled": "(ohne Titel)"
     },
     "admin_overview": {

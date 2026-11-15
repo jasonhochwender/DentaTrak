@@ -7327,8 +7327,10 @@
         "f_tz_hint": "시간은 UTC로 저장되며, 선택한 시간대가 입력과 표시에 사용됩니다.",
         "f_start": "표시 시작",
         "f_end": "표시 종료",
-        "f_enabled": "활성화(기간 동안 사용자에게 표시)",
-        "f_published": "게시(초안으로 유지하려면 선택 해제)",
+        "f_enabled": "활성화",
+        "f_enabled_help": "예약된 기간 동안 이 공지가 표시되도록 허용합니다.",
+        "f_published": "게시됨",
+        "f_published_help": "선택한 대상에게 이 공지를 제공합니다. 체크를 해제하면 초안으로 저장됩니다.",
         "preview_label": "미리 보기",
         "preview_placeholder": "(미리 보기가 여기에 표시됩니다)",
         "btn_save": "저장",
@@ -7360,6 +7362,7 @@
         "msg_updated": "업데이트되었습니다.",
         "msg_failed": "요청이 실패했습니다",
         "confirm_delete": "이 공지를 삭제하시겠습니까? 되돌릴 수 없습니다.",
+        "overlap_msg": "이 공지는 {window}에 예정된 “{title}”와 기간이 겹칩니다. 다른 표시 기간을 선택해 주세요.",
         "untitled": "(제목 없음)"
     },
     "admin_overview": {

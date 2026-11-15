@@ -73,12 +73,23 @@ function a($k, $f = '') { $v = t('admin_ann.' . $k); return $v !== '' ? $v : $f;
         .ann-field { display: flex; flex-direction: column; gap: 4px; }
         .ann-field.full { grid-column: 1 / -1; }
         .ann-field label { font-size: 0.78rem; font-weight: 600; color: #4b5563; }
-        .ann-field input, .ann-field select, .ann-field textarea {
+        .ann-field input:not([type="checkbox"]), .ann-field select, .ann-field textarea {
             padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px;
             font-size: 0.88rem; font-family: inherit; width: 100%; box-sizing: border-box;
         }
         .ann-field textarea { min-height: 90px; resize: vertical; }
         .ann-field .ann-hint { font-size: 0.72rem; color: #9ca3af; font-weight: 400; }
+        .ann-checks { display: flex; gap: 28px; flex-wrap: wrap; }
+        .ann-check-item { display: flex; flex-direction: column; gap: 3px; }
+        .ann-check {
+            display: inline-flex; align-items: center; gap: 8px;
+            font-size: 0.85rem; font-weight: 600; color: #111827;
+            cursor: pointer; white-space: nowrap; width: fit-content;
+        }
+        .ann-check input[type="checkbox"] {
+            width: 16px; height: 16px; margin: 0; flex: 0 0 auto; accent-color: #1e40af;
+        }
+        .ann-check-help { font-size: 0.75rem; color: #6b7280; font-weight: 400; }
         .ann-form-actions { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
         .ann-preview { margin-top: 16px; }
         .ann-preview .dt-announcements { padding: 0; max-width: none; }
@@ -167,17 +178,23 @@ function a($k, $f = '') { $v = t('admin_ann.' . $k); return $v !== '' ? $v : $f;
                 <label for="fEnd"><?php echo h(a('f_end', 'Display end')); ?></label>
                 <input type="datetime-local" id="fEnd">
             </div>
-            <div class="ann-field">
-                <label class="pa-scope-toggle" for="fEnabled" style="font-size:0.85rem;">
-                    <input type="checkbox" id="fEnabled" checked>
-                    <span><?php echo h(a('f_enabled', 'Enabled (users can see it during the window)')); ?></span>
-                </label>
-            </div>
-            <div class="ann-field">
-                <label class="pa-scope-toggle" for="fPublished" style="font-size:0.85rem;">
-                    <input type="checkbox" id="fPublished">
-                    <span><?php echo h(a('f_published', 'Publish (uncheck to keep as draft)')); ?></span>
-                </label>
+            <div class="ann-field full">
+                <div class="ann-checks">
+                    <div class="ann-check-item">
+                        <label class="ann-check" for="fEnabled">
+                            <input type="checkbox" id="fEnabled" checked>
+                            <span class="ann-check-text"><?php echo h(a('f_enabled', 'Enabled')); ?></span>
+                        </label>
+                        <span class="ann-check-help"><?php echo h(a('f_enabled_help', 'Allow this announcement to appear during its scheduled period.')); ?></span>
+                    </div>
+                    <div class="ann-check-item">
+                        <label class="ann-check" for="fPublished">
+                            <input type="checkbox" id="fPublished">
+                            <span class="ann-check-text"><?php echo h(a('f_published', 'Published')); ?></span>
+                        </label>
+                        <span class="ann-check-help"><?php echo h(a('f_published_help', 'Make this announcement available to its selected audience. Leave unchecked to save as a draft.')); ?></span>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -247,6 +264,7 @@ var ANN_I18N = <?= json_encode([
     'msgUpdated' => a('msg_updated', 'Updated.'),
     'loadFailed' => a('msg_failed', 'Request failed'),
     'confirmDelete' => a('confirm_delete', 'Delete this announcement? This cannot be undone.'),
+    'overlapMsg' => a('overlap_msg', "This announcement overlaps with '{title}', which is scheduled from {window}. Please choose a different display period."),
     'untitled' => a('untitled', '(untitled)'),
 ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
 (function () {
@@ -262,6 +280,91 @@ var ANN_I18N = <?= json_encode([
     var AUD_LABELS = { all: ANN_I18N.audAll, fabg: ANN_I18N.audFabg };
     var STATUS_LABELS = { draft: ANN_I18N.stDraft, scheduled: ANN_I18N.stScheduled, active: ANN_I18N.stActive, expired: ANN_I18N.stExpired, disabled: ANN_I18N.stDisabled };
     var editingId = null;
+    var annRows = [];
+
+    // ---- Schedule overlap (client-side pre-check; server is authoritative) ----
+    var TZ_LABELS = {
+        'America/New_York': 'Eastern Time', 'America/Chicago': 'Central Time',
+        'America/Denver': 'Mountain Time', 'America/Phoenix': 'Arizona Time',
+        'America/Los_Angeles': 'Pacific Time', 'America/Anchorage': 'Alaska Time',
+        'Pacific/Honolulu': 'Hawaii Time', 'UTC': 'UTC'
+    };
+
+    function utcParse(s) {
+        var d = new Date(String(s || '').replace(' ', 'T') + 'Z');
+        return isNaN(d) ? null : d;
+    }
+
+    function tzOffsetMs(utcDate, tz) {
+        var parts = new Intl.DateTimeFormat('en-US', {
+            timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',
+            hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+        }).formatToParts(utcDate);
+        var m = {};
+        parts.forEach(function (p) { m[p.type] = p.value; });
+        var hour = m.hour === '24' ? 0 : parseInt(m.hour, 10);
+        var asUTC = Date.UTC(+m.year, +m.month - 1, +m.day, hour, +m.minute, +m.second);
+        return asUTC - Math.floor(utcDate.getTime() / 1000) * 1000;
+    }
+
+    function localToUtc(localStr, tz) {
+        if (!localStr) return null;
+        var guess = new Date(localStr.replace('T', ' ') + ':00Z');
+        if (isNaN(guess)) return null;
+        try {
+            var off = tzOffsetMs(guess, tz);
+            var utc = new Date(guess.getTime() - off);
+            var off2 = tzOffsetMs(utc, tz);
+            if (off2 !== off) utc = new Date(guess.getTime() - off2);
+            return utc;
+        } catch (e) { return null; }
+    }
+
+    function fmtWindowForConflict(a) {
+        function part(utcStr, opts) {
+            var d = utcParse(utcStr);
+            if (!d) return '';
+            try {
+                var p = new Intl.DateTimeFormat('en-US', Object.assign({ timeZone: a.display_timezone || 'UTC' }, opts)).formatToParts(d);
+                var m = {};
+                p.forEach(function (x) { m[x.type] = x.value; });
+                return m;
+            } catch (e) { return {}; }
+        }
+        var s = part(a.display_start_utc, { month: 'long', day: 'numeric' });
+        var e = part(a.display_end_utc, { month: 'long', day: 'numeric' });
+        var st = part(a.display_start_utc, { hour: 'numeric', minute: '2-digit', hour12: true });
+        var et = part(a.display_end_utc, { hour: 'numeric', minute: '2-digit', hour12: true });
+        var t = function (m) { return (m.hour || '') + ':' + (m.minute || '') + ' ' + (m.dayPeriod || ''); };
+        var tzLabel = TZ_LABELS[a.display_timezone] || a.display_timezone || 'UTC';
+        return (s.month || '') + ' ' + (s.day || '') + ' at ' + t(st) + ' through '
+            + (e.month || '') + ' ' + (e.day || '') + ' at ' + t(et) + ' ' + tzLabel;
+    }
+
+    function conflictMessage(conflict) {
+        var title = (conflict.title || '').trim() || ANN_I18N.untitled;
+        return ANN_I18N.overlapMsg
+            .replace('{title}', title)
+            .replace('{window}', fmtWindowForConflict(conflict));
+    }
+
+    /**
+     * Return the first published+enabled, unexpired row whose UTC window
+     * overlaps [newStartUtc, newEndUtc), excluding excludeId. Mirrors the
+     * server-side rule (adjacent windows do not overlap).
+     */
+    function findClientConflict(newStartUtc, newEndUtc, excludeId) {
+        var now = Date.now();
+        for (var i = 0; i < annRows.length; i++) {
+            var r = annRows[i];
+            if (excludeId && r.id === excludeId) continue;
+            if (!Number(r.published) || !Number(r.enabled)) continue;
+            var rs = utcParse(r.display_start_utc), re = utcParse(r.display_end_utc);
+            if (!rs || !re || re.getTime() <= now) continue;
+            if (newStartUtc < re && newEndUtc > rs) return r;
+        }
+        return null;
+    }
 
     function esc(s) {
         var d = document.createElement('div');
@@ -342,6 +445,7 @@ var ANN_I18N = <?= json_encode([
         return apiGet('list').then(function (res) {
             if (!res.success) { msg(res.message || ANN_I18N.loadFailed, false); return; }
             var rows = res.announcements || [];
+            annRows = rows;
             var tb = document.getElementById('annTbody');
             tb.innerHTML = '';
             document.getElementById('annEmpty').hidden = rows.length > 0;
@@ -434,6 +538,17 @@ var ANN_I18N = <?= json_encode([
         };
         var action = editingId ? 'update' : 'create';
         if (editingId) payload.id = editingId;
+        // Client-side schedule pre-check (published+enabled only); the
+        // server re-validates authoritatively under a write lock.
+        if (payload.published && payload.enabled && payload.display_start && payload.display_end) {
+            var tz = payload.display_timezone || 'UTC';
+            var ns = localToUtc(payload.display_start, tz);
+            var ne = localToUtc(payload.display_end, tz);
+            if (ns && ne) {
+                var cf = findClientConflict(ns, ne, editingId);
+                if (cf) { msg(conflictMessage(cf), false); return; }
+            }
+        }
         apiPost(action, payload).then(function (res) {
             if (res.success) {
                 msg(ANN_I18N.msgSaved, true);
@@ -472,7 +587,22 @@ var ANN_I18N = <?= json_encode([
             return;
         }
         if (act === 'toggle-enabled' || act === 'toggle-published') {
-            var payload = { id: id, value: parseInt(btn.dataset.val, 10) };
+            var val = parseInt(btn.dataset.val, 10);
+            // Pre-check enabling/publishing against the schedule rule.
+            if (val === 1) {
+                var row = null;
+                for (var i = 0; i < annRows.length; i++) { if (annRows[i].id === id) { row = annRows[i]; break; } }
+                if (row) {
+                    var effEnabled = act === 'toggle-enabled' ? 1 : Number(row.enabled);
+                    var effPublished = act === 'toggle-published' ? 1 : Number(row.published);
+                    var rs = utcParse(row.display_start_utc), re = utcParse(row.display_end_utc);
+                    if (effEnabled && effPublished && rs && re && re.getTime() > Date.now()) {
+                        var cf2 = findClientConflict(rs, re, id);
+                        if (cf2) { msg(conflictMessage(cf2), false); load(); return; }
+                    }
+                }
+            }
+            var payload = { id: id, value: val };
             apiPost(act, payload).then(function (res) {
                 msg(res.success ? ANN_I18N.msgUpdated : (res.message || ANN_I18N.loadFailed), res.success);
                 load();

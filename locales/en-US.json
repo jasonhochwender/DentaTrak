@@ -7327,8 +7327,10 @@
         "f_tz_hint": "Times are stored in UTC; the selected zone is used for entry and display.",
         "f_start": "Display start",
         "f_end": "Display end",
-        "f_enabled": "Enabled (users can see it during the window)",
-        "f_published": "Publish (uncheck to keep as draft)",
+        "f_enabled": "Enabled",
+        "f_enabled_help": "Allow this announcement to appear during its scheduled period.",
+        "f_published": "Published",
+        "f_published_help": "Make this announcement available to its selected audience. Leave unchecked to save as a draft.",
         "preview_label": "Preview",
         "preview_placeholder": "(preview appears here)",
         "btn_save": "Save",
@@ -7360,6 +7362,7 @@
         "msg_updated": "Updated.",
         "msg_failed": "Request failed",
         "confirm_delete": "Delete this announcement? This cannot be undone.",
+        "overlap_msg": "This announcement overlaps with '{title}', which is scheduled from {window}. Please choose a different display period.",
         "untitled": "(untitled)"
     },
     "admin_overview": {
