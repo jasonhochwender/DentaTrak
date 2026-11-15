@@ -1539,6 +1539,20 @@ switch ($action) {
         mo_out(['success' => true] + $r);
     }
 
+    case 'campaign_recipients_remove': {
+        // Bulk removal by CRM contact ids - one transaction, all-or-nothing.
+        $admin = mo_crm_admin($pdo, $userEmail);
+        $cid = trim((string)($in['campaign_id'] ?? ''));
+        $cids = array_values(array_unique(array_filter(array_map('intval', (array)($in['contact_ids'] ?? [])), fn($i) => $i > 0)));
+        if ($cid === '' || $cids === []) mo_fail('campaign_id and contact_ids required');
+        if (count($cids) > 1000) mo_fail('too many contact_ids (max 1000)');
+        try { $r = $admin->removeRecipientsByContact($cid, $cids); }
+        catch (InvalidArgumentException $e) { mo_fail($e->getMessage()); }
+        mo_audit($pdo, $userEmail, 'campaign_recipients_remove', $cid,
+            ['requested' => count($cids), 'removed' => $r['removed_count'], 'missing_contact_ids' => $r['missing_contact_ids']]);
+        mo_out(['success' => true] + $r);
+    }
+
     case 'campaign_send_control': {
         // Pause/resume/stop for background campaign sending. Pause only
         // stops the worker from starting NEW batches - an in-flight

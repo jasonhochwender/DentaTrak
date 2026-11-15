@@ -196,6 +196,43 @@ $prev = $admin->previewImport($csv);
 $fields = $prev[0]['fields'];
 ok('extra fields mapped', ($fields['demo_status'] ?? '') === 'yes' && ($fields['trial_status'] ?? '') === 'no' && ($fields['outcome'] ?? '') === 'interested');
 
+/* ---------------- removeRecipientsByContact (bulk) ---------------- */
+$bc = $admin->createCampaign(['name' => 'CRMTEST4 BulkRm', 'kind' => 'initial',
+    'contact_ids' => [$id2, $id3, $id4]], $max);
+$bcid = $bc['campaign_id'];
+ok('bulk fixture campaign has 3 recipients', $bc['added'] === 3);
+$pdo->exec("UPDATE marketing_campaigns SET status='approved', approved_by='crmtest4', approved_at=UTC_TIMESTAMP(), content_hash='x' WHERE id=" . $pdo->quote($bcid));
+$br = $admin->removeRecipientsByContact($bcid, [$id2, $id3, 999999]);
+ok('bulk remove returns 2 removed + 1 missing', $br['removed_count'] === 2 && $br['missing_contact_ids'] === [999999]);
+$brow = $pdo->query("SELECT status,approved_by,recipient_count FROM marketing_campaigns WHERE id=" . $pdo->quote($bcid))->fetch(PDO::FETCH_ASSOC);
+ok('approved campaign downgraded to ready', $brow['status'] === 'ready' && $brow['approved_by'] === null);
+ok('recipient_count is 1 after bulk remove', (int)$brow['recipient_count'] === 1
+    && $cnt("SELECT COUNT(*) FROM marketing_campaign_recipients WHERE campaign_id=" . $pdo->quote($bcid)) === 1);
+ok('CRM contacts preserved after bulk remove',
+    $cnt("SELECT COUNT(*) FROM marketing_contacts WHERE id IN ($id2,$id3,$id4)") === 3);
+$bev = $cnt("SELECT COUNT(*) FROM marketing_prospect_events WHERE event_type='campaign_recipient_removed' AND actor='crmtest4-admin@example.com'");
+ok('bulk removal prospect events written', $bev >= 2);
+// Idempotent rerun: same contact ids now report missing, remove nothing.
+$br2 = $admin->removeRecipientsByContact($bcid, [$id2, $id3]);
+ok('bulk remove idempotent rerun', $br2['removed_count'] === 0 && count($br2['missing_contact_ids']) === 2);
+// All-or-nothing: a sent/in-flight row aborts the whole batch.
+$bc2 = $admin->createCampaign(['name' => 'CRMTEST4 BulkRmAbort', 'kind' => 'initial',
+    'contact_ids' => [$id1, $id2]], $max);
+$bc2id = $bc2['campaign_id'];
+$sentRid = (int)$pdo->query("SELECT id FROM marketing_campaign_recipients WHERE campaign_id=" . $pdo->quote($bc2id) . " AND prospect_email='bob@crmtest4.example.com'")->fetchColumn();
+$pdo->exec("UPDATE marketing_campaign_recipients SET status='sent' WHERE id=$sentRid");
+$aborted = false;
+try { $admin->removeRecipientsByContact($bc2id, [$id1, $id2]); } catch (InvalidArgumentException $e) { $aborted = true; }
+ok('bulk remove aborts on sent recipient', $aborted);
+ok('aborted batch rolled back (both rows intact)',
+    $cnt("SELECT COUNT(*) FROM marketing_campaign_recipients WHERE campaign_id=" . $pdo->quote($bc2id)) === 2);
+$ab = false;
+try { $admin->removeRecipientsByContact($bc2id, []); } catch (InvalidArgumentException $e) { $ab = true; }
+ok('bulk remove rejects empty contact_ids', $ab);
+$nf = false;
+try { $admin->removeRecipientsByContact('00000000-0000-0000-0000-000000000000', [$id1]); } catch (InvalidArgumentException $e) { $nf = true; }
+ok('bulk remove rejects unknown campaign', $nf);
+
 /* ---------------- approval hash coverage ---------------- */
 // mo_content_hash is endpoint-internal; verify membership change alters it
 // by replicating the query the function uses.

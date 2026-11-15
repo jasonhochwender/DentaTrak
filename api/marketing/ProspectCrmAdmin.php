@@ -1203,6 +1203,63 @@ final class ProspectCrmAdmin
     }
 
     /**
+     * Bulk variant of removeRecipient keyed by CRM contact ids. Removes every
+     * matching recipient row for the campaign in ONE transaction: either all
+     * eligible rows are removed or none are. Contacts with no recipient row
+     * are reported as missing; sent/sending/uncertain rows abort the whole
+     * operation. Never touches prospect, outreach-history, or suppression
+     * records - only marketing_campaign_recipients rows are deleted.
+     *
+     * @param int[] $contactIds
+     * @return array{removed: array<int,array{contact_id:int,recipient_id:int,email:string}>,
+     *               missing_contact_ids: int[], removed_count: int}
+     */
+    public function removeRecipientsByContact(string $campaignId, array $contactIds): array
+    {
+        $camp = $this->campaignRow($campaignId);
+        if (!$camp) throw new InvalidArgumentException('campaign not found');
+        if (!in_array($camp['status'], ['draft', 'ready', 'approved'], true)) {
+            throw new InvalidArgumentException('campaign is not editable');
+        }
+        $ids = array_values(array_unique(array_filter(array_map('intval', $contactIds), fn($i) => $i > 0)));
+        if ($ids === []) throw new InvalidArgumentException('contact_ids required');
+        if (count($ids) > 1000) throw new InvalidArgumentException('too many contact_ids (max 1000)');
+
+        $removed = [];
+        $missing = [];
+        $find = $this->pdo->prepare('SELECT * FROM marketing_campaign_recipients WHERE campaign_id=? AND contact_id=?');
+        $del = $this->pdo->prepare('DELETE FROM marketing_campaign_recipients WHERE id=?');
+        $this->pdo->beginTransaction();
+        try {
+            foreach ($ids as $contactId) {
+                $find->execute([$campaignId, $contactId]);
+                $r = $find->fetch(PDO::FETCH_ASSOC);
+                if (!$r) { $missing[] = $contactId; continue; }
+                if (in_array($r['status'], ['sent', 'sending', 'uncertain'], true)) {
+                    throw new InvalidArgumentException('cannot remove a sent or in-flight recipient: ' . $r['prospect_email']);
+                }
+                $del->execute([(int)$r['id']]);
+                $removed[] = ['contact_id' => $contactId, 'recipient_id' => (int)$r['id'], 'email' => $r['prospect_email']];
+                $this->event($contactId, null, 'campaign_recipient_removed',
+                    ['campaign_id' => $campaignId, 'email' => $r['prospect_email'], 'bulk' => true]);
+            }
+            if ($removed !== []) {
+                if ($camp['status'] === 'approved') {
+                    $this->pdo->prepare("UPDATE marketing_campaigns SET status='ready', approved_by=NULL, approved_at=NULL, content_hash=NULL WHERE id=?")
+                        ->execute([$campaignId]);
+                }
+                $this->pdo->prepare('UPDATE marketing_campaigns SET recipient_count=(SELECT COUNT(*) FROM marketing_campaign_recipients WHERE campaign_id=?) WHERE id=?')
+                    ->execute([$campaignId, $campaignId]);
+            }
+            $this->pdo->commit();
+        } catch (Throwable $e) {
+            if ($this->pdo->inTransaction()) $this->pdo->rollBack();
+            throw $e;
+        }
+        return ['removed' => $removed, 'missing_contact_ids' => $missing, 'removed_count' => count($removed)];
+    }
+
+    /**
      * Send-time gate for one campaign recipient in CRM mode. Mirrors the
      * sheet preCheck semantics using the annotated CRM record: permanent
      * exclusions always block; non-hard failures may pass only when
