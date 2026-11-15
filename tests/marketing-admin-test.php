@@ -133,6 +133,17 @@ assertContains($baseDir . '/js/marketing-crm.js', '/campaign_send_auth/', 'CRM U
 assertContains($page, '/id="moCampAuthCrm"/', 'page must render the authorization button');
 assertContains($page, '/sendAuthBadge/', 'page must pass the authorized badge string');
 
+// ---- 5e. Background message generation ----
+assertContains($api, "/case 'campaign_generate_request'/", 'API must expose queued generation');
+assertContains($api, '/CampaignGenerator/', 'admin endpoint must delegate generation to the shared service');
+assertContains($baseDir . '/api/marketing/CampaignGenerator.php', '/gen_attempts/', 'generator must track per-recipient attempts');
+assertContains($baseDir . '/api/marketing/CampaignGenerator.php', '/prospect_not_found/', 'generator must record durable failures');
+assertContains($worker, '/CampaignGenerator/', 'send worker must drain queued generation');
+assertContains($worker, '/gen_requested=1/', 'worker must select queued generation campaigns');
+assertContains($baseDir . '/migrations/2026_11_24_marketing_campaign_generation.php', '/gen_requested/', 'migration must add gen_requested');
+assertContains($baseDir . '/js/marketing-crm.js', '/campaign_generate_request/', 'CRM UI must queue generation');
+assertContains($baseDir . '/js/marketing-crm.js', '/refreshCampaign/', 'CRM UI must preserve recipient page state on refresh');
+
 // ---- 5a. Controlled pilot: per-recipient send selection ----
 // recipient_ids may only narrow the sendable set; every other gate still
 // applies per row. The env allowlist remains the hard delivery gate.
@@ -258,10 +269,13 @@ assertContains($mailer, '/multipart\/alternative/', 'mailer must send multipart/
 assertContains($mailer, '/text\/plain/', 'mailer must include a plain-text part');
 assertContains($mailer, '/MarketingFooter::text\(/', 'plain-text part must carry the text footer');
 assertContains($mailer, '/MarketingFooter::html\(/', 'html part must carry the html footer');
-// AI prompt must forbid outcome guarantees and invented facts.
-assertContains($api, '/Do NOT claim DentaTrak eliminates manual work/', 'AI prompt must ban elimination claims');
-assertContains($api, '/never invent facts/', 'AI prompt must forbid invented facts');
-assertContains($api, '/complements practice-management software/', 'AI prompt must position as complementary');
+// AI prompt must forbid outcome guarantees and invented facts. The
+// generator moved into the shared CampaignGenerator service (admin
+// endpoint + send worker both use it).
+$genSrc = $baseDir . '/api/marketing/CampaignGenerator.php';
+assertContains($genSrc, '/Do NOT claim DentaTrak eliminates manual work/', 'AI prompt must ban elimination claims');
+assertContains($genSrc, '/never invent facts/', 'AI prompt must forbid invented facts');
+assertContains($genSrc, '/complements practice-management software/', 'AI prompt must position as complementary');
 // Editor: rich-text surface + plain-text paste + server-side sanitize on save.
 assertContains($page, '/mo-body-edit/', 'campaign editor must use the rich-text surface');
 assertContains($baseDir . '/js/marketing-crm.js', '/contenteditable="true"/', 'editor must be contenteditable');

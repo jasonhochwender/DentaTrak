@@ -907,7 +907,12 @@
         });
     }
 
-    function openCampaign(id) {
+    function openCampaign(id, opts) {
+        opts = opts || {};
+        // Reopening the SAME campaign (post-save refresh, polling) keeps
+        // the recipient page, search, filters, and scroll position;
+        // opening a different campaign resets them.
+        var sameCampaign = (campState.current === id);
         campState.current = id;
         $('moCampaignList').classList.add('mo-hidden');
         $('moCampaignDetail').classList.remove('mo-hidden');
@@ -959,22 +964,85 @@
             ts.disabled = !editable;
             renderProgress(c, d.recipient_counts || {}, d.recipient_total || 0);
             renderSendControls(c);
-            recipPage = 1;
+            renderGenStatus(d.gen || null, c);
+            if (!sameCampaign || opts.resetList) {
+                recipPage = 1; recipQ = ''; recipStatus = ''; recipReview = false;
+                recipThread = false; recipEdited = false;
+                var rq = $('moRecipQ'); if (rq) rq.value = '';
+                var rs = $('moRecipStatus'); if (rs) rs.value = '';
+                var rr = $('moRecipReview'); if (rr) rr.checked = false;
+                var rt = $('moRecipThread'); if (rt) rt.checked = false;
+                var re = $('moRecipEdited'); if (re) re.checked = false;
+            }
             loadRecipients();
             startSendPoll();
+            startGenPoll();
         }).catch(function (e) { if (e) console.warn('[MOCrm] campaign load', e); showErr(S('loadFailed')); });
     }
 
+    // Lightweight refresh after an in-place action (save, regen, remove,
+    // approve, thread check, send control): updates header/progress and
+    // reloads the CURRENT recipient page without resetting filters.
+    function refreshCampaign() {
+        var id = campState.current;
+        if (!id) return;
+        apiGet('campaign', { id: id }).then(function (d) {
+            if (!d.success || !d.campaign) { showErr(d.error || S('loadFailed')); return; }
+            var c = d.campaign;
+            campState.campaign = c;
+            campState.counts = d.recipient_counts || {};
+            campState.recipTotal = d.recipient_total || 0;
+            campState.threadsUnresolved = d.threads_unresolved || 0;
+            campState.sending = d.sending || null;
+            campState.signature = d.signature || null;
+            var canSend = !!(campState.sending && campState.sending.enabled);
+            var editable = (c.status === 'draft' || c.status === 'ready');
+            var retryable = (c.status === 'partial');
+            $('moCampApproveCrm').textContent = canSend ? S('approveAndSend') : S('approveOnly');
+            $('moCampApproveCrm').disabled = !(c.status === 'draft' || c.status === 'ready');
+            $('moCampApproveCrm').classList.toggle('mo-hidden', retryable);
+            $('moCampRetryCrm').classList.toggle('mo-hidden', !retryable);
+            $('moCampRetryCrm').disabled = !canSend;
+            $('moCampSendCrm').classList.toggle('mo-hidden', !(canSend && (c.status === 'approved' || c.status === 'partial')));
+            $('moCampEditCrm').classList.toggle('mo-hidden', !editable);
+            $('moCampAddRecipCrm').classList.toggle('mo-hidden', !editable);
+            $('moCampThreadsCrm').classList.toggle('mo-hidden',
+                !(c.kind === 'followup' && (c.status === 'draft' || c.status === 'ready')));
+            var authBtn = $('moCampAuthCrm');
+            if (authBtn) {
+                authBtn.textContent = c.send_authorized ? S('revokeSendAuth') : S('authorizeSending');
+                authBtn.title = c.send_authorized ? S('confirmRevokeSendAuth') : S('confirmAuthorizeSend');
+            }
+            $('moCampMeta').textContent = c.kind + ' · ' + c.status +
+                (c.created_by ? ' · ' + c.created_by : '') +
+                (c.approved_by ? ' · ' + S('approvedBy') + ' ' + c.approved_by : '') +
+                (c.send_authorized ? ' · ' + S('sendAuthBadge') + (c.send_authorized_by ? ' (' + c.send_authorized_by + ')' : '') : '') +
+                (c.description ? ' — ' + c.description : '');
+            renderProgress(c, d.recipient_counts || {}, d.recipient_total || 0);
+            renderSendControls(c);
+            renderGenStatus(d.gen || null, c);
+            loadRecipients();
+            startSendPoll();
+            startGenPoll();
+        }).catch(function () { /* keep current view; next action retries */ });
+    }
+
     /* ---- large-campaign recipient paging ---- */
-    var recipPage = 1, recipQ = '', recipStatus = '', recipReview = false;
+    var recipPage = 1, recipQ = '', recipStatus = '', recipReview = false,
+        recipThread = false, recipEdited = false;
     var sendPollTimer = null;
 
     function loadRecipients() {
+        var scrollY = window.scrollY;
         apiGet('campaign_recipients', {
             campaign_id: campState.current, page: recipPage, per: 25,
-            q: recipQ, status: recipStatus, review: recipReview ? 1 : 0
+            q: recipQ, status: recipStatus, review: recipReview ? 1 : 0,
+            thread: recipThread ? 'unresolved' : '', edited: recipEdited ? 1 : 0
         }).then(function (d) {
             if (!d.success || !campState.campaign) { if (!d.success) showErr(d.error || S('loadFailed')); return; }
+            // Server clamps out-of-range pages (e.g. a removal emptied the
+            // last page) - keep local state in sync.
+            recipPage = d.page || recipPage;
             var c = campState.campaign;
             var editable = (c.status === 'draft' || c.status === 'ready');
             renderCampMessages(d.recipients || [], editable, c);
@@ -993,6 +1061,9 @@
                     });
                 });
             }
+            // Restore scroll after re-render so saving/editing does not
+            // jump the administrator back to the top.
+            requestAnimationFrame(function () { window.scrollTo(0, scrollY); });
         });
     }
 
@@ -1033,6 +1104,87 @@
         return (c.approved || 0) + (c.uncertain || 0) + (c.sending || 0);
     }
 
+    /* ---- background message generation ---- */
+    var genPollTimer = null;
+
+    function renderGenStatus(gen, camp) {
+        var el = $('moCampGenStatus');
+        if (!el) return;
+        gen = gen || {};
+        var total = campState.recipTotal || 0;
+        var drafted = (campState.counts.ready || 0) + (campState.counts.approved || 0) +
+            (campState.counts.sending || 0) + (campState.counts.sent || 0);
+        if (gen.requested) {
+            el.classList.remove('mo-hidden');
+            var pending = gen.pending != null ? gen.pending : '';
+            el.innerHTML = '<span class="mo-pill thread-new">' + esc(S('genRunning')) + '</span> ' +
+                esc(S('genProgress').replace('{d}', drafted).replace('{t}', total).replace('{p}', pending)) +
+                (gen.failed ? ' · ' + esc(S('genFailedN').replace('{n}', gen.failed)) : '') +
+                ' <button class="mo-btn secondary small" id="moGenCancel">' + esc(S('genCancel')) + '</button>';
+            var cb = $('moGenCancel');
+            if (cb) cb.onclick = genCancel;
+        } else if (gen.failed) {
+            el.classList.remove('mo-hidden');
+            el.innerHTML = '<span class="mo-pill failed">' + esc(S('genFailedN').replace('{n}', gen.failed)) + '</span> ' +
+                esc(S('genFailedHint')) +
+                ' <button class="mo-btn secondary small" id="moGenRetry">' + esc(S('genRetryFailed')) + '</button>';
+            var rb = $('moGenRetry');
+            if (rb) rb.onclick = function () { requestGeneration('retry_failed'); };
+        } else {
+            el.classList.add('mo-hidden');
+            el.innerHTML = '';
+        }
+    }
+
+    function stopGenPoll() { if (genPollTimer) { clearInterval(genPollTimer); genPollTimer = null; } }
+    function startGenPoll() {
+        stopGenPoll();
+        var c = campState.campaign;
+        if (!c || !c.gen_requested) return;
+        genPollTimer = setInterval(function () {
+            var id = campState.current;
+            if (!id) { stopGenPoll(); return; }
+            apiGet('campaign', { id: id }).then(function (d) {
+                if (!d.success || !d.campaign) { stopGenPoll(); return; }
+                campState.counts = d.recipient_counts || campState.counts;
+                campState.campaign = d.campaign;
+                renderProgress(d.campaign, d.recipient_counts || {}, d.recipient_total || 0);
+                renderGenStatus(d.gen || null, d.campaign);
+                if (!d.campaign.gen_requested) {
+                    stopGenPoll();
+                    var rc = d.recipient_counts || {};
+                    var drafted = (rc.ready || 0) + (rc.approved || 0) + (rc.sending || 0) + (rc.sent || 0);
+                    showOk(S('genDone').replace('{n}', drafted).replace('{f}', (d.gen || {}).failed || 0));
+                    loadRecipients();
+                }
+            });
+        }, 5000);
+    }
+
+    function genCancel() {
+        apiPost('campaign_generate_request', { campaign_id: campState.current, cancel: true })
+            .then(function (d) {
+                if (!d.success) { showErr(d.error || S('loadFailed')); return; }
+                refreshCampaign();
+            });
+    }
+
+    function requestGeneration(scope) {
+        var labels = {
+            missing: S('genScopeMissing'),
+            replace_unedited: S('genScopeReplace'),
+            retry_failed: S('genScopeRetry')
+        };
+        confirmModal(S('confirmGenerate').replace('{scope}', labels[scope] || scope), function () {
+            apiPost('campaign_generate_request', { campaign_id: campState.current, scope: scope })
+                .then(function (d) {
+                    if (!d.success) { showErr(d.error || S('loadFailed')); return; }
+                    showOk(S('genQueued').replace('{n}', d.pending != null ? d.pending : ''));
+                    refreshCampaign();
+                });
+        });
+    }
+
     function stopSendPoll() { if (sendPollTimer) { clearInterval(sendPollTimer); sendPollTimer = null; } }
     function startSendPoll() {
         stopSendPoll();
@@ -1044,7 +1196,7 @@
                 if (!d.success || !d.campaign) { stopSendPoll(); return; }
                 var nc = d.campaign;
                 if (nc.send_requested !== c.send_requested || nc.send_paused !== c.send_paused || nc.status !== c.status) {
-                    openCampaign(campState.current);
+                    refreshCampaign();
                 } else {
                     campState.counts = d.recipient_counts || campState.counts;
                     renderProgress(nc, d.recipient_counts || {}, d.recipient_total || 0);
@@ -1060,7 +1212,7 @@
         var go = function () {
             apiPost('campaign_send_control', { campaign_id: c, action: action }).then(function (d) {
                 if (!d.success) { showErr(d.error || S('loadFailed')); return; }
-                openCampaign(c);
+                refreshCampaign();
             });
         };
         if (msg) confirmModal(msg, go); else go();
@@ -1116,6 +1268,10 @@
             }
             div.innerHTML =
                 '<div class="mo-msg-head"><strong>' + esc(r.prospect_contact || r.prospect_email) + '</strong>' +
+                '<span class="mo-msg-nav">' +
+                '<button type="button" class="mo-btn secondary small" data-nav="prev" title="' + esc(S('prevRecipient')) + '">‹</button>' +
+                '<button type="button" class="mo-btn secondary small" data-nav="next" title="' + esc(S('nextRecipient')) + '">›</button>' +
+                '</span>' +
                 '<span>' + flags + '<span class="mo-pill ' + r.status + '">' + esc(r.status) + '</span>' +
                 (r.is_edited == 1 ? ' <span class="mo-pill">' + esc(S('edited')) + '</span>' : '') + '</span></div>' +
                 '<div class="mo-msg-sub">' + esc(r.prospect_org || '') + ' · ' + esc(r.prospect_email) +
@@ -1145,12 +1301,26 @@
                       '<button class="mo-btn secondary small" data-act="preview">' + esc(S('previewFinal')) + '</button>' +
                       (canSendOne ? '<button class="mo-btn small" data-act="sendone">' + esc(S('sendRecipient')) + '</button>' : '') + '</div>');
             host.appendChild(div);
+            // Prev/next recipient navigation within the current page -
+            // keeps review momentum without losing pagination state.
+            div.querySelectorAll('button[data-nav]').forEach(function (nb) {
+                nb.addEventListener('click', function () {
+                    var cards = host.querySelectorAll('.mo-msg');
+                    var idx = Array.prototype.indexOf.call(cards, div);
+                    var t = cards[idx + (nb.dataset.nav === 'next' ? 1 : -1)];
+                    if (t) {
+                        t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        var inp = t.querySelector('.mo-subj');
+                        if (inp) inp.focus();
+                    }
+                });
+            });
             div.querySelectorAll('button[data-resolve]').forEach(function (b) {
                 b.addEventListener('click', function () {
                     var outcome = b.dataset.resolve;
                     confirmModal(outcome === 'sent' ? S('confirmMarkSent') : S('confirmMarkNotSent'), function () {
                         apiPost('resolve_uncertain', { campaign_id: campState.current, recipient_id: r.id, outcome: outcome })
-                            .then(function (d2) { if (!d2.success) showErr(d2.error || S('loadFailed')); openCampaign(campState.current); });
+                            .then(function (d2) { if (!d2.success) showErr(d2.error || S('loadFailed')); refreshCampaign(); });
                     });
                 });
             });
@@ -1182,22 +1352,22 @@
                     } else if (act === 'save') {
                         apiPost('save_message', { campaign_id: campState.current, recipient_id: r.id,
                             subject: div.querySelector('.mo-subj').value, body_html: bodyEdit.innerHTML })
-                            .then(function (d2) { if (d2.success) { showOk(S('saved')); openCampaign(campState.current); } else showErr(d2.error); });
+                            .then(function (d2) { if (d2.success) { showOk(S('saved')); refreshCampaign(); } else showErr(d2.error); });
                     } else if (act === 'regen') {
                         apiPost('generate', { campaign_id: campState.current, recipient_ids: [r.id], force: true })
-                            .then(function (d2) { if (d2.success) { showOk(S('generatedOk').replace('{n}', d2.generated)); openCampaign(campState.current); } else showErr(d2.error); });
+                            .then(function (d2) { if (d2.success) { showOk(S('generatedOk').replace('{n}', d2.generated)); refreshCampaign(); } else showErr(d2.error); });
                     } else if (act === 'sendone') {
                         confirmModal(S('confirmSendRecipient'), function () {
                             apiPost('send', { campaign_id: campState.current, recipient_ids: [r.id] })
                                 .then(function (d2) {
-                                    if (!d2.success) { showErr(d2.error || S('loadFailed')); openCampaign(campState.current); return; }
+                                    if (!d2.success) { showErr(d2.error || S('loadFailed')); refreshCampaign(); return; }
                                     afterSendResponse(campState.current, d2);
                                 });
                         });
                     } else if (act === 'remove') {
                         confirmModal(S('confirmRemoveRecipient'), function () {
                             apiPost('campaign_recipient_remove', { campaign_id: campState.current, recipient_id: r.id })
-                                .then(function (d2) { if (d2.success) { showOk(S('removed')); openCampaign(campState.current); } else showErr(d2.error); });
+                                .then(function (d2) { if (d2.success) { showOk(S('removed')); refreshCampaign(); } else showErr(d2.error); });
                         });
                     }
                 });
@@ -1307,7 +1477,7 @@
                         var skipped = (r.results || []).filter(function (x) { return !x.ok; })
                             .map(function (x) { return x.email + ': ' + x.reason; }).join('; ');
                         showOk(S('addedN').replace('{n}', added) + (skipped ? ' — ' + skipped : ''));
-                        openCampaign(c.id);
+                        refreshCampaign();
                     });
             }
         });
@@ -1323,35 +1493,31 @@
         } else {
             showOk(S('sendSummary').replace('{s}', d.sent).replace('{k}', d.skipped).replace('{f}', d.failed).replace('{u}', d.uncertain));
         }
-        openCampaign(c);
+        refreshCampaign();
     }
     function sendCampaign() {
         var c = campState.current;
         confirmModal(S('confirmSendCampaign'), function () {
             apiPost('send', { campaign_id: c }).then(function (d) {
-                if (!d.success) { showErr(d.error || S('loadFailed')); openCampaign(c); return; }
+                if (!d.success) { showErr(d.error || S('loadFailed')); refreshCampaign(); return; }
                 afterSendResponse(c, d);
             });
         });
     }
 
     function campGenerate() {
-        var btn = $('moCampGenerateCrm'); if (btn) { btn.disabled = true; }
-        // Bounded server-side batches: loop until no draft recipients
-        // remain (each call processes at most one batch).
-        var total = 0, guard = 0;
-        function step() {
-            if (++guard > 60) { if (btn) btn.disabled = false; showErr(S('loadFailed')); return; }
-            apiPost('generate', { campaign_id: campState.current }).then(function (d) {
-                if (!d.success) { if (btn) btn.disabled = false; showErr(d.error || S('loadFailed')); return; }
-                total += d.generated || 0;
-                if (d.draft_remaining > 0) { step(); return; }
-                if (btn) btn.disabled = false;
-                showOk(S('generatedOk').replace('{n}', total));
-                openCampaign(campState.current);
-            });
-        }
-        step();
+        // Bulk generation runs in the background worker: the admin picks a
+        // scope, watches progress, and can cancel or retry failures.
+        // 'missing' never touches existing content; 'replace_unedited'
+        // explicitly regenerates drafts that were not manually edited.
+        openModal(modalShell(S('generateEmails'),
+            '<p style="margin-top:0;">' + esc(S('genScopeMissingDesc')) + '</p>' +
+            '<p>' + esc(S('genScopeReplaceDesc')) + '</p>',
+            '<button class="mo-btn" id="genMissing">' + esc(S('genScopeMissing')) + '</button>' +
+            ' <button class="mo-btn secondary" id="genReplace">' + esc(S('genScopeReplace')) + '</button>' +
+            ' <button class="mo-btn secondary" data-close-btn>' + esc(S('cancel')) + '</button>'));
+        $('genMissing').onclick = function () { closeModal(); requestGeneration('missing'); };
+        $('genReplace').onclick = function () { closeModal(); requestGeneration('replace_unedited'); };
     }
     function campApprove() {
         // Approve only - never sends. Sending is the separate Send button.
@@ -1374,11 +1540,11 @@
                         return;
                     }
                     showErr(err || S('loadFailed'));
-                    openCampaign(c);
+                    refreshCampaign();
                     return;
                 }
                 showOk(S('approvedNotSent'));
-                openCampaign(c);
+                refreshCampaign();
             });
         };
         confirmModal(S('confirmApproveOnly'), function () { doApprove(false); });
@@ -1395,7 +1561,7 @@
             apiPost('campaign_send_auth', { campaign_id: c.id, authorized: on }).then(function (d) {
                 if (!d.success) { showErr(d.error || S('loadFailed')); return; }
                 showOk(S('sendAuthDone'));
-                openCampaign(c.id);
+                refreshCampaign();
             });
         });
     }
@@ -1433,7 +1599,7 @@
         var c = campState.current;
         confirmModal(S('confirmSendCampaign'), function () {
             apiPost('send', { campaign_id: c }).then(function (d) {
-                if (!d.success) { showErr(d.error || S('loadFailed')); openCampaign(c); return; }
+                if (!d.success) { showErr(d.error || S('loadFailed')); refreshCampaign(); return; }
                 afterSendResponse(c, d);
             });
         });
@@ -1459,7 +1625,7 @@
         function finish(err, sheetErr) {
             btn.disabled = false;
             btn.textContent = orig;
-            if (err) { showErr(err); openCampaign(campState.current); return; }
+            if (err) { showErr(err); refreshCampaign(); return; }
             var t = totals;
             var parts = [];
             if (t.resolved) parts.push(S('threadsMatched').replace('{n}', t.resolved));
@@ -1468,7 +1634,7 @@
             if (t.unverifiable) parts.push(S('threadsUnverifiable').replace('{n}', t.unverifiable));
             if (sheetErr) parts.push(S('threadsSheetError'));
             showOk(parts.length ? parts.join(' · ') : S('threadsNone'));
-            openCampaign(campState.current);
+            refreshCampaign();
         }
         step();
     }
@@ -1476,7 +1642,7 @@
         apiPost('reconcile', { campaign_id: campState.current }).then(function (d) {
             if (!d.success) showErr(d.error || S('loadFailed'));
             else showOk(S('reconcileResult').replace('{sent}', d.sent).replace('{not_sent}', d.not_sent).replace('{unknown}', d.unknown));
-            openCampaign(campState.current);
+            refreshCampaign();
         });
     }
 
@@ -1579,6 +1745,12 @@
             });
             if ($('moRecipReview')) $('moRecipReview').addEventListener('change', function () {
                 recipReview = this.checked; recipPage = 1; if (campState.current) loadRecipients();
+            });
+            if ($('moRecipThread')) $('moRecipThread').addEventListener('change', function () {
+                recipThread = this.checked; recipPage = 1; if (campState.current) loadRecipients();
+            });
+            if ($('moRecipEdited')) $('moRecipEdited').addEventListener('change', function () {
+                recipEdited = this.checked; recipPage = 1; if (campState.current) loadRecipients();
             });
             if ($('moCampSigCrm')) $('moCampSigCrm').onclick = openSignatureModal;
             if ($('moCampAuthCrm')) $('moCampAuthCrm').onclick = campToggleSendAuth;

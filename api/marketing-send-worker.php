@@ -22,6 +22,8 @@ require_once __DIR__ . '/queue-worker-auth.php';
 require_once __DIR__ . '/marketing/CampaignSendSupport.php';
 require_once __DIR__ . '/marketing/CampaignSendRunner.php';
 require_once __DIR__ . '/marketing/CampaignContentHash.php';
+require_once __DIR__ . '/marketing/CampaignGenerator.php';
+require_once __DIR__ . '/ai-client.php';
 
 header('Content-Type: application/json');
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -58,6 +60,15 @@ try {
         echo json_encode(['success' => true, 'skipped' => 'schema_not_migrated']);
         exit;
     }
+    // Generation columns arrive via 2026_11_24_*; until then the worker
+    // still drains sends normally and simply skips generation.
+    $hasGenCols = $pdo->query("SELECT COUNT(*) FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='marketing_campaigns'
+        AND COLUMN_NAME IN ('gen_requested','gen_scope')")->fetchColumn();
+    $hasGenRCols = $pdo->query("SELECT COUNT(*) FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='marketing_campaign_recipients'
+        AND COLUMN_NAME IN ('gen_attempts','gen_error')")->fetchColumn();
+    $genReady = (int)$hasGenCols === 2 && (int)$hasGenRCols === 2;
 
     $sel = $pdo->query("SELECT * FROM marketing_campaigns
         WHERE send_requested=1 AND send_paused=0
@@ -133,6 +144,24 @@ try {
         }
         mo_audit($pdo, $actor, 'campaign_send_worker', $cid, $cTotals + ['remaining' => $remaining]);
         $out['campaigns'][] = ['id' => $cid] + $cTotals + ['remaining' => $remaining, 'progress' => $progress];
+    }
+
+    // ---- Background message generation --------------------------------
+    // Admins queue generation via campaign_generate_request; the worker
+    // drains gen_requested campaigns in bounded batches within the same
+    // time budget. Generation never approves or sends.
+    if ($genReady && time() < $deadline) {
+        $genBatch = max(1, min(50, (int)(getenv('MARKETING_GEN_BATCH') ?: 15)));
+        $genSel = $pdo->query("SELECT id FROM marketing_campaigns
+            WHERE gen_requested=1 AND status IN ('draft','ready')
+            ORDER BY updated_at ASC LIMIT 2");
+        foreach ($genSel->fetchAll(PDO::FETCH_COLUMN) as $gid) {
+            if (time() >= $deadline) break;
+            $budgetLeft = $deadline - time();
+            $gen = new CampaignGenerator($pdo, $appConfig ?? [], $baseUrl);
+            $g = $gen->drain((string)$gid, $budgetLeft, $genBatch, $actor);
+            $out['generation'][] = ['id' => $gid] + $g;
+        }
     }
 
     http_response_code(200);

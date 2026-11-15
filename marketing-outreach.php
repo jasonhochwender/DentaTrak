@@ -436,6 +436,7 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
                 <div class="mo-progress-track"><div class="mo-progress-fill" id="moCampProgressFill"></div></div>
                 <span class="mo-step-note" id="moCampProgressText"></span>
             </div>
+            <div class="mo-step-note mo-hidden" id="moCampGenStatus" style="margin:6px 0;"></div>
             <div class="mo-toolbar" id="moRecipBar">
                 <input type="search" id="moRecipQ" placeholder="<?php echo h(ma('recip_search_ph')); ?>" style="max-width:220px;">
                 <select id="moRecipStatus">
@@ -448,6 +449,12 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
                 </select>
                 <label class="mo-step-note" style="display:flex;gap:6px;align-items:center;">
                     <input type="checkbox" id="moRecipReview"> <?php echo h(ma('needs_review_only')); ?>
+                </label>
+                <label class="mo-step-note" style="display:flex;gap:6px;align-items:center;">
+                    <input type="checkbox" id="moRecipThread"> <?php echo h(ma('filter_thread_unresolved')); ?>
+                </label>
+                <label class="mo-step-note" style="display:flex;gap:6px;align-items:center;">
+                    <input type="checkbox" id="moRecipEdited"> <?php echo h(ma('filter_edited_only')); ?>
                 </label>
                 <span class="mo-step-note" id="moRecipPager"></span>
             </div>
@@ -725,7 +732,22 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
         revokeSendAuth: <?php echo json_encode(ma('revoke_send_auth')); ?>,
         confirmAuthorizeSend: <?php echo json_encode(ma('confirm_authorize_send')); ?>,
         confirmRevokeSendAuth: <?php echo json_encode(ma('confirm_revoke_send_auth')); ?>,
-        sendAuthDone: <?php echo json_encode(ma('send_auth_done')); ?>
+        sendAuthDone: <?php echo json_encode(ma('send_auth_done')); ?>,
+        genRunning: <?php echo json_encode(ma('gen_running')); ?>,
+        genProgress: <?php echo json_encode(ma('gen_progress')); ?>,
+        genFailedN: <?php echo json_encode(ma('gen_failed_n')); ?>,
+        genFailedHint: <?php echo json_encode(ma('gen_failed_hint')); ?>,
+        genCancel: <?php echo json_encode(ma('gen_cancel')); ?>,
+        genRetryFailed: <?php echo json_encode(ma('gen_retry_failed')); ?>,
+        genDone: <?php echo json_encode(ma('gen_done')); ?>,
+        genQueued: <?php echo json_encode(ma('gen_queued')); ?>,
+        genScopeMissing: <?php echo json_encode(ma('gen_scope_missing')); ?>,
+        genScopeReplace: <?php echo json_encode(ma('gen_scope_replace')); ?>,
+        genScopeReplaceDesc: <?php echo json_encode(ma('gen_scope_replace_desc')); ?>,
+        confirmGenerateMissing: <?php echo json_encode(ma('confirm_generate_missing')); ?>,
+        confirmGenerateReplace: <?php echo json_encode(ma('confirm_generate_replace')); ?>,
+        prevRecipient: <?php echo json_encode(ma('prev_recipient')); ?>,
+        nextRecipient: <?php echo json_encode(ma('next_recipient')); ?>
     };
     var state = { prospectPage: 1, currentCampaign: null, templates: [] };
     function $(id) { return document.getElementById(id); }
@@ -1495,19 +1517,26 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
             document.getElementById('moCampRetry').classList.toggle('mo-hidden', !retryable);
             document.getElementById('moCampStep').textContent = editable ? <?php echo json_encode(ma('step_edit')); ?> : '';
             state.recipPage = 1;
+            state.recipCounts = d.recipient_counts || {};
+            state.recipTotal = d.recipient_total || 0;
             renderProgress(d.recipient_counts || {}, d.recipient_total || 0);
+            renderGenStatus(d.gen || null, d.campaign);
             loadLegacyRecipients(editable);
+            startGenPoll();
         }).catch(function () { showErr(STR.loadFailed); });
     }
 
     // Paged recipient list for large campaigns (shared toolbar markup).
-    var recipFilters = { q: '', status: '', review: false, page: 1 };
+    var recipFilters = { q: '', status: '', review: false, thread: '', edited: 0, page: 1 };
     function loadLegacyRecipients(editable) {
+        var scrollY = window.scrollY;
         apiGet('campaign_recipients', {
             campaign_id: state.currentCampaign, page: recipFilters.page, per: 25,
-            q: recipFilters.q, status: recipFilters.status, review: recipFilters.review ? 1 : 0
+            q: recipFilters.q, status: recipFilters.status, review: recipFilters.review ? 1 : 0,
+            thread: recipFilters.thread, edited: recipFilters.edited
         }).then(function (d) {
             if (!d.success) { showErr(d.error || STR.loadFailed); return; }
+            recipFilters.page = d.page || recipFilters.page;
             renderMessages(d.recipients || [], editable);
             var pg = document.getElementById('moRecipPager');
             if (pg) {
@@ -1524,6 +1553,7 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
                     });
                 });
             }
+            requestAnimationFrame(function () { window.scrollTo(0, scrollY); });
         }).catch(function () { showErr(STR.loadFailed); });
     }
     function renderProgress(counts, total) {
@@ -1543,6 +1573,69 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
             txt.textContent = parts.join(' · ');
         }
     }
+    // ---- background message generation (shared worker drain) ----
+    var genPollTimer = null;
+    function renderGenStatus(gen, camp) {
+        var el = document.getElementById('moCampGenStatus');
+        if (!el) return;
+        gen = gen || {};
+        var counts = state.recipCounts || {};
+        var total = state.recipTotal || 0;
+        var drafted = (counts.ready || 0) + (counts.approved || 0) + (counts.sending || 0) + (counts.sent || 0);
+        if (gen.requested) {
+            el.classList.remove('mo-hidden');
+            el.innerHTML = '<span class="mo-pill thread-new">' + esc(STR.genRunning) + '</span> ' +
+                esc(STR.genProgress.replace('{d}', drafted).replace('{t}', total).replace('{p}', gen.pending != null ? gen.pending : '')) +
+                (gen.failed ? ' · ' + esc(STR.genFailedN.replace('{n}', gen.failed)) : '') +
+                ' <button class="mo-btn secondary small" id="moGenCancelL">' + esc(STR.genCancel) + '</button>';
+            var cb = document.getElementById('moGenCancelL');
+            if (cb) cb.onclick = genCancelLegacy;
+        } else if (gen.failed) {
+            el.classList.remove('mo-hidden');
+            el.innerHTML = '<span class="mo-pill failed">' + esc(STR.genFailedN.replace('{n}', gen.failed)) + '</span> ' +
+                esc(STR.genFailedHint) +
+                ' <button class="mo-btn secondary small" id="moGenRetryL">' + esc(STR.genRetryFailed) + '</button>';
+            var rb = document.getElementById('moGenRetryL');
+            if (rb) rb.onclick = function () { requestGenerationLegacy('retry_failed'); };
+        } else {
+            el.classList.add('mo-hidden'); el.innerHTML = '';
+        }
+    }
+    function stopGenPoll() { if (genPollTimer) { clearInterval(genPollTimer); genPollTimer = null; } }
+    function startGenPoll() {
+        stopGenPoll();
+        if (!state.currentCampaign) return;
+        genPollTimer = setInterval(function () {
+            apiGet('campaign', { id: state.currentCampaign }).then(function (d) {
+                if (!d.success || !d.campaign || !state.currentCampaign) { stopGenPoll(); return; }
+                if (!d.campaign.gen_requested) {
+                    stopGenPoll();
+                    var counts = d.recipient_counts || {};
+                    var drafted = (counts.ready || 0) + (counts.approved || 0) + (counts.sending || 0) + (counts.sent || 0);
+                    showOk(STR.genDone.replace('{n}', drafted).replace('{f}', (d.gen || {}).failed || 0));
+                    openCampaign(state.currentCampaign);
+                } else {
+                    state.recipCounts = d.recipient_counts || state.recipCounts;
+                    state.recipTotal = d.recipient_total || state.recipTotal;
+                    renderProgress(d.recipient_counts || {}, d.recipient_total || 0);
+                    renderGenStatus(d.gen || null, d.campaign);
+                }
+            });
+        }, 5000);
+    }
+    function genCancelLegacy() {
+        apiPost('campaign_generate_request', { campaign_id: state.currentCampaign, cancel: true })
+            .then(function (d) { if (d.success) openCampaign(state.currentCampaign); else showErr(d.error || STR.loadFailed); });
+    }
+    function requestGenerationLegacy(scope) {
+        apiPost('campaign_generate_request', { campaign_id: state.currentCampaign, scope: scope })
+            .then(function (d) {
+                if (!d.success) { showErr(d.error || STR.loadFailed); return; }
+                showOk(STR.genQueued.replace('{n}', d.pending != null ? d.pending : ''));
+                openCampaign(state.currentCampaign);
+            });
+    }
+
     // Wire the shared recipient toolbar once.
     (function () {
         var rq = document.getElementById('moRecipQ');
@@ -1561,6 +1654,16 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
         var rr = document.getElementById('moRecipReview');
         if (rr) rr.addEventListener('change', function () {
             recipFilters.review = rr.checked; recipFilters.page = 1;
+            if (state.currentCampaign) loadLegacyRecipients(['draft','ready'].includes(state.campaignStatus || ''));
+        });
+        var rt = document.getElementById('moRecipThread');
+        if (rt) rt.addEventListener('change', function () {
+            recipFilters.thread = rt.checked ? 'unresolved' : ''; recipFilters.page = 1;
+            if (state.currentCampaign) loadLegacyRecipients(['draft','ready'].includes(state.campaignStatus || ''));
+        });
+        var re = document.getElementById('moRecipEdited');
+        if (re) re.addEventListener('change', function () {
+            recipFilters.edited = re.checked ? 1 : 0; recipFilters.page = 1;
             if (state.currentCampaign) loadLegacyRecipients(['draft','ready'].includes(state.campaignStatus || ''));
         });
     })();
@@ -1596,6 +1699,10 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
             }
             div.innerHTML =
                 '<div class="mo-msg-head"><strong>' + esc(r.prospect_contact || r.prospect_email) + '</strong>' +
+                '<span class="mo-msg-nav">' +
+                '<button type="button" class="mo-btn secondary small" data-nav="prev" title="' + esc(STR.prevRecipient) + '">‹</button>' +
+                '<button type="button" class="mo-btn secondary small" data-nav="next" title="' + esc(STR.nextRecipient) + '">›</button>' +
+                '</span>' +
                 '<span>' + flags + '<span class="mo-pill ' + r.status + '">' + esc(r.status) + '</span>' +
                 (r.is_edited == 1 ? ' <span class="mo-pill">' + esc(<?php echo json_encode(ma('edited')); ?>) + '</span>' : '') + '</span></div>' +
                 '<div class="mo-msg-sub">' + esc(r.prospect_org || '') + ' · ' + esc(r.prospect_email) +
@@ -1609,6 +1716,14 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
                       '<div class="mo-preview mo-hidden" style="margin-top:8px;"></div>'
                     : '<div class="mo-preview">' + (r.body_html || '<em>' + esc(<?php echo json_encode(ma('no_content')) ?>) + '</em>') + '</div>');
             host.appendChild(div);
+            div.querySelectorAll('button[data-nav]').forEach(function (nb) {
+                nb.addEventListener('click', function () {
+                    var cards = host.querySelectorAll('.mo-msg');
+                    var idx = Array.prototype.indexOf.call(cards, div);
+                    var t = cards[idx + (nb.dataset.nav === 'next' ? 1 : -1)];
+                    if (t) { t.scrollIntoView({ behavior: 'smooth', block: 'start' }); var inp = t.querySelector('.mo-subj'); if (inp) inp.focus(); }
+                });
+            });
             div.querySelectorAll('button[data-resolve]').forEach(function (b) {
                 b.addEventListener('click', function () {
                     var outcome = b.dataset.resolve;
@@ -1635,13 +1750,13 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
 
     document.getElementById('moCampBack').addEventListener('click', loadCampaigns);
     document.getElementById('moCampGenerate').addEventListener('click', function () {
-        var btn = this; btn.disabled = true; btn.textContent = STR.working;
-        apiPost('generate', { campaign_id: state.currentCampaign }).then(function (d) {
-            btn.disabled = false; btn.textContent = <?php echo json_encode(ma('generate_emails')); ?>;
-            if (!d.success) { showErr(d.error || STR.loadFailed); return; }
-            showOk(<?php echo json_encode(ma('generated_ok')); ?>.replace('{n}', d.generated));
-            openCampaign(state.currentCampaign);
-        });
+        // Legacy fallback UI: missing-only by default; a second confirm
+        // offers the explicit unedited-draft replacement scope.
+        if (window.confirm(STR.confirmGenerateMissing)) {
+            requestGenerationLegacy('missing');
+        } else if (window.confirm(STR.confirmGenerateReplace + ' ' + STR.genScopeReplaceDesc)) {
+            requestGenerationLegacy('replace_unedited');
+        }
     });
     document.getElementById('moCampRetry').addEventListener('click', function () {
         var btn = this;
@@ -2115,7 +2230,24 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
                 revokeSendAuth: <?php echo json_encode(ma('revoke_send_auth')); ?>,
                 confirmAuthorizeSend: <?php echo json_encode(ma('confirm_authorize_send')); ?>,
                 confirmRevokeSendAuth: <?php echo json_encode(ma('confirm_revoke_send_auth')); ?>,
-                sendAuthDone: <?php echo json_encode(ma('send_auth_done')); ?>
+                sendAuthDone: <?php echo json_encode(ma('send_auth_done')); ?>,
+                generateEmails: <?php echo json_encode(ma('generate_emails')); ?>,
+                genRunning: <?php echo json_encode(ma('gen_running')); ?>,
+                genProgress: <?php echo json_encode(ma('gen_progress')); ?>,
+                genFailedN: <?php echo json_encode(ma('gen_failed_n')); ?>,
+                genFailedHint: <?php echo json_encode(ma('gen_failed_hint')); ?>,
+                genCancel: <?php echo json_encode(ma('gen_cancel')); ?>,
+                genRetryFailed: <?php echo json_encode(ma('gen_retry_failed')); ?>,
+                genDone: <?php echo json_encode(ma('gen_done')); ?>,
+                genQueued: <?php echo json_encode(ma('gen_queued')); ?>,
+                confirmGenerate: <?php echo json_encode(ma('confirm_generate')); ?>,
+                genScopeMissing: <?php echo json_encode(ma('gen_scope_missing')); ?>,
+                genScopeReplace: <?php echo json_encode(ma('gen_scope_replace')); ?>,
+                genScopeRetry: <?php echo json_encode(ma('gen_scope_retry')); ?>,
+                genScopeMissingDesc: <?php echo json_encode(ma('gen_scope_missing_desc')); ?>,
+                genScopeReplaceDesc: <?php echo json_encode(ma('gen_scope_replace_desc')); ?>,
+                prevRecipient: <?php echo json_encode(ma('prev_recipient')); ?>,
+                nextRecipient: <?php echo json_encode(ma('next_recipient')); ?>
             }
         });
     }

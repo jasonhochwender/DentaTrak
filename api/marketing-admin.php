@@ -11,7 +11,8 @@
  *   templates | history | audit
  *
  * Mutations (POST ?action=..., X-CSRF-Token required):
- *   create_campaign | generate | save_message | approve | send |
+ *   create_campaign | generate | campaign_generate_request |
+ *   save_message | approve | send |
  *   resolve_threads | reconcile | resolve_uncertain | retry_sheet_sync |
  *   template_save | template_delete
  *
@@ -29,7 +30,9 @@
  *  - Approval binds a SHA-256 content hash; send refuses edited content.
  *  - Per-recipient suppression + sheet pre-check re-run immediately before
  *    each send; sends go through MarketingMailer (ledger-idempotent Gmail).
- *  - Max 10 recipients per campaign (initial rollout limit).
+ *  - Bulk message generation is queued (campaign_generate_request) and
+ *    drained by the send worker in bounded batches; it only fills
+ *    missing or explicitly unedited drafts and never approves or sends.
  *  - Every mutation writes marketing_audit_log.
  */
 
@@ -56,6 +59,7 @@ require_once __DIR__ . '/marketing/MessageHtml.php';
 require_once __DIR__ . '/marketing/SheetSyncException.php';
 require_once __DIR__ . '/marketing/CampaignSendSupport.php';
 require_once __DIR__ . '/marketing/CampaignSendRunner.php';
+require_once __DIR__ . '/marketing/CampaignGenerator.php';
 setSecurityHeaders();
 header('Content-Type: application/json');
 
@@ -109,8 +113,10 @@ $sendingPolicy = new MarketingSendingPolicy();
 try {
     $pdo->query('SELECT thread_status, sheet_sync_status, thread_date FROM marketing_campaign_recipients LIMIT 0');
     $pdo->query('SELECT idempotency_key, attempts FROM marketing_sends LIMIT 0');
+    $pdo->query('SELECT gen_requested, gen_scope FROM marketing_campaigns LIMIT 0');
+    $pdo->query('SELECT gen_attempts, gen_error FROM marketing_campaign_recipients LIMIT 0');
 } catch (Throwable $e) {
-    mo_fail('schema_not_migrated: run migrations/2026_11_03_marketing_admin.php and 2026_11_12_marketing_send_hardening.php', 503);
+    mo_fail('schema_not_migrated: run migrations/2026_11_03_marketing_admin.php, 2026_11_12_marketing_send_hardening.php, 2026_11_22_marketing_large_campaigns.php, 2026_11_23_marketing_campaign_send_auth.php and 2026_11_24_marketing_campaign_generation.php', 503);
 }
 
 /**
@@ -243,119 +249,9 @@ function mo_content_hash(PDO $pdo, string $campaignId): string {
     return CampaignContentHash::compute($pdo, $campaignId);
 }
 
-/** Render a template's placeholders for one prospect. */
-function mo_render(string $tpl, array $prospect): string {
-    $f = $prospect['fields'] ?? [];
-    $map = [
-        '{first_name}'    => $prospect['contact_name'] !== '' ? explode(' ', trim($prospect['contact_name']))[0] : '',
-        '{contact_name}'  => $prospect['contact_name'] ?? '',
-        '{practice_name}' => $f['org'] ?? '',
-        '{org_name}'      => $f['org'] ?? '',
-        '{parent_org}'    => $f['parent_org'] ?? '',
-        '{location}'      => $f['location'] ?? '',
-        '{website}'       => $f['website'] ?? '',
-        '{title}'         => $f['title'] ?? '',
-    ];
-    return strtr($tpl, $map);
-}
-
 /** Strip anything unsafe from generated/edited HTML bodies. */
 function mo_sanitize_html(string $html): string {
     return MessageHtml::sanitize($html);
-}
-
-/** AI-generate one recipient's email; falls back to the template render. */
-function mo_generate_one(PDO $pdo, array $appConfig, array $prospect, string $kind, ?string $templateBody, ?string $priorContext): array
-{
-    $f = $prospect['fields'] ?? [];
-    $orgType = stripos($f['practice_type'] . ' ' . $f['parent_org'], 'dso') !== false ? 'DSO'
-        : (trim($f['parent_org']) !== '' ? 'multi-location group' : 'individual dental practice');
-
-    $provider = $appConfig['ai_provider'] ?? 'gemini';
-    $aiConfig = $appConfig[$provider] ?? [];
-    if (empty($aiConfig['api_key'])) {
-        return mo_template_fallback($prospect, $kind, $templateBody);
-    }
-
-    $kindLabel = $kind === 'followup' ? 'follow-up' : 'initial outreach';
-    $system = 'You are a concise, professional B2B copywriter for DentaTrak, dental lab case-tracking software. '
-        . 'Write ' . $kindLabel . ' email copy only. No medical claims, no patient data, no hype. '
-        . 'Return ONLY a JSON object: {"subject": string, "body_html": string}. '
-        . 'body_html is a short HTML fragment (p and ul/li allowed, inline styles only, no scripts, no footer, no unsubscribe link, no images). '
-        . '2-4 short paragraphs max. Include one clear low-pressure call to action (a reply or a 15-minute demo). '
-        . 'Personalize using ONLY the prospect facts provided; never invent facts, locations, practice details, or operational problems. '
-        . 'Tone: natural, professional, conversational - like a note from a knowledgeable colleague, not a sales pitch. '
-        . 'Position DentaTrak as helping improve visibility, coordination, and efficiency for dental labs and practices; '
-        . 'it complements practice-management software rather than replacing it. '
-        . 'Do NOT claim DentaTrak eliminates manual work, guarantees on-time case delivery, or produces specific outcomes. '
-        . 'Do NOT assume the recipient has a problem; acknowledge they may already use other software. '
-        . ($kind === 'followup'
-            ? 'This is a FOLLOW-UP: briefly reference the earlier note without pressure, add one small new reason to reply, '
-              . 'and keep it shorter than the initial email. Do not repeat the full pitch. '
-            : 'This is INITIAL outreach: introduce DentaTrak briefly and ask for a reply or short demo. ');
-
-    $facts = [
-        'organization' => $f['org'] ?? '',
-        'parent_or_group' => $f['parent_org'] ?? '',
-        'org_type' => $orgType,
-        'contact_name' => $prospect['contact_name'] ?? '',
-        'title' => $f['title'] ?? '',
-        'location' => $f['location'] ?? '',
-        'website' => $f['website'] ?? '',
-        'fit' => $f['fit'] ?? '',
-        'priority' => $f['priority'] ?? '',
-        'outreach_status' => $f['status'] ?? '',
-        'prior_notes' => mb_substr((string)($f['notes'] ?? ''), 0, 1200),
-    ];
-    if ($kind === 'followup') {
-        $facts['is_followup'] = true;
-        $facts['prior_outreach_excerpt'] = mb_substr((string)$priorContext, 0, 1500);
-    }
-    if ($templateBody) $facts['template_guidance'] = mb_substr($templateBody, 0, 2000);
-
-    $user = "Prospect facts (JSON):\n" . json_encode($facts, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
-        . "\n\nWrite the " . ($kind === 'followup' ? 'follow-up' : 'initial outreach') . " email.";
-
-    try {
-        $raw = $provider === 'openai'
-            ? callOpenAIAPI($aiConfig, $system, $user)
-            : callGeminiAPI($aiConfig, $system, $user);
-        $decoded = json_decode($raw, true);
-        // Tolerate markdown fences
-        if (!is_array($decoded)) {
-            $clean = preg_replace('/^```(?:json)?|```$/m', '', trim($raw));
-            $decoded = json_decode($clean, true);
-        }
-        $subject = trim((string)($decoded['subject'] ?? ''));
-        $body = mo_sanitize_html((string)($decoded['body_html'] ?? ''));
-        if ($subject !== '' && $body !== '') {
-            return ['subject' => $subject, 'body_html' => $body, 'generated_by' => 'ai'];
-        }
-    } catch (Throwable $e) {
-        error_log('[marketing-admin] AI generate failed: ' . $e->getMessage());
-    }
-    return mo_template_fallback($prospect, $kind, $templateBody);
-}
-
-function mo_template_fallback(array $prospect, string $kind, ?string $templateBody): array
-{
-    $first = trim(explode(' ', (string)($prospect['contact_name'] ?? ''))[0] ?? '');
-    $greeting = $first !== '' ? "Hi {$first}," : 'Hello,';
-    if ($templateBody) {
-        $body = mo_render($templateBody, $prospect);
-    } else {
-        $body = '<p>' . htmlspecialchars($greeting) . '</p>'
-            . '<p>I hope this note finds you well. I\'m reaching out from DentaTrak — '
-            . 'dental lab case-tracking software built for practices like '
-            . htmlspecialchars((string)($prospect['fields']['org'] ?? 'yours')) . '.</p>'
-            . '<p>Would you be open to a 15-minute walkthrough? I\'d be glad to show you '
-            . 'how teams keep cases, labs, and due dates in one place.</p>'
-            . '<p>Best regards,<br>The DentaTrak Team</p>';
-    }
-    $subject = $kind === 'followup'
-        ? 'Following up: dental case tracking for ' . ($prospect['fields']['org'] ?? 'your practice')
-        : 'A better way to track dental cases at ' . ($prospect['fields']['org'] ?? 'your practice');
-    return ['subject' => $subject, 'body_html' => $body, 'generated_by' => 'template'];
 }
 
 // ============================ READ ACTIONS ============================
@@ -862,9 +758,16 @@ if ($method === 'GET') {
             $pendT->execute([$id]);
             $sh = $pdo->prepare("SELECT COUNT(*) FROM marketing_campaign_recipients WHERE campaign_id=? AND status='sent' AND sheet_sync_status IN ('pending','failed')");
             $sh->execute([$id]);
+            $gen = new CampaignGenerator($pdo, $appConfig, $baseUrl);
             mo_out(['success' => true, 'campaign' => $camp, 'recipient_counts' => $counts,
                 'recipient_total' => $total, 'threads_unresolved' => (int)$pendT->fetchColumn(),
                 'sheet_pending' => (int)$sh->fetchColumn(),
+                'gen' => [
+                    'requested' => (int)($camp['gen_requested'] ?? 0),
+                    'scope' => (string)($camp['gen_scope'] ?? 'missing'),
+                    'pending' => $gen->actionableCount($id, (string)($camp['gen_scope'] ?? 'missing')),
+                    'failed' => $gen->failedCount($id),
+                ],
                 'signature' => MarketingSignature::load($pdo),
                 'sending' => $sendingPolicy->summary()]);
         }
@@ -879,7 +782,15 @@ if ($method === 'GET') {
             $q = trim((string)($_GET['q'] ?? ''));
             $status = trim((string)($_GET['status'] ?? ''));
             $review = !empty($_GET['review']);
+            $threadUnres = trim((string)($_GET['thread'] ?? '')) === 'unresolved';
+            $editedOnly = !empty($_GET['edited']);
             $where = 'campaign_id=?'; $args = [$id];
+            if ($threadUnres) {
+                $where .= " AND (thread_status IS NULL OR thread_status<>'resolved')";
+            }
+            if ($editedOnly) {
+                $where .= ' AND is_edited=1';
+            }
             if ($status !== '') {
                 $allowed = ['draft','ready','approved','sending','sent','failed','skipped','suppressed','uncertain'];
                 if (in_array($status, $allowed, true)) { $where .= ' AND status=?'; $args[] = $status; }
@@ -976,107 +887,50 @@ switch ($action) {
     }
 
     case 'generate': {
+        // Bounded synchronous generation via the shared service. Bulk
+        // generation for large campaigns is queued through
+        // campaign_generate_request and drained by the send worker;
+        // this action remains for per-recipient regen and small batches.
         $cid = (string)($in['campaign_id'] ?? '');
-        $c = $pdo->prepare("SELECT * FROM marketing_campaigns WHERE id=?");
-        $c->execute([$cid]);
-        $camp = $c->fetch(PDO::FETCH_ASSOC);
-        if (!$camp) mo_fail('not found', 404);
-        if (!in_array($camp['status'], ['draft', 'ready'], true)) mo_fail('campaign not editable');
-        $ridFilter = array_map('intval', (array)($in['recipient_ids'] ?? []));
-
-        // Optional template: per-campaign override wins, else kind default.
-        if (!empty($camp['template_id'])) {
-            $tpl = $pdo->prepare("SELECT * FROM marketing_templates WHERE id=? AND kind=?");
-            $tpl->execute([(int)$camp['template_id'], $camp['kind']]);
-            $template = $tpl->fetch(PDO::FETCH_ASSOC) ?: null;
+        $gen = new CampaignGenerator($pdo, $appConfig, $baseUrl);
+        $ridFilter = array_values(array_unique(array_filter(array_map('intval', (array)($in['recipient_ids'] ?? [])))));
+        if ($ridFilter) {
+            $r = $gen->runBatch($cid, count($ridFilter), [
+                'recipient_ids' => $ridFilter, 'force' => !empty($in['force']),
+            ]);
+            $scope = 'ids';
         } else {
-            $tpl = $pdo->prepare("SELECT * FROM marketing_templates WHERE kind=? ORDER BY is_default DESC, id LIMIT 1");
-            $tpl->execute([$camp['kind']]);
-            $template = $tpl->fetch(PDO::FETCH_ASSOC) ?: null;
+            $scope = (string)($in['scope'] ?? 'missing');
+            $r = $gen->runBatch($cid, MO_GEN_BATCH, ['scope' => $scope]);
         }
+        if (isset($r['error'])) mo_fail($r['error'], $r['error'] === 'not found' ? 404 : 400);
+        mo_audit($pdo, $userEmail, 'campaign_generate', $cid,
+            ['generated' => $r['generated'], 'failed' => count($r['failed']), 'scope' => $scope]);
+        mo_out(['success' => true, 'generated' => $r['generated'],
+            'failed' => array_column($r['failed'], 'email'),
+            'failed_details' => $r['failed'],
+            'skipped_edited' => $r['skipped_edited'],
+            'processed' => $r['processed'],
+            'draft_remaining' => $r['remaining'],
+            'remaining' => $r['remaining'],
+            'gen_exhausted' => $r['exhausted'],
+            'source_error' => $r['source_error'] ?? null]);
+    }
 
-        $crm = mo_crm($pdo);
-        if ($crm !== null) {
-            $byEmail = null; // resolved per-campaign below
-            $sheetErr = null;
-        } else {
-            [$sheetProspects, $sheetErr] = mo_load_prospects($pdo);
-            if ($sheetErr) mo_fail('prospect sheet unavailable: ' . $sheetErr, 503);
+    case 'campaign_generate_request': {
+        // Queue (or cancel) background generation. The send worker drains
+        // gen_requested campaigns in bounded batches; this never approves
+        // or sends anything.
+        $cid = (string)($in['campaign_id'] ?? '');
+        $gen = new CampaignGenerator($pdo, $appConfig, $baseUrl);
+        if (!empty($in['cancel'])) {
+            $gen->cancel($cid, $userEmail);
+            mo_out(['success' => true, 'requested' => false]);
         }
-
-        $rs = $pdo->prepare("SELECT * FROM marketing_campaign_recipients WHERE campaign_id=? AND status IN ('draft','ready','suppressed') ORDER BY id");
-        $rs->execute([$cid]);
-        $recips = $rs->fetchAll(PDO::FETCH_ASSOC);
-        if ($crm !== null) {
-            // One batch lookup for the whole campaign (last row wins on
-            // duplicate emails, matching the sheet map semantics).
-            $byEmail = $crm->findByEmails(array_map(static fn($r) => (string)$r['prospect_email'], $recips));
-        } else {
-            $byEmail = [];
-            foreach ($sheetProspects as $p) $byEmail[strtolower($p['fields']['email'])] = $p;
-        }
-        $done = 0; $failed = []; $threads = []; $processed = 0;
-        $genCap = $ridFilter ? count($ridFilter) : MO_GEN_BATCH;
-        $threadMailer = $camp['kind'] === 'followup' ? new MarketingMailer($pdo, $baseUrl) : null;
-        foreach ($recips as $r) {
-            if ($ridFilter && !in_array((int)$r['id'], $ridFilter, true)) continue;
-            if ($r['status'] === 'suppressed') continue; // never generate for suppressed
-            // Bounded pass: large campaigns generate in chunks (the UI
-            // loops until 'remaining' reaches 0) so one request never
-            // runs hundreds of sequential AI/Gmail calls.
-            if ($processed >= $genCap) break;
-            $processed++;
-            // Stable contact_id is authoritative when present; email map is
-            // the sheet-mode fallback (and covers legacy recipients).
-            $p = null;
-            if ($crm !== null && !empty($r['contact_id'])) {
-                $p = $crm->findById((int)$r['contact_id']);
-            }
-            if ($p === null) {
-                $p = $byEmail[SuppressionService::normalizeEmail((string)$r['prospect_email'])] ?? null;
-            }
-            if (!$p) { $failed[] = $r['prospect_email']; continue; }
-            // Prior outreach context for follow-ups: last sent body excerpt
-            $prior = '';
-            if ($camp['kind'] === 'followup') {
-                $pr = $pdo->prepare("SELECT subject, body_html FROM marketing_campaign_recipients
-                    WHERE prospect_email=? AND status='sent' ORDER BY sent_at DESC LIMIT 1");
-                $pr->execute([$r['prospect_email']]);
-                if ($pp = $pr->fetch(PDO::FETCH_ASSOC)) {
-                    $prior = "Subject: {$pp['subject']}\n\n" . trim(strip_tags((string)$pp['body_html']));
-                }
-            }
-            $gen = mo_generate_one($pdo, $appConfig, $p, $camp['kind'],
-                $template['body_tpl'] ?? null, $prior);
-            // Don't clobber manual edits on regenerate unless forced
-            $force = !empty($in['force']);
-            if ($force || $r['is_edited'] == 0) {
-                $pdo->prepare("UPDATE marketing_campaign_recipients SET subject=?, body_html=?, status='ready' WHERE id=?")
-                    ->execute([$gen['subject'], $gen['body_html'], $r['id']]);
-                $done++;
-            }
-            if ($threadMailer !== null) {
-                // Follow-ups reply inside the original conversation when it
-                // can be identified; otherwise the limitation is recorded
-                // and shown, never guessed.
-                try {
-                    $t = mo_resolve_thread($pdo, $threadMailer, $r, (string)($p['fields']['notes'] ?? ''), $cid);
-                    $threads[$t['status']] = ($threads[$t['status']] ?? 0) + 1;
-                } catch (Throwable $e) {
-                    error_log('[marketing-admin] thread resolve: ' . $e->getMessage());
-                }
-            }
-        }
-        // Campaign becomes 'ready' once every non-suppressed recipient has content
-        $remaining = $pdo->prepare("SELECT COUNT(*) FROM marketing_campaign_recipients WHERE campaign_id=? AND status='draft'");
-        $remaining->execute([$cid]);
-        if ((int)$remaining->fetchColumn() === 0) {
-            $pdo->prepare("UPDATE marketing_campaigns SET status='ready' WHERE id=? AND status='draft'")->execute([$cid]);
-        }
-        mo_audit($pdo, $userEmail, 'campaign_generate', $cid, ['generated' => $done, 'failed' => count($failed), 'threads' => $threads]);
-        mo_out(['success' => true, 'generated' => $done, 'failed' => $failed, 'threads' => $threads,
-            'processed' => $processed,
-            'draft_remaining' => (int)$pdo->query("SELECT COUNT(*) FROM marketing_campaign_recipients WHERE campaign_id=" . $pdo->quote($cid) . " AND status='draft'")->fetchColumn()]);
+        $scope = (string)($in['scope'] ?? 'missing');
+        $r = $gen->request($cid, $scope, $userEmail);
+        if (empty($r['success'])) mo_fail($r['error'] ?? 'failed', $r['error'] === 'not found' ? 404 : 400);
+        mo_out($r);
     }
 
     case 'save_message': {

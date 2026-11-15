@@ -64,8 +64,11 @@ check($badScriptPhp === [], 'every PHP interpolation in <script> uses json_encod
     . ($badScriptPhp ? ' -> ' . implode(' | ', array_slice($badScriptPhp, 0, 3)) : ''));
 
 // ---- 3. {n} substitution happens in JavaScript ----
-check(strpos($html, "json_encode(ma('generated_ok')); ?>.replace('{n}', d.generated)") !== false,
-    'generated_ok {n} substitution performed in JS, not PHP');
+// Generation is background-drained; the completion summary substitutes
+// counts client-side (genDone carries {n}/{f} placeholders).
+check(strpos($html, "STR.genDone.replace('{n}'") !== false
+    && strpos($html, 'gen_done') !== false,
+    'gen_done {n}/{f} substitution performed in JS, not PHP');
 
 // ---- 4. Seven tabs, panes, and self-init ----
 foreach (['overview', 'prospects', 'campaigns', 'followups', 'replies', 'templates', 'history'] as $tab) {
