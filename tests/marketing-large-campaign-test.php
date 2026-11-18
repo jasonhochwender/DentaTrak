@@ -316,6 +316,40 @@ try {
     $t('rollup completes drained campaign', in_array($campRow, ['completed', 'partial'], true), "status=$campRow");
     $t('sendable remaining is 0 after drain', mo_sendable_remaining($pdo, $sendCid) === 0);
 
+    // -- 8b. Content hash survives send artifacts ------------------------------
+    // mo_mark_recipient_sent stores the new Gmail thread id on 'initial'
+    // campaigns; that must not invalidate the approval hash mid-campaign.
+    $hc = $admin->createCampaign(['name' => "$tag Hash", 'kind' => 'initial'], 500);
+    $hcCid = $hc['campaign_id']; $campaignIds[] = $hcCid;
+    $hcIds = [$mkAuthContact(70), $mkAuthContact(71)];
+    $admin->addToCampaign($hcIds, $hcCid, null, 'initial', 500);
+    $pdo->exec("UPDATE marketing_campaign_recipients SET subject='Hi', body_html='<p>Hi</p>', status='approved' WHERE campaign_id=" . $pdo->quote($hcCid));
+    $hashBefore = CampaignContentHash::compute($pdo, $hcCid);
+    // Simulate a confirmed send on one recipient (thread id + sent markers).
+    $pdo->exec("UPDATE marketing_campaign_recipients SET status='sent', gmail_message_id='m1',
+        gmail_thread_id='brand-new-thread', sent_at=UTC_TIMESTAMP()
+        WHERE campaign_id=" . $pdo->quote($hcCid) . " AND prospect_email LIKE 'a70@%'");
+    $t('initial-campaign hash stable after send artifacts',
+        hash_equals($hashBefore, CampaignContentHash::compute($pdo, $hcCid)));
+    // Content edits still invalidate the hash.
+    $pdo->exec("UPDATE marketing_campaign_recipients SET body_html='<p>Changed</p>' WHERE campaign_id=" . $pdo->quote($hcCid));
+    $t('content edit still changes hash', !hash_equals($hashBefore, CampaignContentHash::compute($pdo, $hcCid)));
+
+    // Threaded kinds keep gmail_thread_id in the hash: a resolved-thread
+    // change there is approval-relevant and must still mismatch.
+    $fc = $admin->createCampaign(['name' => "$tag HashF", 'kind' => 'initial'], 500);
+    $fcCid = $fc['campaign_id']; $campaignIds[] = $fcCid;
+    $fcIds = [$mkAuthContact(72)];
+    $admin->addToCampaign($fcIds, $fcCid, null, 'initial', 500);
+    // Flip to a threaded kind after recipients exist: followup
+    // addToCampaign requires outreach history these fixtures lack.
+    $pdo->exec("UPDATE marketing_campaigns SET kind='followup' WHERE id=" . $pdo->quote($fcCid));
+    $pdo->exec("UPDATE marketing_campaign_recipients SET subject='Hi', body_html='<p>Hi</p>', status='approved',
+        gmail_thread_id='resolved-thread' WHERE campaign_id=" . $pdo->quote($fcCid));
+    $fHash = CampaignContentHash::compute($pdo, $fcCid);
+    $pdo->exec("UPDATE marketing_campaign_recipients SET gmail_thread_id='other-thread' WHERE campaign_id=" . $pdo->quote($fcCid));
+    $t('followup thread id remains hash-relevant', !hash_equals($fHash, CampaignContentHash::compute($pdo, $fcCid)));
+
     // -- 9. MCP readiness on a larger campaign ---------------------------------
     $ready = $tools->getCampaignReadiness(['campaign_id' => $r['campaign_id']]);
     $t('readiness reports recipient counts', ($ready['recipient_counts']['draft'] ?? 0) === 15
