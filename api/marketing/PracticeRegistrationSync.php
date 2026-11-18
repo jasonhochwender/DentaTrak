@@ -27,6 +27,9 @@ final class PracticeRegistrationSync
     /** Contact statuses that must never be rewritten to 'Signed Up'. */
     private const PRESERVE_STATUSES = ['do not contact', 'unsubscribed', 'bounced', 'invalid'];
 
+    /** Status for registered users who have not completed practice setup. */
+    public const STATUS_SETUP_INCOMPLETE = 'Registered - Setup Incomplete';
+
     /** Free-mail domains can never verify an organization by domain alone. */
     private const FREEMAIL = [
         'gmail.com','googlemail.com','yahoo.com','ymail.com','hotmail.com','outlook.com',
@@ -216,25 +219,33 @@ final class PracticeRegistrationSync
         $emails = array_values(array_unique(array_filter(array_map(
             static fn($e) => SuppressionService::normalizeEmail((string)$e), $emails))));
         $out = [];
-        $hasCol = false;
+        $hasCol = false; $hasUserCol = false;
         try {
             $hasCol = (bool)$pdo->query(
                 "SELECT 1 FROM information_schema.COLUMNS
                   WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='marketing_orgs'
                     AND COLUMN_NAME='practice_id' LIMIT 1")->fetchColumn();
-        } catch (Throwable $e) { $hasCol = false; }
+            $hasUserCol = (bool)$pdo->query(
+                "SELECT 1 FROM information_schema.COLUMNS
+                  WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='marketing_contacts'
+                    AND COLUMN_NAME='user_id' LIMIT 1")->fetchColumn();
+        } catch (Throwable $e) { /* pre-migration: status fallback still applies */ }
         foreach (array_chunk($emails, 400) as $chunk) {
             if (!$chunk) continue;
             $ph = implode(',', array_fill(0, count($chunk), '?'));
-            // Pre-migration fallback: status 'Signed Up' still counts.
-            $orgCond = $hasCol ? 'o.practice_id IS NOT NULL OR ' : '';
+            // Pre-migration fallback: registration statuses still count.
+            $conds = [];
+            if ($hasCol) $conds[] = 'o.practice_id IS NOT NULL';
+            if ($hasUserCol) $conds[] = 'c.user_id IS NOT NULL';
+            $conds[] = "LOWER(c.status) IN ('signed up','registered - setup incomplete')";
+            $orgCond = '(' . implode(' OR ', $conds) . ')';
             try {
                 $st = $pdo->prepare(
                     "SELECT DISTINCT c.email_normalized
                        FROM marketing_contacts c
                        LEFT JOIN marketing_orgs o ON o.id = c.org_id
                       WHERE c.email_normalized IN ($ph)
-                        AND ($orgCond LOWER(c.status) = 'signed up')"
+                        AND $orgCond"
                 );
                 $st->execute($chunk);
                 foreach ($st->fetchAll(PDO::FETCH_COLUMN) as $e) {
@@ -383,6 +394,195 @@ final class PracticeRegistrationSync
         return array_keys($out);
     }
 
+    /**
+     * Sync one DentaTrak USER account into the CRM. Every registered user
+     * is represented: users with practice memberships are linked to the
+     * practice's CRM org and marked 'Signed Up'; users without any
+     * practice get a standalone contact (org_id NULL - contacts are not
+     * required to belong to an org) marked 'Registered - Setup
+     * Incomplete'. Idempotent via user_id + email matching; never
+     * creates placeholder orgs.
+     */
+    public function syncUser(int $userId): array
+    {
+        $out = ['user_id' => $userId, 'action' => 'none', 'contact_id' => null,
+            'org_id' => null, 'has_practice' => false, 'incomplete' => false,
+            'error' => null];
+        if (!$this->hasUserCol()) { $out['error'] = 'migration_required'; return $out; }
+
+        $st = $this->pdo->prepare('SELECT id, email, first_name, last_name, created_at FROM users WHERE id=?');
+        $st->execute([$userId]);
+        $u = $st->fetch(PDO::FETCH_ASSOC);
+        if (!$u) { $out['error'] = 'user_not_found'; return $out; }
+        $email = SuppressionService::normalizeEmail((string)$u['email']);
+        if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $out['error'] = 'invalid_email'; return $out;
+        }
+        $registeredAt = !empty($u['created_at']) ? substr((string)$u['created_at'], 0, 10) : gmdate('Y-m-d');
+
+        // Practice memberships -> ensure each practice's org exists. The
+        // practice sync owns org matching/creation and is idempotent.
+        $mem = $this->pdo->prepare('SELECT practice_id, is_owner FROM practice_users WHERE user_id=?');
+        $mem->execute([$userId]);
+        $practiceIds = []; $ownerPid = null;
+        foreach ($mem->fetchAll(PDO::FETCH_ASSOC) as $m) {
+            $pid = (int)$m['practice_id'];
+            $practiceIds[$pid] = true;
+            if ((int)$m['is_owner'] === 1 && $ownerPid === null) $ownerPid = $pid;
+        }
+        $syncErrors = [];
+        foreach (array_keys($practiceIds) as $pid) {
+            $r = $this->syncPractice($pid);
+            if ($r['error'] !== null) $syncErrors[] = "#$pid:{$r['error']}";
+        }
+        $hasPractice = $practiceIds !== [];
+        $out['has_practice'] = $hasPractice;
+        if ($syncErrors) $out['practice_errors'] = $syncErrors;
+
+        // Target org: prefer the org of a practice the user owns, else
+        // the lowest practice id's org. Deterministic for multi-practice
+        // users; the contact keeps whichever org it already had.
+        $targetOrg = null;
+        if ($hasPractice) {
+            $order = $ownerPid !== null ? [$ownerPid] : [];
+            $order = array_merge($order, array_values(array_diff(array_keys($practiceIds), $order)));
+            sort($order);
+            $in = implode(',', array_fill(0, count($order), '?'));
+            $st = $this->pdo->prepare("SELECT practice_id, id FROM marketing_orgs WHERE practice_id IN ($in)");
+            $st->execute($order);
+            $orgByPractice = [];
+            foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $o) {
+                $orgByPractice[(int)$o['practice_id']] = (int)$o['id'];
+            }
+            foreach ($order as $pid) {
+                if (isset($orgByPractice[$pid])) { $targetOrg = $orgByPractice[$pid]; break; }
+            }
+            $out['org_id'] = $targetOrg;
+        }
+
+        $status = $hasPractice ? 'Signed Up' : self::STATUS_SETUP_INCOMPLETE;
+        $first = trim((string)($u['first_name'] ?? ''));
+        $last = trim((string)($u['last_name'] ?? ''));
+        $full = trim($first . ' ' . $last);
+
+        $this->pdo->beginTransaction();
+        try {
+            // Resolution order: existing user_id link (prefer org-linked),
+            // then email at the target org, then any contact with this
+            // email. Never creates a second contact for a known user.
+            $st = $this->pdo->prepare(
+                'SELECT * FROM marketing_contacts WHERE user_id=?
+                  ORDER BY (org_id IS NULL), id LIMIT 1');
+            $st->execute([$userId]);
+            $c = $st->fetch(PDO::FETCH_ASSOC);
+            if (!$c && $targetOrg !== null) {
+                $st = $this->pdo->prepare(
+                    'SELECT * FROM marketing_contacts WHERE org_id=? AND email_normalized=? LIMIT 1');
+                $st->execute([$targetOrg, $email]);
+                $c = $st->fetch(PDO::FETCH_ASSOC);
+            }
+            if (!$c) {
+                $st = $this->pdo->prepare(
+                    'SELECT * FROM marketing_contacts WHERE email_normalized=? ORDER BY id LIMIT 1');
+                $st->execute([$email]);
+                $c = $st->fetch(PDO::FETCH_ASSOC);
+            }
+
+            if ($c) {
+                $cid = (int)$c['id'];
+                $sets = []; $args = [];
+                if (($c['user_id'] ?? null) === null) { $sets[] = 'user_id=?'; $args[] = $userId; }
+                // Place a standalone (org-less) contact into the practice
+                // org; never move a contact that already belongs to a
+                // different org.
+                if (($c['org_id'] ?? null) === null && $targetOrg !== null) {
+                    $sets[] = 'org_id=?'; $args[] = $targetOrg;
+                }
+                if (trim((string)($c['user_registered_at'] ?? '')) === '') {
+                    $sets[] = 'user_registered_at=?'; $args[] = $registeredAt;
+                }
+                $cur = strtolower(trim((string)$c['status']));
+                $preserved = false;
+                foreach (self::PRESERVE_STATUSES as $bad) {
+                    if (strpos($cur, $bad) !== false) { $preserved = true; break; }
+                }
+                if (!$preserved && $cur !== strtolower($status)) {
+                    $sets[] = 'status=?'; $args[] = $status;
+                }
+                if ($full !== '' && trim((string)($c['full_name'] ?? '')) === '') {
+                    $sets[] = 'full_name=?'; $args[] = mb_substr($full, 0, 255);
+                }
+                if ($sets) {
+                    $args[] = $cid;
+                    $this->pdo->prepare('UPDATE marketing_contacts SET ' . implode(',', $sets) . ' WHERE id=?')
+                        ->execute($args);
+                }
+                $out['action'] = 'updated';
+                $out['contact_id'] = $cid;
+            } else {
+                $this->pdo->prepare(
+                    "INSERT INTO marketing_contacts
+                     (org_id, user_id, first_name, last_name, full_name, email, email_normalized,
+                      status, source, user_registered_at, version)
+                     VALUES (?,?,?,?,?,?,?,?,?,?,1)"
+                )->execute([
+                    $targetOrg, $userId,
+                    $first !== '' ? $first : null, $last !== '' ? $last : null,
+                    $full !== '' ? $full : null, $email, $email,
+                    $status, 'user_registration', $registeredAt,
+                ]);
+                $cid = (int)$this->pdo->lastInsertId();
+                $out['action'] = 'created';
+                $out['contact_id'] = $cid;
+                $out['incomplete'] = $status !== 'Signed Up';
+            }
+
+            // Same-email contacts elsewhere reflect the same human: a user
+            // with a practice is 'Signed Up' wherever their address appears.
+            if ($hasPractice && $targetOrg !== null) {
+                $this->markEmailSignedUp($email, $targetOrg);
+            }
+            $out['incomplete'] = $status !== 'Signed Up';
+            $this->event($out['contact_id'], $targetOrg, 'user_synced', [
+                'user_id' => $userId, 'action' => $out['action'],
+                'has_practice' => $hasPractice, 'status' => $status,
+                'practice_errors' => $syncErrors ?: null,
+            ]);
+            $this->pdo->commit();
+        } catch (Throwable $e) {
+            if ($this->pdo->inTransaction()) $this->pdo->rollBack();
+            $out['error'] = $e->getMessage();
+            return $out;
+        }
+        return $out;
+    }
+
+    /** Whether the user already has an org-linked canonical contact. */
+    private function hasOrgLinkedUserContact(int $userId): bool
+    {
+        if (!$this->hasUserCol() || $userId <= 0) return false;
+        try {
+            $st = $this->pdo->prepare(
+                'SELECT 1 FROM marketing_contacts WHERE user_id=? AND org_id IS NOT NULL LIMIT 1');
+            $st->execute([$userId]);
+            return $st->fetchColumn() !== false;
+        } catch (Throwable $e) { return false; }
+    }
+
+    /** Whether marketing_contacts.user_id exists (post-migration). */
+    private function hasUserCol(): bool
+    {
+        static $has = null;
+        if ($has !== null) return $has;
+        try {
+            $has = (bool)$this->pdo->query(
+                "SELECT 1 FROM information_schema.COLUMNS
+                  WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='marketing_contacts'
+                    AND COLUMN_NAME='user_id' LIMIT 1")->fetchColumn();
+        } catch (Throwable $e) { $has = false; }
+        return $has;
+    }
+
     /* ------------------------------------------------------------------ */
     /* Writes (called inside syncPractice's transaction)                  */
     /* ------------------------------------------------------------------ */
@@ -478,26 +678,90 @@ final class PracticeRegistrationSync
     {
         $email = SuppressionService::normalizeEmail((string)$user['email']);
         if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) return false;
+        $uid = (int)($user['id'] ?? 0);
 
-        // Already a contact at THIS org with this email?
+        // Adopt a standalone user-registration contact (org-less) into
+        // this org instead of creating a second contact for the same
+        // person - preserves the contact's history and user_registered_at.
+        if ($this->hasUserCol() && $uid > 0) {
+            $st = $this->pdo->prepare(
+                'SELECT id, status FROM marketing_contacts WHERE user_id=? AND org_id IS NULL LIMIT 1');
+            $st->execute([$uid]);
+            $solo = $st->fetch(PDO::FETCH_ASSOC);
+            if ($solo !== false) {
+                // Only adopt when the org does not already hold this email;
+                // otherwise the org contact is canonical and the standalone
+                // row is left for user-level sync to reconcile.
+                $dup = $this->pdo->prepare(
+                    'SELECT id FROM marketing_contacts WHERE org_id=? AND email_normalized=? AND id<>? LIMIT 1');
+                $dup->execute([$orgId, $email, (int)$solo['id']]);
+                if ($dup->fetchColumn() === false) {
+                    $cur = strtolower(trim((string)$solo['status']));
+                    $preserved = false;
+                    foreach (self::PRESERVE_STATUSES as $bad) {
+                        if (strpos($cur, $bad) !== false) { $preserved = true; break; }
+                    }
+                    if ($preserved) {
+                        $this->pdo->prepare('UPDATE marketing_contacts SET org_id=? WHERE id=?')
+                            ->execute([$orgId, (int)$solo['id']]);
+                    } else {
+                        $this->pdo->prepare(
+                            "UPDATE marketing_contacts SET org_id=?, status='Signed Up', updated_at=UTC_TIMESTAMP() WHERE id=?")
+                            ->execute([$orgId, (int)$solo['id']]);
+                    }
+                    $this->event((int)$solo['id'], $orgId, 'contact_org_linked',
+                        ['reason' => 'practice_registered', 'adopted_user_contact' => true]);
+                    return true;
+                }
+            }
+        }
+
+        // Already a contact at THIS org with this email? Stamp the user
+        // link so user-level sync can find it later - but only when the
+        // user does not already have an org-linked canonical contact
+        // (multi-practice users keep ONE user-linked contact).
+        $uidCol = $this->hasUserCol() ? 'user_id' : 'NULL AS user_id';
         $st = $this->pdo->prepare(
-            'SELECT id FROM marketing_contacts WHERE org_id=? AND email_normalized=? LIMIT 1'
+            "SELECT id, $uidCol FROM marketing_contacts WHERE org_id=? AND email_normalized=? LIMIT 1"
         );
         $st->execute([$orgId, $email]);
-        if ($st->fetchColumn() !== false) return false;
+        $existing = $st->fetch(PDO::FETCH_ASSOC);
+        if ($existing !== false) {
+            if ($this->hasUserCol() && ($existing['user_id'] ?? null) === null && $uid > 0
+                && !$this->hasOrgLinkedUserContact($uid)) {
+                $this->pdo->prepare('UPDATE marketing_contacts SET user_id=? WHERE id=?')
+                    ->execute([$uid, (int)$existing['id']]);
+            }
+            return false;
+        }
 
         $first = trim((string)($user['first_name'] ?? ''));
         $last = trim((string)($user['last_name'] ?? ''));
         $full = trim($first . ' ' . $last);
-        $this->pdo->prepare(
-            "INSERT INTO marketing_contacts
-             (org_id, first_name, last_name, full_name, email, email_normalized,
-              title, status, source, version)
-             VALUES (?,?,?,?,?,?,'Practice Owner','Signed Up','practice_registration',1)"
-        )->execute([
-            $orgId, $first !== '' ? $first : null, $last !== '' ? $last : null,
-            $full !== '' ? $full : null, $email, $email,
-        ]);
+        $uid = (int)($user['id'] ?? 0);
+        // Stamp user_id only for the user's first org-linked contact.
+        $stampUid = ($this->hasUserCol() && $uid > 0 && !$this->hasOrgLinkedUserContact($uid)) ? $uid : 0;
+        if ($stampUid > 0) {
+            $this->pdo->prepare(
+                "INSERT INTO marketing_contacts
+                 (org_id, user_id, first_name, last_name, full_name, email, email_normalized,
+                  title, status, source, version)
+                 VALUES (?,?,?,?,?,?,?,'Practice Owner','Signed Up','practice_registration',1)"
+            )->execute([
+                $orgId, $stampUid, $first !== '' ? $first : null, $last !== '' ? $last : null,
+                $full !== '' ? $full : null, $email, $email,
+            ]);
+        } else {
+            $this->pdo->prepare(
+                "INSERT INTO marketing_contacts
+                 (org_id, first_name, last_name, full_name, email, email_normalized,
+                  title, status, source, version)
+                 VALUES (?,?,?,?,?,?,'Practice Owner','Signed Up','practice_registration',1)"
+            )->execute([
+                $orgId, $first !== '' ? $first : null, $last !== '' ? $last : null,
+                $full !== '' ? $full : null, $email, $email,
+            ]);
+        }
         $cid = (int)$this->pdo->lastInsertId();
         $this->event($cid, $orgId, 'contact_created',
             ['source' => 'practice_registration', 'practice' => $practiceName]);

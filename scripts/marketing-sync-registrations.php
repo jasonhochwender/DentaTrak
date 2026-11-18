@@ -66,9 +66,44 @@ foreach ($ids as $pid) {
     }
 }
 
-echo "\n=== reconciliation summary ===\n";
+echo "\n=== practice reconciliation summary ===\n";
 foreach ($stats as $k => $v) echo "  $k: $v\n";
 foreach ($problems as $p) echo "  ERROR $p\n";
+
+// ---- user pass: every DentaTrak account -> CRM contact ---------------
+// syncUser() ensures the user's practice memberships are synced first,
+// then upserts a contact keyed by user_id (org-linked 'Signed Up' or
+// standalone 'Registered - Setup Incomplete'). Idempotent.
+$ustats = ['users_examined' => 0, 'created' => 0, 'updated' => 0, 'none' => 0,
+    'incomplete' => 0, 'errors' => 0, 'contacts_created' => 0, 'contacts_updated' => 0];
+$uproblems = [];
+$uids = array_map('intval', $pdo->query('SELECT id FROM users ORDER BY id')->fetchAll(PDO::FETCH_COLUMN));
+echo "\nusers to examine: " . count($uids) . "\n";
+foreach ($uids as $uid) {
+    $ustats['users_examined']++;
+    if ($dryRun) {
+        $st = $pdo->prepare('SELECT email, first_name, last_name FROM users WHERE id=?');
+        $st->execute([$uid]);
+        $ur = $st->fetch(PDO::FETCH_ASSOC) ?: [];
+        echo "  user#$uid " . trim(($ur['first_name'] ?? '') . ' ' . ($ur['last_name'] ?? ''))
+            . ' <' . ($ur['email'] ?? '?') . ">\n";
+        continue;
+    }
+    $r = $sync->syncUser($uid);
+    if ($r['error'] !== null) {
+        $ustats['errors']++;
+        $uproblems[] = "user#$uid: {$r['error']}";
+        continue;
+    }
+    $ustats[$r['action']] = ($ustats[$r['action']] ?? 0) + 1;
+    if (!empty($r['incomplete'])) $ustats['incomplete']++;
+    if ($r['action'] === 'created') $ustats['contacts_created']++;
+    if ($r['action'] === 'updated') $ustats['contacts_updated']++;
+}
+
+echo "\n=== user reconciliation summary ===\n";
+foreach ($ustats as $k => $v) echo "  $k: $v\n";
+foreach ($uproblems as $p) echo "  ERROR $p\n";
 
 if ($verify) {
     // Read-only post-state: every org linked to a practice, with contact
@@ -91,5 +126,23 @@ if ($verify) {
             . " " . substr((string)$r['org_name'], 0, 60) . "\n";
     }
     echo "  linked orgs total: " . count($rows) . "\n";
+
+    // Registered users who have not completed practice setup.
+    echo "\n=== setup-incomplete registrations ===\n";
+    $inc = $pdo->query(
+        "SELECT c.id, c.user_id, c.full_name, c.email, c.user_registered_at,
+                c.created_at
+           FROM marketing_contacts c
+          WHERE LOWER(c.status) = 'registered - setup incomplete'
+          ORDER BY c.user_registered_at"
+    )->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($inc as $r) {
+        $em = (string)$r['email'];
+        $at = strpos($em, '@');
+        $masked = $at === false ? '***' : substr($em, 0, 1) . '***' . substr($em, $at);
+        echo "  contact={$r['id']} user={$r['user_id']} registered_at={$r['user_registered_at']}"
+            . " " . substr((string)$r['full_name'], 0, 40) . " <$masked>\n";
+    }
+    echo "  setup-incomplete total: " . count($inc) . "\n";
 }
 echo "done\n";

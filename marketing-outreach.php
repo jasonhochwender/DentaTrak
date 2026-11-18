@@ -71,6 +71,7 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
         .mo-flag.missing_contact { background: #fee2e2; color: #991b1b; }
         .mo-flag.do_not_contact { background: #1f2937; color: #fff; }
         .mo-flag.duplicate_org { background: #fef3c7; color: #92400e; }
+        .mo-flag.setup_incomplete { background: #e0e7ff; color: #3730a3; }
         .mo-pill { display: inline-block; padding: 2px 9px; border-radius: 10px; font-size: 0.72rem; white-space: nowrap; background: #f3f4f6; color: #374151; }
         .mo-pill.sent, .mo-pill.completed, .mo-pill.eligible { background: #d1fae5; color: #065f46; }
         .mo-pill.failed, .mo-pill.overdue { background: #fee2e2; color: #991b1b; }
@@ -332,6 +333,7 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
             <option value="missing_contact"><?php echo h(ma('flag_missing_contact')); ?></option>
             <option value="do_not_contact"><?php echo h(ma('flag_do_not_contact')); ?></option>
             <option value="duplicate_org"><?php echo h(ma('flag_duplicate_org')); ?></option>
+            <option value="setup_incomplete"><?php echo h(ma('flag_setup_incomplete')); ?></option>
         </select>
         <select id="moCrmBucket">
             <option value=""><?php echo h(ma('bucket_all')); ?></option>
@@ -372,6 +374,7 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
             <option value="missing_contact"><?php echo h(ma('flag_missing_contact')); ?></option>
             <option value="do_not_contact"><?php echo h(ma('flag_do_not_contact')); ?></option>
             <option value="duplicate_org"><?php echo h(ma('flag_duplicate_org')); ?></option>
+            <option value="setup_incomplete"><?php echo h(ma('flag_setup_incomplete')); ?></option>
         </select>
         <select id="moProspectBucket">
             <option value=""><?php echo h(ma('bucket_all')); ?></option>
@@ -1019,7 +1022,7 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
             $('moDashPipe').innerHTML = buckets;
             $('moDashPipeNote').textContent = '';
             var fl = '';
-            ['missing_contact','do_not_contact','duplicate_org'].forEach(function (f) {
+            ['missing_contact','do_not_contact','duplicate_org','setup_incomplete'].forEach(function (f) {
                 fl += '<span class="mo-flag ' + f + '">' + esc(f.replace(/_/g, ' ')) + ': ' + (o.flags[f] || 0) + '</span> ';
             });
             $('moDashAttn').innerHTML = fl || '—';

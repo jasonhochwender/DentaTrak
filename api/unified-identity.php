@@ -274,6 +274,17 @@ function authenticateWithGoogle($googleData) {
 
         $pdo->commit();
 
+        // Marketing CRM sync: every registered user is represented in the
+        // CRM ('Registered - Setup Incomplete' until they join a practice).
+        // Runs after the user write commits; a CRM failure must never break
+        // registration.
+        try {
+            require_once __DIR__ . '/marketing/PracticeRegistrationSync.php';
+            (new PracticeRegistrationSync($pdo, 'user-registration'))->syncUser((int)$userId);
+        } catch (Throwable $e) {
+            error_log('[unified-identity] CRM user sync failed for user ' . $userId . ': ' . $e->getMessage());
+        }
+
         // Internal notification to DentaTrak team (must not affect registration outcome)
         try {
             sendSignupNotificationEmail($pdo, (int)$userId, $appConfig);
@@ -400,6 +411,14 @@ function registerWithEmail($email, $password, $firstName = '', $lastName = '') {
         ensureBypassUserTier($pdo, $userId, $email);
 
         $pdo->commit();
+
+        // Marketing CRM sync (see Google path above): non-blocking.
+        try {
+            require_once __DIR__ . '/marketing/PracticeRegistrationSync.php';
+            (new PracticeRegistrationSync($pdo, 'user-registration'))->syncUser((int)$userId);
+        } catch (Throwable $e) {
+            error_log('[unified-identity] CRM user sync failed for user ' . $userId . ': ' . $e->getMessage());
+        }
 
         return [
             'success' => true,

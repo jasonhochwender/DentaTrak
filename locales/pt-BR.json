@@ -7495,7 +7495,7 @@
         "dash_a_auto": "Respostas automáticas",
         "dash_rate_na": "n/d",
         "dash_camp_replies": "Respostas",
-        "dash_defs": "Definições: «Envios verificados» são entregas do Gmail confirmadas registradas no livro de envios — não status importados da planilha. «Respostas humanas» são mensagens do Gmail recebidas classificadas como respostas genuínas e associadas a um prospect; a taxa de resposta = respostas humanas ÷ envios verificados no mesmo período. Respostas automáticas, falhas e descadastros são rastreados separadamente e nunca contam como respostas. «Aguardando resposta» exige evidência de contato anterior. Linhas de destinatários não são envios até a campanha ser enviada.",
+        "dash_defs": "Definições: «Envios verificados» são entregas do Gmail confirmadas registradas no registro de envios — não status «Sent» importados de planilhas. «Respostas» e «taxa de resposta» exigem um rastreamento de respostas que ainda não existe; as respostas registradas são dados manuais/importados. As faixas de follow-up só contam prospects com evidência crível de contato anterior. As linhas de destinatários de campanha não são envios até a campanha ser enviada.",
         "tab_templates": "Modelos de e-mail",
         "tab_history": "Histórico de divulgação",
         "ov_followups_title": "Pipeline de follow-ups",
@@ -7505,6 +7505,7 @@
         "flag_missing_contact": "Contato ausente",
         "flag_do_not_contact": "Não contatar",
         "flag_duplicate_org": "Org. duplicada",
+        "flag_setup_incomplete": "Configura\\u00e7\\u00e3o incompleta",
         "bucket_all": "Todos",
         "bucket_due_today": "Vence hoje",
         "bucket_overdue": "Atrasado",
@@ -7803,7 +7804,6 @@
         "gen_scope_replace_desc": "Substitui mensagens geradas automaticamente e nunca editadas manualmente. Mensagens editadas, aprovadas e enviadas são sempre preservadas.",
         "confirm_generate_missing": "Gerar mensagens para todos os destinatários que ainda não têm uma? O conteúdo existente nunca é sobrescrito.",
         "confirm_generate_replace": "Regenerar TODOS os rascunhos automáticos não editados? Mensagens editadas manualmente são preservadas.",
-
         "thread_send_unverified": "Uma conversa existente do Gmail foi encontrada, mas o Gmail não pôde confirmar que a mensagem original foi enviada (sem marcador SENT). A resposta ainda aparecerá na conversa correta.",
         "preview_final": "Pré-visualização do e-mail final",
         "pv_from": "De",
@@ -7896,7 +7896,6 @@
         "dash_seg_priority": "Prioridade",
         "dash_seg_source": "Origem",
         "dash_seg_note": "Inventário total do conjunto filtrado de prospects. As linhas de tipo de organização, status e prioridade levam à lista filtrada.",
-        "dash_defs": "Definições: «Envios verificados» são entregas do Gmail confirmadas registradas no registro de envios — não status «Sent» importados de planilhas. «Respostas» e «taxa de resposta» exigem um rastreamento de respostas que ainda não existe; as respostas registradas são dados manuais/importados. As faixas de follow-up só contam prospects com evidência crível de contato anterior. As linhas de destinatários de campanha não são envios até a campanha ser enviada.",
         "dash_all_locations": "Todas as localidades",
         "dash_seg_location": "Localidade (registrada)"
     }

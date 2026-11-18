@@ -7495,7 +7495,7 @@
         "dash_a_auto": "Réponses auto",
         "dash_rate_na": "s.o.",
         "dash_camp_replies": "Réponses",
-        "dash_defs": "Définitions : « Envois vérifiés » sont les livraisons Gmail confirmées consignées au registre d'envoi — pas les statuts importés du chiffrier. « Réponses humaines » sont des messages Gmail entrants classés comme réponses authentiques et associés à un prospect ; le taux de réponse = réponses humaines ÷ envois vérifiés sur la même période. Les réponses auto, les échecs et les désabonnements sont suivis séparément et ne comptent jamais comme réponses. « En attente de réponse » exige une preuve de contact antérieur. Les lignes de destinataires ne sont des envois qu'une fois la campagne envoyée.",
+        "dash_defs": "Définitions : les « envois vérifiés » sont des livraisons Gmail confirmées consignées au registre d'envois — pas des statuts « Sent » importés de feuilles de calcul. « Réponses » et « taux de réponse » exigent un suivi des réponses qui n'existe pas encore; les réponses enregistrées sont des données manuelles/importées. Les catégories de suivi ne comptent que les prospects avec preuve crédible de contact antérieur. Les destinataires de campagne ne sont pas des envois tant que la campagne n'est pas envoyée.",
         "tab_templates": "Modèles d’e-mail",
         "tab_history": "Historique de prospection",
         "ov_followups_title": "Pipeline de relances",
@@ -7505,6 +7505,7 @@
         "flag_missing_contact": "Contact manquant",
         "flag_do_not_contact": "Ne pas contacter",
         "flag_duplicate_org": "Org. en double",
+        "flag_setup_incomplete": "Configuration incompl\\u00e8te",
         "bucket_all": "Tous",
         "bucket_due_today": "À faire aujourd’hui",
         "bucket_overdue": "En retard",
@@ -7803,7 +7804,6 @@
         "gen_scope_replace_desc": "Remplace les messages générés automatiquement et jamais modifiés manuellement. Les messages modifiés, approuvés et envoyés sont toujours conservés.",
         "confirm_generate_missing": "Générer des messages pour tous les destinataires qui n’en ont pas? Le contenu existant n’est jamais écrasé.",
         "confirm_generate_replace": "Régénérer TOUS les brouillons automatiques non modifiés? Les messages modifiés manuellement sont conservés.",
-
         "thread_send_unverified": "Une conversation Gmail existante a été trouvée, mais Gmail n'a pas pu confirmer que le message original avait été envoyé (aucune étiquette SENT). La réponse restera dans le bon fil.",
         "preview_final": "Aperçu de l'e-mail final",
         "pv_from": "De",
@@ -7896,7 +7896,6 @@
         "dash_seg_priority": "Priorité",
         "dash_seg_source": "Source",
         "dash_seg_note": "Inventaire total de l'ensemble filtré de prospects. Les rangées type d'organisation, statut et priorité mènent à la liste filtrée.",
-        "dash_defs": "Définitions : les « envois vérifiés » sont des livraisons Gmail confirmées consignées au registre d'envois — pas des statuts « Sent » importés de feuilles de calcul. « Réponses » et « taux de réponse » exigent un suivi des réponses qui n'existe pas encore; les réponses enregistrées sont des données manuelles/importées. Les catégories de suivi ne comptent que les prospects avec preuve crédible de contact antérieur. Les destinataires de campagne ne sont pas des envois tant que la campagne n'est pas envoyée.",
         "dash_all_locations": "Tous les lieux",
         "dash_seg_location": "Lieu (enregistré)"
     }

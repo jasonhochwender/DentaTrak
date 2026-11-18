@@ -7495,7 +7495,7 @@
         "dash_a_auto": "Respuestas automáticas",
         "dash_rate_na": "n/d",
         "dash_camp_replies": "Respuestas",
-        "dash_defs": "Definiciones: «Envíos verificados» son entregas de Gmail confirmadas registradas en el libro de envíos, no estados importados de la hoja de cálculo. «Respuestas humanas» son mensajes entrantes de Gmail clasificados como respuestas genuinas y asociados a un prospecto; la tasa de respuesta = respuestas humanas ÷ envíos verificados del mismo período. Las respuestas automáticas, los fallos y las bajas se registran por separado y nunca cuentan como respuestas. «Esperando respuesta» requiere evidencia de contacto previo. Las filas de destinatarios no son envíos hasta que se envía una campaña.",
+        "dash_defs": "Definiciones: «Envíos verificados» son entregas de Gmail confirmadas registradas en el registro de envíos — no estados «Sent» importados de hojas de cálculo. «Respuestas» y «tasa de respuesta» requieren un seguimiento de respuestas que aún no existe; las respuestas registradas son datos manuales/importados. Los bolsillos de seguimiento solo cuentan prospects con evidencia creíble de contacto previo. Las filas de destinatarios de campaña no son envíos hasta que la campaña se envía.",
         "tab_templates": "Plantillas de correo",
         "tab_history": "Historial de divulgación",
         "ov_followups_title": "Pipeline de seguimientos",
@@ -7505,6 +7505,7 @@
         "flag_missing_contact": "Sin contacto",
         "flag_do_not_contact": "No contactar",
         "flag_duplicate_org": "Org. duplicada",
+        "flag_setup_incomplete": "Configuraci\\u00f3n incompleta",
         "bucket_all": "Todos",
         "bucket_due_today": "Vence hoy",
         "bucket_overdue": "Vencido",
@@ -7803,7 +7804,6 @@
         "gen_scope_replace_desc": "Reemplaza mensajes generados automáticamente que nunca se editaron manualmente. Los editados, aprobados y enviados siempre se conservan.",
         "confirm_generate_missing": "¿Generar mensajes para todos los destinatarios que no tengan uno? El contenido existente nunca se sobrescribe.",
         "confirm_generate_replace": "¿Regenerar TODOS los borradores automáticos sin editar? Los mensajes editados manualmente se conservan.",
-
         "thread_send_unverified": "Se encontró una conversación existente de Gmail, pero Gmail no pudo confirmar que el mensaje original se enviara (sin etiqueta SENT). La respuesta seguirá en el hilo correcto.",
         "preview_final": "Vista previa del correo final",
         "pv_from": "De",
@@ -7896,7 +7896,6 @@
         "dash_seg_priority": "Prioridad",
         "dash_seg_source": "Origen",
         "dash_seg_note": "Inventario total del conjunto filtrado de prospects. Las filas de tipo de organización, estado y prioridad enlazan a la lista filtrada.",
-        "dash_defs": "Definiciones: «Envíos verificados» son entregas de Gmail confirmadas registradas en el registro de envíos — no estados «Sent» importados de hojas de cálculo. «Respuestas» y «tasa de respuesta» requieren un seguimiento de respuestas que aún no existe; las respuestas registradas son datos manuales/importados. Los bolsillos de seguimiento solo cuentan prospects con evidencia creíble de contacto previo. Las filas de destinatarios de campaña no son envíos hasta que la campaña se envía.",
         "dash_all_locations": "Todas las ubicaciones",
         "dash_seg_location": "Ubicación (registrada)"
     }

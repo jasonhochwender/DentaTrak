@@ -446,6 +446,9 @@ try {
         try {
             $sync = new PracticeRegistrationSync($pdo, 'practice-registration');
             $sync->syncPractice((int)$practiceId);
+            // The accepting user is now practice-linked: refresh their
+            // user-level CRM contact too ('Signed Up' + org association).
+            if (!empty($userId)) $sync->syncUser((int)$userId);
         } catch (Throwable $e) {
             error_log('[accept-baa] CRM registration sync failed for practice ' . $practiceId . ': ' . $e->getMessage());
         }

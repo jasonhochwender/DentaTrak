@@ -41,6 +41,7 @@ require_once $baseDir . '/migrations/2026_11_13_marketing_crm.php';
 require_once $baseDir . '/migrations/2026_11_14_marketing_crm_phase2.php';
 require_once $baseDir . '/migrations/2026_11_15_marketing_crm_phase3.php';
 require_once $baseDir . '/migrations/2026_11_27_marketing_practice_registration.php';
+require_once $baseDir . '/migrations/2026_11_28_marketing_user_registration.php';
 
 $pass = 0; $fail = 0;
 function ok(string $msg, bool $cond): void {
@@ -281,6 +282,92 @@ try {
     $b1 = $crm->findByEmail('owner1@regtest-dental.example');
     ok('registered contact bucket is registered', ($b1['bucket'] ?? '') === 'registered', json_encode($b1['bucket'] ?? null));
     ok('record exposes registered flag', !empty($b1['registered']));
+
+    /* ============ 8: user registers, no practice yet ============ */
+    $uS = mkUser($pdo, 'sydnee@regtest-user.example', 'Sydnee', 'Brewer', $userIds);
+    $rS = $sync->syncUser($uS);
+    ok('user without practice creates contact', $rS['action'] === 'created' && $rS['contact_id'] > 0, json_encode($rS));
+    $cS = $pdo->query("SELECT * FROM marketing_contacts WHERE id=" . (int)$rS['contact_id'])->fetch(PDO::FETCH_ASSOC);
+    ok('contact has no org (no placeholder)', $cS && $cS['org_id'] === null);
+    ok('contact linked to user_id', $cS && (int)$cS['user_id'] === $uS);
+    ok('status is Registered - Setup Incomplete', $cS
+        && strtolower($cS['status']) === 'registered - setup incomplete', $cS['status'] ?? '');
+    ok('registration date recorded', $cS && !empty($cS['user_registered_at']));
+    ok('source is user_registration', $cS && $cS['source'] === 'user_registration');
+    ok('syncUser rerun is a no-op', ($rS2 = $sync->syncUser($uS))['action'] === 'updated'
+        && (int)$pdo->query("SELECT COUNT(*) FROM marketing_contacts WHERE user_id=$uS")->fetchColumn() === 1,
+        json_encode($rS2));
+
+    /* ============ 9: same user later creates a practice ============ */
+    $pS = mkPractice($pdo, 'REGTEST Brewer Dental', '55 Oak Ave, Magee, MS', $uS, 'dental_practice', $practiceIds, $userIds);
+    $sync->syncPractice($pS);           // accept-baa hook order
+    $rS3 = $sync->syncUser($uS);
+    $cS3 = $pdo->query("SELECT * FROM marketing_contacts WHERE user_id=$uS")->fetch(PDO::FETCH_ASSOC);
+    $orgS = (int)$pdo->query("SELECT id FROM marketing_orgs WHERE practice_id=$pS")->fetchColumn();
+    ok('contact linked to practice org', $cS3 && (int)$cS3['org_id'] === $orgS, json_encode($cS3));
+    ok('status upgraded to Signed Up', $cS3 && strtolower($cS3['status']) === 'signed up');
+    ok('original registration date preserved', $cS3 && $cS3['user_registered_at'] === $cS['user_registered_at']);
+    ok('still exactly one contact for user', (int)$pdo->query("SELECT COUNT(*) FROM marketing_contacts WHERE user_id=$uS")->fetchColumn() === 1);
+
+    /* ============ 10: user joins an existing practice (member) ============ */
+    $uM = mkUser($pdo, 'member@regtest-user.example', 'Mel', 'Member', $userIds);
+    $sync->syncUser($uM);               // registered first, no practice
+    // joins pS (created above) as a non-owner member
+    $pdo->prepare("INSERT INTO practice_users (practice_id, user_id, role, is_owner) VALUES (?,?,'user',0)")
+        ->execute([$pS, $uM]);
+    $rM = $sync->syncUser($uM);
+    $cM = $pdo->query("SELECT * FROM marketing_contacts WHERE user_id=$uM")->fetch(PDO::FETCH_ASSOC);
+    ok('joining practice links contact to org', $cM && (int)$cM['org_id'] === $orgS
+        && strtolower($cM['status']) === 'signed up', json_encode($rM));
+    ok('member contact is not duplicated', (int)$pdo->query("SELECT COUNT(*) FROM marketing_contacts WHERE user_id=$uM")->fetchColumn() === 1);
+
+    /* ============ 11: CRM contact exists before user registers ============ */
+    // Prospect contact already at an org; user registers with same email.
+    $orgP = $admin->createOrg(['name' => 'REGTEST Preexisting Dental']);
+    $oidP = (int)$orgP['id'];
+    $admin->createContact(['org_id' => $oidP, 'full_name' => 'REGTEST Pre Person',
+        'email' => 'preuser@regtest-pre.example', 'status' => 'Not Contacted', 'notes' => 'keep me']);
+    $uP = mkUser($pdo, 'preuser@regtest-pre.example', 'Pat', 'Pre', $userIds);
+    $rP = $sync->syncUser($uP);
+    $cP = $pdo->query("SELECT * FROM marketing_contacts WHERE email_normalized='preuser@regtest-pre.example'")->fetch(PDO::FETCH_ASSOC);
+    ok('existing contact stamped with user_id', $cP && (int)$cP['user_id'] === $uP, json_encode($rP));
+    ok('no duplicate contact created', (int)$pdo->query("SELECT COUNT(*) FROM marketing_contacts WHERE email_normalized='preuser@regtest-pre.example'")->fetchColumn() === 1);
+    ok('existing notes preserved', $cP && str_contains((string)$cP['notes'], 'keep me'));
+    ok('pre-existing contact now registered/incomplete', $cP
+        && in_array(strtolower($cP['status']), ['registered - setup incomplete', 'signed up'], true), $cP['status']);
+
+    /* ============ 12: multi-practice user keeps one identity ============ */
+    $uX2 = mkUser($pdo, 'multi@regtest-user.example', 'Mo', 'Multi', $userIds);
+    $pX1 = mkPractice($pdo, 'REGTEST Multi One Dental', '1 First St, Tulsa, OK', $uX2, 'dental_practice', $practiceIds, $userIds);
+    $pX2 = mkPractice($pdo, 'REGTEST Multi Two Dental', '2 Second St, Tulsa, OK', $uX2, 'dental_practice', $practiceIds, $userIds);
+    // second practice: same owner -> member row needed for org link; add owner of pX2 = uX2 already via mkPractice.
+    $rX = $sync->syncUser($uX2);
+    $orgX1 = (int)$pdo->query("SELECT id FROM marketing_orgs WHERE practice_id=$pX1")->fetchColumn();
+    $orgX2 = (int)$pdo->query("SELECT id FROM marketing_orgs WHERE practice_id=$pX2")->fetchColumn();
+    $cX2 = $pdo->query("SELECT * FROM marketing_contacts WHERE user_id=$uX2")->fetch(PDO::FETCH_ASSOC);
+    ok('multi-practice user has one contact', (int)$pdo->query("SELECT COUNT(*) FROM marketing_contacts WHERE user_id=$uX2")->fetchColumn() === 1);
+    ok('contact org is a real practice org', $cX2 && in_array((int)$cX2['org_id'], [$orgX1, $orgX2], true), json_encode($cX2));
+    ok('multi-practice contact is Signed Up', $cX2 && strtolower($cX2['status']) === 'signed up');
+
+    /* ============ 13: registered-no-practice user blocked from outreach ============ */
+    // Fresh user, never joined a practice -> standalone incomplete contact.
+    $uZ = mkUser($pdo, 'lone@regtest-user.example', 'Lee', 'Lone', $userIds);
+    $sync->syncUser($uZ);
+    $regMap = PracticeRegistrationSync::registeredEmails($pdo, ['lone@regtest-user.example']);
+    ok('registeredEmails covers user-only registration', isset($regMap['lone@regtest-user.example']));
+    $cZ = $pdo->query("SELECT * FROM marketing_contacts WHERE user_id=$uZ")->fetch(PDO::FETCH_ASSOC);
+    // Prospect view: registered flag + bucket + setup_incomplete flag.
+    // Fresh instance: ProspectCrm caches its annotation context.
+    $recZ = (new ProspectCrm($pdo))->findByEmail('lone@regtest-user.example');
+    ok('CRM record exposes registered flag (no practice)', $recZ && !empty($recZ['registered']));
+    ok('CRM record bucket is registered', $recZ && ($recZ['bucket'] ?? '') === 'registered', json_encode($recZ['bucket'] ?? null));
+    ok('CRM record has setup_incomplete flag', $recZ && in_array('setup_incomplete', $recZ['flags'] ?? [], true), json_encode($recZ['flags'] ?? null));
+    // Campaign add for initial -> suppressed already_registered.
+    $camp2 = $admin->createCampaign(['name' => 'REGTEST Intro2', 'kind' => 'initial'], 50);
+    $addZ = $admin->addToCampaign([(int)$cZ['id']], $camp2['campaign_id'], null, 'initial', 50);
+    $resZ = $addZ['results'][0] ?? [];
+    ok('practice-less registrant excluded from initial campaign', ($resZ['status'] ?? '') === 'suppressed'
+        && str_contains((string)($resZ['reason'] ?? ''), 'already_registered'), json_encode($resZ));
 
 } finally {
     cleanupReg($pdo, $practiceIds, $userIds);

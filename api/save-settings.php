@@ -1409,6 +1409,21 @@ try {
                 }
             }
 
+            // Marketing CRM sync: users who just joined this practice get
+            // their registration contact linked to the practice's org
+            // ('Signed Up'). Non-blocking; failures are logged only.
+            if (!empty($newlyAddedUserIds)) {
+                try {
+                    require_once __DIR__ . '/marketing/PracticeRegistrationSync.php';
+                    $crmSync = new PracticeRegistrationSync($pdo, 'practice-registration');
+                    foreach (array_keys($newlyAddedUserIds) as $addedUid) {
+                        $crmSync->syncUser((int)$addedUid);
+                    }
+                } catch (Throwable $e) {
+                    userLog("CRM registration sync failed for practice {$currentPracticeId}: " . $e->getMessage(), true);
+                }
+            }
+
             foreach ($validAdminUsers as $email) {
                 try {
                     sharePracticeRootWithEmail($currentPracticeId, $email, 'writer');

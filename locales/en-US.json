@@ -7495,7 +7495,7 @@
         "dash_a_auto": "Auto-replies",
         "dash_rate_na": "n/a",
         "dash_camp_replies": "Replies",
-        "dash_defs": "Definitions: 'Verified sends' are confirmed Gmail deliveries recorded in the send ledger — not imported spreadsheet statuses. 'Human replies' are inbound Gmail messages classified as genuine responses and matched to a prospect; response rate = human replies ÷ verified sends in the same period. Auto-replies, bounces, and unsubscribe requests are tracked separately and never counted as responses. 'Awaiting response' requires evidence of prior outreach. Campaign recipient rows are not sends until a campaign is sent.",
+        "dash_defs": "Definitions: 'Verified sends' are confirmed Gmail deliveries recorded in the send ledger — not imported spreadsheet statuses. 'Replies' and 'response rate' require reply tracking that does not exist yet; recorded responses are manual/imported data. Follow-up buckets only count prospects with credible evidence of prior outreach. Campaign recipient rows are not sends until a campaign is sent.",
         "tab_templates": "Email Templates",
         "tab_history": "Outreach History",
         "ov_followups_title": "Follow-up pipeline",
@@ -7505,6 +7505,7 @@
         "flag_missing_contact": "Missing contact",
         "flag_do_not_contact": "Do not contact",
         "flag_duplicate_org": "Duplicate org",
+        "flag_setup_incomplete": "Setup incomplete",
         "bucket_all": "All buckets",
         "bucket_due_today": "Due today",
         "bucket_overdue": "Overdue",
@@ -7895,7 +7896,6 @@
         "dash_seg_priority": "Priority",
         "dash_seg_source": "Source",
         "dash_seg_note": "All-time inventory over the filtered prospect set. Organization type, status, and priority rows link to the filtered prospect list.",
-        "dash_defs": "Definitions: 'Verified sends' are confirmed Gmail deliveries recorded in the send ledger — not imported spreadsheet statuses. 'Replies' and 'response rate' require reply tracking that does not exist yet; recorded responses are manual/imported data. Follow-up buckets only count prospects with credible evidence of prior outreach. Campaign recipient rows are not sends until a campaign is sent.",
         "dash_all_locations": "All locations",
         "dash_seg_location": "Location (recorded)"
     }

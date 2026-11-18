@@ -7495,7 +7495,7 @@
         "dash_a_auto": "Auto-Antworten",
         "dash_rate_na": "k. A.",
         "dash_camp_replies": "Antworten",
-        "dash_defs": "Definitionen: „Verifizierte Sendungen“ sind bestätigte Gmail-Zustellungen im Sendungsprotokoll — keine importierten Tabellenstatus. „Menschliche Antworten“ sind eingehende Gmail-Nachrichten, die als echte Reaktionen eingestuft und einem Interessenten zugeordnet wurden; Antwortquote = menschliche Antworten ÷ verifizierte Sendungen im selben Zeitraum. Auto-Antworten, Zustellfehler und Abmeldungen werden separat erfasst und nie als Antworten gezählt. „Wartet auf Antwort“ erfordert einen Beleg für frühere Ansprache. Empfängerzeilen sind erst nach dem Versand einer Kampagne Sendungen.",
+        "dash_defs": "Definitionen: „Verifizierte Sendungen“ sind bestätigte Gmail-Zustellungen im Send-Protokoll — keine importierten Tabellenstatus. „Antworten“ und „Antwortrate“ erfordern Antwort-Tracking, das noch nicht existiert; erfasste Antworten sind manuelle/importierte Daten. Follow-up-Buckets zählen nur Prospects mit glaubhaftem Nachweis früherer Kontaktaufnahme. Kampagnen-Empfängerzeilen sind keine Sendungen, bis eine Kampagne versendet wird.",
         "tab_templates": "E-Mail-Vorlagen",
         "tab_history": "Outreach-Verlauf",
         "ov_followups_title": "Follow-up-Pipeline",
@@ -7505,6 +7505,7 @@
         "flag_missing_contact": "Kontakt fehlt",
         "flag_do_not_contact": "Nicht kontaktieren",
         "flag_duplicate_org": "Doppelte Org",
+        "flag_setup_incomplete": "Einrichtung unvollst\\u00e4ndig",
         "bucket_all": "Alle",
         "bucket_due_today": "Heute fällig",
         "bucket_overdue": "Überfällig",
@@ -7803,7 +7804,6 @@
         "gen_scope_replace_desc": "Ersetzt Nachrichten, die automatisch generiert und nie manuell bearbeitet wurden. Manuell bearbeitete, genehmigte und gesendete Nachrichten bleiben immer erhalten.",
         "confirm_generate_missing": "Nachrichten für alle Empfänger ohne Nachricht generieren? Vorhandene Inhalte werden nie überschrieben.",
         "confirm_generate_replace": "ALLE automatisch generierten, unbearbeiteten Entwürfe neu generieren? Manuell bearbeitete Nachrichten bleiben erhalten.",
-
         "thread_send_unverified": "Eine bestehende Gmail-Unterhaltung wurde gefunden, aber Gmail konnte nicht bestätigen, dass die Originalnachricht gesendet wurde (kein SENT-Label). Die Antwort wird weiterhin korrekt eingefügt.",
         "preview_final": "Finale E-Mail-Vorschau",
         "pv_from": "Von",
@@ -7896,7 +7896,6 @@
         "dash_seg_priority": "Priorität",
         "dash_seg_source": "Quelle",
         "dash_seg_note": "Gesamtbestand der gefilterten Prospects. Zeilen zu Organisationstyp, Status und Priorität verlinken auf die gefilterte Prospect-Liste.",
-        "dash_defs": "Definitionen: „Verifizierte Sendungen“ sind bestätigte Gmail-Zustellungen im Send-Protokoll — keine importierten Tabellenstatus. „Antworten“ und „Antwortrate“ erfordern Antwort-Tracking, das noch nicht existiert; erfasste Antworten sind manuelle/importierte Daten. Follow-up-Buckets zählen nur Prospects mit glaubhaftem Nachweis früherer Kontaktaufnahme. Kampagnen-Empfängerzeilen sind keine Sendungen, bis eine Kampagne versendet wird.",
         "dash_all_locations": "Alle Orte",
         "dash_seg_location": "Ort (erfasst)"
     }

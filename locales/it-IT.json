@@ -7495,7 +7495,7 @@
         "dash_a_auto": "Risposte automatiche",
         "dash_rate_na": "n/d",
         "dash_camp_replies": "Risposte",
-        "dash_defs": "Definizioni: «Invii verificati» sono le consegne Gmail confermate registrate nel registro di invio — non gli stati importati dal foglio di calcolo. «Risposte umane» sono messaggi Gmail in arrivo classificati come risposte genuine e associati a un prospect; il tasso di risposta = risposte umane ÷ invii verificati nello stesso periodo. Risposte automatiche, errori di consegna e cancellazioni sono tracciati separatamente e non contano mai come risposte. «In attesa di risposta» richiede prova di contatto precedente. Le righe dei destinatari non sono invii finché la campagna non viene inviata.",
+        "dash_defs": "Definizioni: «Invii verificati» sono consegne Gmail confermate registrate nel registro invii — non stati «Sent» importati da fogli di calcolo. «Risposte» e «tasso di risposta» richiedono un tracciamento delle risposte non ancora esistente; le risposte registrate sono dati manuali/importati. Le fasce di follow-up contano solo prospect con prova credibile di contatto precedente. Le righe destinatari di campagna non sono invii finché la campagna non viene inviata.",
         "tab_templates": "Modelli email",
         "tab_history": "Cronologia outreach",
         "ov_followups_title": "Pipeline follow-up",
@@ -7505,6 +7505,7 @@
         "flag_missing_contact": "Contatto mancante",
         "flag_do_not_contact": "Non contattare",
         "flag_duplicate_org": "Org. duplicata",
+        "flag_setup_incomplete": "Configurazione incompleta",
         "bucket_all": "Tutti",
         "bucket_due_today": "In scadenza oggi",
         "bucket_overdue": "Scaduto",
@@ -7803,7 +7804,6 @@
         "gen_scope_replace_desc": "Sostituisce i messaggi generati automaticamente e mai modificati manualmente. Quelli modificati, approvati e inviati sono sempre preservati.",
         "confirm_generate_missing": "Generare messaggi per tutti i destinatari che non ne hanno? I contenuti esistenti non vengono mai sovrascritti.",
         "confirm_generate_replace": "Rigenerare TUTTE le bozze automatiche non modificate? I messaggi modificati manualmente sono preservati.",
-
         "thread_send_unverified": "È stata trovata una conversazione Gmail esistente, ma Gmail non ha potuto confermare che il messaggio originale fosse stato inviato (nessuna etichetta SENT). La risposta resterà nel thread corretto.",
         "preview_final": "Anteprima email finale",
         "pv_from": "Da",
@@ -7896,7 +7896,6 @@
         "dash_seg_priority": "Priorità",
         "dash_seg_source": "Fonte",
         "dash_seg_note": "Inventario totale dell'insieme filtrato di prospect. Le righe tipo di organizzazione, stato e priorità collegano all'elenco filtrato.",
-        "dash_defs": "Definizioni: «Invii verificati» sono consegne Gmail confermate registrate nel registro invii — non stati «Sent» importati da fogli di calcolo. «Risposte» e «tasso di risposta» richiedono un tracciamento delle risposte non ancora esistente; le risposte registrate sono dati manuali/importati. Le fasce di follow-up contano solo prospect con prova credibile di contatto precedente. Le righe destinatari di campagna non sono invii finché la campagna non viene inviata.",
         "dash_all_locations": "Tutte le località",
         "dash_seg_location": "Località (registrata)"
     }

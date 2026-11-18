@@ -63,9 +63,19 @@ final class ProspectCrm
                     AND COLUMN_NAME='practice_id' LIMIT 1")->fetchColumn();
         } catch (Throwable $e) { $hasPracticeId = false; }
         $practiceCol = $hasPracticeId ? 'o.practice_id' : 'NULL AS practice_id';
+        // user_id arrives with the user-registration migration; same
+        // graceful fallback as practice_id.
+        $hasUserId = true;
+        try {
+            $hasUserId = (bool)$this->pdo->query(
+                "SELECT 1 FROM information_schema.COLUMNS
+                  WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='marketing_contacts'
+                    AND COLUMN_NAME='user_id' LIMIT 1")->fetchColumn();
+        } catch (Throwable $e) { $hasUserId = false; }
+        $userCol = $hasUserId ? 'c.user_id' : 'NULL AS user_id';
 
         $rows = $this->pdo->query(
-            "SELECT c.id, c.sheet_row, c.org_id,
+            "SELECT c.id, c.sheet_row, c.org_id, $userCol,
                     o.name AS org_name, po.name AS parent_name, $practiceCol,
                     c.email, c.email_normalized, c.status, c.dnc,
                     c.first_name, c.last_name, c.full_name,
@@ -90,10 +100,11 @@ final class ProspectCrm
             $parent = strtolower(trim((string)($r['parent_name'] ?? '')));
             $dncFlag = ((int)($r['dnc'] ?? 0) === 1) ? 'yes' : '';
 
-            // Registered practice: org linked to a DentaTrak practice_id,
-            // or the contact itself marked 'Signed Up'.
+            // Registered DentaTrak user: linked practice org, linked user
+            // account, or a registration status - even without a practice.
             $registered = ($r['practice_id'] !== null && $r['practice_id'] !== '')
-                || $statusL === 'signed up';
+                || ($r['user_id'] !== null && $r['user_id'] !== '')
+                || in_array($statusL, ['signed up', 'registered - setup incomplete'], true);
             $fields = [
                 'email'          => $email,
                 'registered'     => $registered,

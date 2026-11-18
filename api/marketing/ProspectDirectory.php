@@ -183,6 +183,13 @@ final class ProspectDirectory
                 if ($dup) $flags[] = 'duplicate_org';
             }
 
+            // Registered user who has not finished practice setup: its own
+            // searchable flag on top of the 'registered' bucket.
+            if (!empty($f['registered'])
+                && strtolower(trim($f['status'])) === 'registered - setup incomplete') {
+                $flags[] = 'setup_incomplete';
+            }
+
             // Follow-up bucketing. A follow-up requires credible evidence of
             // prior outreach (same rule as OutreachEligibility): a confirmed
             // ledger send, or a contacted status backed by a contact date or
@@ -251,7 +258,7 @@ final class ProspectDirectory
         // Registered DentaTrak practices are customers-in-onboarding, not
         // open prospects: they get their own lifecycle bucket instead of
         // 'not_contacted'.
-        if (in_array($status, ['signed up', 'registered'], true)) {
+        if (in_array($status, ['signed up', 'registered', 'registered - setup incomplete'], true)) {
             return 'registered';
         }
         $response = strtolower(trim($f['response']));
