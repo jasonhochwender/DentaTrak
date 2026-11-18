@@ -294,7 +294,7 @@ try {
         && strtolower($cS['status']) === 'registered - setup incomplete', $cS['status'] ?? '');
     ok('registration date recorded', $cS && !empty($cS['user_registered_at']));
     ok('source is user_registration', $cS && $cS['source'] === 'user_registration');
-    ok('syncUser rerun is a no-op', ($rS2 = $sync->syncUser($uS))['action'] === 'updated'
+    ok('syncUser rerun is a no-op', ($rS2 = $sync->syncUser($uS))['action'] === 'none'
         && (int)$pdo->query("SELECT COUNT(*) FROM marketing_contacts WHERE user_id=$uS")->fetchColumn() === 1,
         json_encode($rS2));
 

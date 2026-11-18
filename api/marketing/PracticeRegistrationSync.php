@@ -516,8 +516,8 @@ final class PracticeRegistrationSync
                     $args[] = $cid;
                     $this->pdo->prepare('UPDATE marketing_contacts SET ' . implode(',', $sets) . ' WHERE id=?')
                         ->execute($args);
+                    $out['action'] = 'updated';
                 }
-                $out['action'] = 'updated';
                 $out['contact_id'] = $cid;
             } else {
                 $this->pdo->prepare(
@@ -543,11 +543,13 @@ final class PracticeRegistrationSync
                 $this->markEmailSignedUp($email, $targetOrg);
             }
             $out['incomplete'] = $status !== 'Signed Up';
-            $this->event($out['contact_id'], $targetOrg, 'user_synced', [
-                'user_id' => $userId, 'action' => $out['action'],
-                'has_practice' => $hasPractice, 'status' => $status,
-                'practice_errors' => $syncErrors ?: null,
-            ]);
+            if ($out['action'] !== 'none') {
+                $this->event($out['contact_id'], $targetOrg, 'user_synced', [
+                    'user_id' => $userId, 'action' => $out['action'],
+                    'has_practice' => $hasPractice, 'status' => $status,
+                    'practice_errors' => $syncErrors ?: null,
+                ]);
+            }
             $this->pdo->commit();
         } catch (Throwable $e) {
             if ($this->pdo->inTransaction()) $this->pdo->rollBack();
