@@ -68,7 +68,8 @@ if ($mode === '--inspect') {
             . ($r['skip_reason'] ? " skip={$r['skip_reason']}" : '')
             . ($r['error'] ? " err={$r['error']}" : '')
             . ($r['gmail_message_id'] ? " gmail_msg={$r['gmail_message_id']}" : '')
-            . ($r['sent_at'] ? " sent_at={$r['sent_at']}" : '') . "\n";
+            . " sent_at=" . var_export($r['sent_at'], true)
+            . ($r['gmail_thread_id'] ? " gmail_thread={$r['gmail_thread_id']}" : '') . "\n";
     }
     exit(0);
 }
