@@ -590,6 +590,9 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
         pageOf: <?php echo json_encode(ma('page_of')); ?>,
         progressSent: <?php echo json_encode(ma('progress_sent')); ?>,
         sendingBg: <?php echo json_encode(ma('sending_bg')); ?>,
+        sendRestricted: <?php echo json_encode(ma('send_restricted')); ?>,
+        sendIneligible: <?php echo json_encode(ma('send_ineligible')); ?>,
+        sendFailedAll: <?php echo json_encode(ma('send_failed_all')); ?>,
         thread: {
             resolved: <?php echo json_encode(ma('thread_resolved')); ?>,
             unresolved: <?php echo json_encode(ma('thread_new')); ?>,
@@ -790,6 +793,24 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
         if (d.uncertain || d.blocked) msg += ' ' + STR.sendResultExtra.replace('{uncertain}', d.uncertain || 0).replace('{blocked}', d.blocked || 0);
         if (d.send_requested) msg += ' ' + STR.sendingBg.replace('{n}', d.remaining || 0);
         return msg;
+    }
+    // Honest send outcome: a batch that delivered nothing must say why
+    // (sending controls, suppression/ineligibility, delivery failure).
+    function sendOutcome(d) {
+        var msg = sendSummary(d);
+        if ((d.sent || 0) > 0) return { bad: false, msg: msg };
+        var res = d.results || [];
+        var restricted = res.some(function (r) {
+            return r.status === 'blocked' &&
+                (r.reason === 'recipient_not_allowlisted' || r.reason === 'sending_disabled');
+        });
+        if (restricted) return { bad: true, msg: STR.sendRestricted + ' ' + msg };
+        var ineligible = res.some(function (r) { return r.status === 'suppressed' || r.status === 'skipped'; });
+        if (ineligible) return { bad: true, msg: STR.sendIneligible + ' ' + msg };
+        if ((d.failed || 0) + (d.uncertain || 0) + (d.blocked || 0) > 0) {
+            return { bad: true, msg: STR.sendFailedAll + ' ' + msg };
+        }
+        return { bad: true, msg: msg };
     }
     function fmtDate(ts) { return ts ? new Date(ts * 1000).toISOString().slice(0, 10) : ''; }
     function fmtDT(s) { if (!s) return ''; var d = new Date(s.replace(' ', 'T') + 'Z'); return isNaN(d) ? s : d.toISOString().slice(0, 16).replace('T', ' '); }
@@ -1765,7 +1786,7 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
         apiPost('send', { campaign_id: state.currentCampaign }).then(function (d2) {
             btn.disabled = false; btn.textContent = <?php echo json_encode(ma('retry_failed')); ?>;
             if (!d2.success) { showErr(d2.error || STR.loadFailed); openCampaign(state.currentCampaign); return; }
-            showOk(sendSummary(d2));
+            var oc = sendOutcome(d2); (oc.bad ? showErr : showOk)(oc.msg);
             openCampaign(state.currentCampaign);
         });
     });
@@ -1788,7 +1809,7 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
             apiPost('send', { campaign_id: state.currentCampaign }).then(function (d2) {
                 btn.disabled = false;
                 if (!d2.success) { showErr(d2.error || STR.loadFailed); openCampaign(state.currentCampaign); return; }
-                showOk(sendSummary(d2));
+                var oc = sendOutcome(d2); (oc.bad ? showErr : showOk)(oc.msg);
                 openCampaign(state.currentCampaign);
             });
         });
@@ -2223,6 +2244,9 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
                 pageOf: <?php echo json_encode(ma('page_of')); ?>,
                 progressSent: <?php echo json_encode(ma('progress_sent')); ?>,
                 sendingBg: <?php echo json_encode(ma('sending_bg')); ?>,
+                sendRestricted: <?php echo json_encode(ma('send_restricted')); ?>,
+                sendIneligible: <?php echo json_encode(ma('send_ineligible')); ?>,
+                sendFailedAll: <?php echo json_encode(ma('send_failed_all')); ?>,
                 sendPausedNote: <?php echo json_encode(ma('send_paused_note')); ?>,
                 confirmStopSend: <?php echo json_encode(ma('confirm_stop_send')); ?>,
                 sendAuthBadge: <?php echo json_encode(ma('send_authorized_badge')); ?>,

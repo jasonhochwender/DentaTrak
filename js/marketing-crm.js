@@ -1483,16 +1483,34 @@
         });
     }
 
+    // Turn a send response into an honest outcome message. A batch that
+    // delivered nothing must surface WHY (sending controls, suppression,
+    // delivery failure) instead of looking like a silent success.
+    function sendOutcome(d) {
+        var sent = d.sent || 0;
+        var base = S('sendSummary').replace('{s}', sent).replace('{k}', d.skipped || 0)
+            .replace('{f}', d.failed || 0).replace('{u}', d.uncertain || 0);
+        if (d.send_requested) base += ' ' + S('sendingBg').replace('{n}', d.remaining || 0);
+        if (sent > 0) return { bad: false, msg: base };
+        var res = d.results || [];
+        var restricted = res.some(function (r) {
+            return r.status === 'blocked' &&
+                (r.reason === 'recipient_not_allowlisted' || r.reason === 'sending_disabled');
+        });
+        if (restricted) return { bad: true, msg: S('sendRestricted') + ' ' + base };
+        var ineligible = res.some(function (r) { return r.status === 'suppressed' || r.status === 'skipped'; });
+        if (ineligible) return { bad: true, msg: S('sendIneligible') + ' ' + base };
+        if ((d.failed || 0) + (d.uncertain || 0) + (d.blocked || 0) > 0) {
+            return { bad: true, msg: S('sendFailedAll') + ' ' + base };
+        }
+        return { bad: true, msg: base };
+    }
+
     function afterSendResponse(c, d) {
         // Large campaigns keep draining in the background worker; tell
         // the admin and keep the progress view polling.
-        if (d.send_requested) {
-            showOk(S('sendSummary').replace('{s}', d.sent).replace('{k}', d.skipped)
-                .replace('{f}', d.failed).replace('{u}', d.uncertain) + ' ' +
-                S('sendingBg').replace('{n}', d.remaining || 0));
-        } else {
-            showOk(S('sendSummary').replace('{s}', d.sent).replace('{k}', d.skipped).replace('{f}', d.failed).replace('{u}', d.uncertain));
-        }
+        var o = sendOutcome(d);
+        if (o.bad) showErr(o.msg); else showOk(o.msg);
         refreshCampaign();
     }
     function sendCampaign() {
