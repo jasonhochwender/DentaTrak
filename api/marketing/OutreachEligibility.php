@@ -186,6 +186,10 @@ final class OutreachEligibility
                 unset($others[$email]);
                 if ($others) { $flags[] = 'duplicate_org'; }
             }
+            // A practice that registered for DentaTrak is never an
+            // introductory-outreach prospect, regardless of contact history.
+            // Follow-ups are unaffected (customer communications stay valid).
+            if (!empty($ctx['registered'])) { $flags[] = 'already_registered'; }
         } else {
             if ($replied) { $flags[] = 'replied'; }
             if (!$priorOutreach) { $flags[] = 'no_prior_outreach'; }

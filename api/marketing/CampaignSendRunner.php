@@ -127,6 +127,20 @@ final class CampaignSendRunner
         }
 
         $svc = new SuppressionService($pdo);
+        // Registered-practice gate for introductory campaigns, independent
+        // of read mode: a practice that registered for DentaTrak is never
+        // sent an intro message. Follow-ups are customer communication and
+        // are not blocked here.
+        $registeredMap = [];
+        if (($camp['kind'] ?? 'initial') === 'initial') {
+            try {
+                require_once __DIR__ . '/PracticeRegistrationSync.php';
+                $registeredMap = PracticeRegistrationSync::registeredEmails($pdo,
+                    array_map(static fn($r) => (string)$r['prospect_email'], $recips));
+            } catch (Throwable $e) {
+                error_log('[campaign-send] registration gate: ' . $e->getMessage());
+            }
+        }
         // Campaign-scoped send authorization, read fresh for this batch:
         // lifts only the recipient allowlist for THIS campaign. Every
         // other gate (MARKETING_SENDING, suppression, eligibility,
@@ -162,6 +176,13 @@ final class CampaignSendRunner
             if ($ctx['suppressed'] || $ctx['org_suppressed']) {
                 $pdo->prepare("UPDATE marketing_campaign_recipients SET status='suppressed', skip_reason='suppressed_recheck' WHERE id=?")->execute([$r['id']]);
                 $skipped++; $results[] = ['email' => $email, 'status' => 'suppressed'];
+                continue;
+            }
+            if (isset($registeredMap[$email])) {
+                // Already a DentaTrak customer: preserve the recipient row
+                // and its history, skip only this send.
+                $pdo->prepare("UPDATE marketing_campaign_recipients SET status='skipped', skip_reason='already_registered', error='practice_registered' WHERE id=?")->execute([$r['id']]);
+                $skipped++; $results[] = ['email' => $email, 'status' => 'skipped', 'reason' => 'already_registered'];
                 continue;
             }
             // An uncertain/interrupted send must reach the ledger so it is

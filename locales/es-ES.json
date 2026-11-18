@@ -7511,6 +7511,7 @@
         "bucket_upcoming": "Próximo",
         "bucket_awaiting_response": "Esperando respuesta",
         "bucket_not_contacted": "No contactado",
+        "bucket_registered": "Registrado",
         "bucket_completed": "Completado",
         "bucket_excluded": "Excluido/suprimido",
         "search": "Buscar",

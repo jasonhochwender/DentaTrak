@@ -280,7 +280,7 @@ if ($method === 'GET') {
                 ]]);
             }
             [$prospects, $sheetErr] = mo_load_prospects($pdo);
-            $buckets = ['due_today'=>0,'overdue'=>0,'upcoming'=>0,'awaiting_response'=>0,'not_contacted'=>0,'completed'=>0,'excluded'=>0];
+            $buckets = ['due_today'=>0,'overdue'=>0,'upcoming'=>0,'awaiting_response'=>0,'not_contacted'=>0,'completed'=>0,'excluded'=>0,'registered'=>0];
             $eligible = 0; $flags = ['missing_contact'=>0,'do_not_contact'=>0,'duplicate_org'=>0];
             $eligInitial = 0; $eligFollowup = 0;
             foreach ($prospects as $p) {

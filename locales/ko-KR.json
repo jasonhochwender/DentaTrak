@@ -7511,6 +7511,7 @@
         "bucket_upcoming": "예정",
         "bucket_awaiting_response": "응답 대기",
         "bucket_not_contacted": "연락 안 함",
+        "bucket_registered": "등록됨",
         "bucket_completed": "완료",
         "bucket_excluded": "제외/차단됨",
         "search": "검색",

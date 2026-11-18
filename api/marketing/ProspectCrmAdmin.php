@@ -1277,6 +1277,11 @@ final class ProspectCrmAdmin
         if (in_array('missing_contact', $flags, true)) {
             return ['action' => 'suppressed', 'reason' => 'missing_contact', 'flags' => $flags];
         }
+        // Registered practices never receive introductory outreach - this
+        // holds even when resuming an interrupted send.
+        if ($kind === 'initial' && !empty($prospect['registered'])) {
+            return ['action' => 'skip', 'reason' => 'already_registered', 'flags' => ['already_registered']];
+        }
         $elig = $prospect['eligibility'][$kind] ?? ['ok' => false, 'flags' => ['ineligible'], 'hard' => true];
         if (empty($elig['ok']) && !($resuming && empty($elig['hard']))) {
             return ['action' => 'skip', 'reason' => substr(implode(',', $elig['flags'] ?? ['ineligible']), 0, 190), 'flags' => $elig['flags'] ?? []];

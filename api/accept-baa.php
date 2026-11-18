@@ -21,6 +21,7 @@ require_once __DIR__ . '/welcome-email.php';
 require_once __DIR__ . '/dev-tools-access.php';
 require_once __DIR__ . '/schema-helpers.php';
 require_once __DIR__ . '/practice-creation-policy.php';
+require_once __DIR__ . '/marketing/PracticeRegistrationSync.php';
 
 // Start session if not already started
 if (session_status() === PHP_SESSION_NONE) {
@@ -436,6 +437,18 @@ try {
         $_SESSION['needs_baa_acceptance'] = false;
 
         userLog("BAA accepted for existing practice: {$legalName} (ID: {$practiceId})", false);
+    }
+
+    // Marketing CRM sync: every registered practice is represented in the
+    // CRM and excluded from introductory prospecting. Runs after the
+    // practice write commits; a CRM failure must never break onboarding.
+    if (!empty($practiceId)) {
+        try {
+            $sync = new PracticeRegistrationSync($pdo, 'practice-registration');
+            $sync->syncPractice((int)$practiceId);
+        } catch (Throwable $e) {
+            error_log('[accept-baa] CRM registration sync failed for practice ' . $practiceId . ': ' . $e->getMessage());
+        }
     }
 
     // Log the BAA acceptance in user activity

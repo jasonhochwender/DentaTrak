@@ -339,6 +339,7 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
             <option value="overdue"><?php echo h(ma('bucket_overdue')); ?></option>
             <option value="upcoming"><?php echo h(ma('bucket_upcoming')); ?></option>
             <option value="awaiting_response"><?php echo h(ma('bucket_awaiting_response')); ?></option>
+            <option value="registered"><?php echo h(ma('bucket_registered')); ?></option>
             <option value="not_contacted"><?php echo h(ma('bucket_not_contacted')); ?></option>
             <option value="completed"><?php echo h(ma('bucket_completed')); ?></option>
             <option value="excluded"><?php echo h(ma('bucket_excluded')); ?></option>
@@ -378,6 +379,7 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
             <option value="overdue"><?php echo h(ma('bucket_overdue')); ?></option>
             <option value="upcoming"><?php echo h(ma('bucket_upcoming')); ?></option>
             <option value="awaiting_response"><?php echo h(ma('bucket_awaiting_response')); ?></option>
+            <option value="registered"><?php echo h(ma('bucket_registered')); ?></option>
             <option value="not_contacted"><?php echo h(ma('bucket_not_contacted')); ?></option>
             <option value="completed"><?php echo h(ma('bucket_completed')); ?></option>
             <option value="excluded"><?php echo h(ma('bucket_excluded')); ?></option>
@@ -472,6 +474,7 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
             <option value="overdue"><?php echo h(ma('bucket_overdue')); ?></option>
             <option value="upcoming"><?php echo h(ma('bucket_upcoming')); ?></option>
             <option value="awaiting_response"><?php echo h(ma('bucket_awaiting_response')); ?></option>
+            <option value="registered"><?php echo h(ma('bucket_registered')); ?></option>
             <option value="not_contacted"><?php echo h(ma('bucket_not_contacted')); ?></option>
             <option value="completed"><?php echo h(ma('bucket_completed')); ?></option>
             <option value="excluded"><?php echo h(ma('bucket_excluded')); ?></option>
@@ -612,6 +615,7 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
         notEligibleFollowup: <?php echo json_encode(ma('not_eligible_followup')); ?>,
         cancelled: <?php echo json_encode(ma('cancelled')); ?>,
         bucketLabels: {
+            registered: <?php echo json_encode(ma('bucket_registered')); ?>,
             not_contacted: <?php echo json_encode(ma('bucket_not_contacted')); ?>,
             awaiting_response: <?php echo json_encode(ma('bucket_awaiting_response')); ?>,
             due_today: <?php echo json_encode(ma('bucket_due_today')); ?>,
@@ -1009,7 +1013,7 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
             $('moDashKpis').innerHTML = html;
             $('moDashNote').textContent = o.sheet_error ? sheetErrorText(o.sheet_error) : '';
             var buckets = '';
-            ['due_today','overdue','upcoming','awaiting_response','not_contacted','completed','excluded'].forEach(function (b) {
+            ['due_today','overdue','upcoming','awaiting_response','not_contacted','completed','registered','excluded'].forEach(function (b) {
                 buckets += '<span class="mo-pill ' + b + '">' + esc(b.replace(/_/g, ' ')) + ': ' + (o.followup_buckets[b] || 0) + '</span> ';
             });
             $('moDashPipe').innerHTML = buckets;
@@ -1131,6 +1135,7 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
                 { k: 'overdue', label: bk.overdue, cls: 'bad', act: 'bucket:overdue' },
                 { k: 'upcoming', label: bk.upcoming, cls: 'alt', act: 'bucket:upcoming' },
                 { k: 'completed', label: bk.completed, cls: 'good', act: 'bucket:completed' },
+                { k: 'registered', label: bk.registered, cls: 'alt', act: 'bucket:registered' },
                 { k: 'excluded', label: bk.excluded, cls: 'muted', act: 'bucket:excluded' }
             ].map(function (x) { return { label: x.label, n: b[x.k] || 0, cls: x.cls, act: 'bucket:' + x.k }; });
             $('moDashPipe').innerHTML = dashHbars(pipeRows);

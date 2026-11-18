@@ -206,6 +206,7 @@ final class ProspectDirectory
                 'suppressed' => $suppressed,
                 'org_suppressed' => !$suppressed && $orgRef !== null && $suppression->isOrgSuppressed($orgRef),
                 'ledger_sent' => isset($ledger[$email]),
+                'registered' => !empty($f['registered']),
             ];
             $r['eligibility'] = [
                 'initial' => OutreachEligibility::evaluate($index, $email, OutreachEligibility::KIND_INITIAL, $ctx),
@@ -246,6 +247,12 @@ final class ProspectDirectory
         $dnc = strtolower(trim($f['dnc'])) !== '' || strpos($status, 'do not contact') !== false;
         if ($dnc || in_array($status, ['replied', 'unsubscribed', 'bounced', 'invalid'], true)) {
             return 'excluded';
+        }
+        // Registered DentaTrak practices are customers-in-onboarding, not
+        // open prospects: they get their own lifecycle bucket instead of
+        // 'not_contacted'.
+        if (in_array($status, ['signed up', 'registered'], true)) {
+            return 'registered';
         }
         $response = strtolower(trim($f['response']));
         if ($response !== '' && $response !== 'none' && $response !== 'no response') {

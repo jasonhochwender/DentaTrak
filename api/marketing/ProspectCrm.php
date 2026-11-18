@@ -53,9 +53,20 @@ final class ProspectCrm
     {
         if ($this->context !== null) return $this->context;
 
+        // practice_id arrives with the registration-link migration; fall
+        // back gracefully so the CRM keeps working before it is applied.
+        $hasPracticeId = true;
+        try {
+            $hasPracticeId = (bool)$this->pdo->query(
+                "SELECT 1 FROM information_schema.COLUMNS
+                  WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='marketing_orgs'
+                    AND COLUMN_NAME='practice_id' LIMIT 1")->fetchColumn();
+        } catch (Throwable $e) { $hasPracticeId = false; }
+        $practiceCol = $hasPracticeId ? 'o.practice_id' : 'NULL AS practice_id';
+
         $rows = $this->pdo->query(
             "SELECT c.id, c.sheet_row, c.org_id,
-                    o.name AS org_name, po.name AS parent_name,
+                    o.name AS org_name, po.name AS parent_name, $practiceCol,
                     c.email, c.email_normalized, c.status, c.dnc,
                     c.first_name, c.last_name, c.full_name,
                     c.first_contact_date, c.last_contact_date, c.followup_date,
@@ -79,8 +90,13 @@ final class ProspectCrm
             $parent = strtolower(trim((string)($r['parent_name'] ?? '')));
             $dncFlag = ((int)($r['dnc'] ?? 0) === 1) ? 'yes' : '';
 
+            // Registered practice: org linked to a DentaTrak practice_id,
+            // or the contact itself marked 'Signed Up'.
+            $registered = ($r['practice_id'] !== null && $r['practice_id'] !== '')
+                || $statusL === 'signed up';
             $fields = [
                 'email'          => $email,
+                'registered'     => $registered,
                 'org'            => (string)($r['org_name'] ?? ''),
                 'parent_org'     => (string)($r['parent_name'] ?? ''),
                 'contact_name'   => (string)($r['full_name'] ?? ''),
@@ -141,6 +157,7 @@ final class ProspectCrm
             $id = $r['id'];
             $a = $annotated[$i];
             $a['id'] = $id;
+            $a['registered'] = !empty($r['fields']['registered']);
             $byId[$id] = $a;
             foreach ($a['flags'] as $fl) $flagIds[$fl][$id] = true;
             $bucketIds[$a['bucket']][$id] = true;
@@ -522,7 +539,7 @@ final class ProspectCrm
     {
         $ctx = $this->context();
         $buckets = ['due_today' => 0, 'overdue' => 0, 'upcoming' => 0, 'awaiting_response' => 0,
-                    'not_contacted' => 0, 'completed' => 0, 'excluded' => 0];
+                    'not_contacted' => 0, 'completed' => 0, 'excluded' => 0, 'registered' => 0];
         $flags = ['missing_contact' => 0, 'do_not_contact' => 0, 'duplicate_org' => 0];
         $eligible = 0; $eligInitial = 0; $eligFollowup = 0;
         foreach ($ctx['byId'] as $a) {
@@ -563,7 +580,7 @@ final class ProspectCrm
         $locF = strtolower(trim((string)($o['location'] ?? '')));
 
         $buckets = ['due_today' => 0, 'overdue' => 0, 'upcoming' => 0, 'awaiting_response' => 0,
-                    'not_contacted' => 0, 'completed' => 0, 'excluded' => 0];
+                    'not_contacted' => 0, 'completed' => 0, 'excluded' => 0, 'registered' => 0];
         $flags = ['missing_contact' => 0, 'do_not_contact' => 0, 'duplicate_org' => 0];
         $segOrg = []; $segStatus = []; $segPrio = []; $segLoc = []; $segSource = [];
         $needsReview = 0; $recordedResponses = 0; $positiveResponses = 0;

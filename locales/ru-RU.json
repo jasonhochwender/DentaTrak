@@ -7527,6 +7527,7 @@
         "bucket_upcoming": "Предстоит",
         "bucket_awaiting_response": "Ждём ответа",
         "bucket_not_contacted": "Не связались",
+        "bucket_registered": "Зарегистрирован",
         "bucket_completed": "Завершено",
         "bucket_excluded": "Исключено/подавлено",
         "search": "Поиск",
