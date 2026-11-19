@@ -11,6 +11,99 @@ require_once __DIR__ . '/../api/appConfig.php';
 require_once __DIR__ . '/../api/marketing/MarketingMailer.php';
 global $pdo, $appConfig;
 
+// --send-dry-run <campaign_id>: replay the exact per-recipient send gates
+// for 'approved' rows WITHOUT mutating anything: delivery policy,
+// suppression/org/hold recheck, registration gate, and the CRM/sheet
+// precheck used by CampaignSendRunner. Prints grouped would-send /
+// would-skip counts plus ledger duplicate coverage. READ-ONLY.
+if (in_array('--send-dry-run', $argv, true)) {
+    require_once __DIR__ . '/../api/marketing/SuppressionService.php';
+    require_once __DIR__ . '/../api/marketing/CampaignSendSupport.php';
+    require_once __DIR__ . '/../api/marketing/ProspectCrm.php';
+    require_once __DIR__ . '/../api/marketing/ProspectCrmAdmin.php';
+    require_once __DIR__ . '/../api/marketing/PracticeRegistrationSync.php';
+    require_once __DIR__ . '/../api/feature-flags.php';
+    $pos = array_search('--send-dry-run', $argv, true);
+    $cid = $argv[$pos + 1] ?? null;
+    if (!$cid) { echo "usage: --send-dry-run <campaign_id>\n"; exit(1); }
+    $c = $pdo->prepare('SELECT * FROM marketing_campaigns WHERE id=?');
+    $c->execute([$cid]);
+    $camp = $c->fetch(PDO::FETCH_ASSOC);
+    if (!$camp) { echo "campaign $cid not found\n"; exit(1); }
+    echo "== send-dry-run {$camp['id']} ==\n";
+    echo "  name={$camp['name']} kind={$camp['kind']} status={$camp['status']}\n";
+    require_once __DIR__ . '/../api/marketing/CampaignContentHash.php';
+    $stored = (string)($camp['content_hash'] ?? '');
+    $computed = CampaignContentHash::compute($pdo, $cid);
+    echo '  content_hash: ' . (hash_equals($stored, $computed) ? 'MATCH' : 'MISMATCH - send will refuse') . "\n";
+
+    // Recipient status census + ledger duplicate coverage.
+    $rs = $pdo->prepare('SELECT status, COUNT(*) n FROM marketing_campaign_recipients WHERE campaign_id=? GROUP BY status');
+    $rs->execute([$cid]);
+    $census = $rs->fetchAll(PDO::FETCH_KEY_PAIR);
+    echo '  recipients: ' . json_encode($census) . "\n";
+    $ref = mo_ref($cid);
+    $led = $pdo->prepare("SELECT COUNT(*) FROM marketing_sends WHERE campaign_ref=? AND status='sent'");
+    $led->execute([$ref]);
+    echo "  ledger sent rows for this campaign: " . $led->fetchColumn() . "\n";
+    $noLedger = $pdo->prepare("SELECT COUNT(*) FROM marketing_campaign_recipients r
+        WHERE r.campaign_id=? AND r.status='sent'
+          AND NOT EXISTS (SELECT 1 FROM marketing_sends s WHERE s.campaign_ref=? AND s.email_normalized=r.prospect_email AND s.status='sent')");
+    $noLedger->execute([$cid, $ref]);
+    echo '  sent recipients WITHOUT a sent ledger row: ' . $noLedger->fetchColumn() . "\n";
+
+    // Exact gate replay for approved rows (same order as runBatch).
+    $rows = $pdo->prepare("SELECT * FROM marketing_campaign_recipients WHERE campaign_id=? AND status='approved' ORDER BY id");
+    $rows->execute([$cid]);
+    $recips = $rows->fetchAll(PDO::FETCH_ASSOC);
+    $mailer = new MarketingMailer($pdo, (string)($appConfig['baseUrl'] ?? ''));
+    $sendAuthorized = mo_campaign_send_authorized($pdo, $cid);
+    $svc = new SuppressionService($pdo);
+    $crmReads = function_exists('isFeatureEnabled') && isFeatureEnabled('MARKETING_CRM_READS');
+    $admin = null; $crmByEmail = [];
+    if ($crmReads) {
+        $crm = new ProspectCrm($pdo);
+        if (!$crm->available()) { echo "  crm_not_migrated - cannot evaluate\n"; exit(1); }
+        $admin = new ProspectCrmAdmin($pdo, 'send-dry-run');
+        $crmByEmail = $crm->findByEmails(array_map(static fn($r) => (string)$r['prospect_email'], $recips));
+    } else {
+        echo "  NOTE: MARKETING_CRM_READS off - sheet-mode precheck not evaluated\n";
+    }
+    $registeredMap = [];
+    if (($camp['kind'] ?? 'initial') === 'initial') {
+        $registeredMap = PracticeRegistrationSync::registeredEmails($pdo,
+            array_map(static fn($r) => (string)$r['prospect_email'], $recips));
+    }
+    $groups = []; $wouldSend = 0;
+    foreach ($recips as $r) {
+        $email = SuppressionService::normalizeEmail((string)$r['prospect_email']);
+        $reason = null;
+        $gate = $mailer->deliveryCheck($email, $sendAuthorized);
+        if (!$gate['allowed']) $reason = 'blocked:' . $gate['reason'];
+        if ($reason === null) {
+            $ctx = mo_elig_ctx($pdo, $svc, $email, $ref);
+            if ($ctx['suppressed']) $reason = 'suppressed_recheck';
+            elseif ($ctx['org_suppressed']) $reason = 'org_do_not_contact';
+            elseif (!empty($ctx['held'])) $reason = 'temp_hold';
+            elseif (isset($registeredMap[$email])) $reason = 'already_registered';
+        }
+        if ($reason === null && $crmReads) {
+            $g = $admin->sendPrecheck($crmByEmail[$email] ?? null, (string)$camp['kind'], false);
+            if ($g['action'] === 'suppressed') $reason = 'suppressed:' . $g['reason'];
+            elseif ($g['action'] !== 'send') $reason = 'skip:' . implode(',', $g['flags']);
+        }
+        if ($reason === null) { $wouldSend++; $groups['WOULD_SEND'][] = $r['id']; }
+        else { $groups[$reason][] = $r['id']; }
+    }
+    ksort($groups);
+    foreach ($groups as $why => $ids) {
+        printf("  %-40s %4d  (e.g. r%s)\n", $why, count($ids), implode(',', array_slice($ids, 0, 5)));
+    }
+    echo "  TOTAL approved=" . count($recips) . " would_send=$wouldSend would_skip=" . (count($recips) - $wouldSend) . "\n";
+    echo "done\n";
+    exit(0);
+}
+
 // --hash-diff <campaign_id>: explain a content-hash mismatch. Recomputes
 // the approval hash, then reports how many recipient rows carry a
 // gmail_thread_id that the hash treats as a send artifact (non-resolved
