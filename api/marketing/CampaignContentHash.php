@@ -23,15 +23,21 @@ final class CampaignContentHash
         $rows = $pdo->prepare("SELECT id,contact_id,sheet_row,prospect_email,subject,body_html,thread_status,gmail_thread_id,thread_rfc_message_id,thread_references,thread_subject,thread_date FROM marketing_campaign_recipients WHERE campaign_id=? ORDER BY id");
         $rows->execute([$campaignId]);
         $rows = $rows->fetchAll(PDO::FETCH_ASSOC);
-        // For 'initial' campaigns gmail_thread_id is a send artifact: the
-        // first send creates the Gmail thread and mo_mark_recipient_sent
-        // stores its id. It is not approved content, so normalize it or the
-        // hash would mismatch after the first batch and stall multi-batch
-        // sends. Threaded kinds keep the resolved thread id in the hash.
-        if (($meta['kind'] ?? '') === 'initial') {
-            foreach ($rows as &$row) { $row['gmail_thread_id'] = null; }
-            unset($row);
+        // gmail_thread_id is approved content only when it is the resolved
+        // original conversation a follow-up replies into. Everywhere else it
+        // is a send artifact: 'initial' sends always create a new Gmail
+        // thread, and unresolved follow-ups (approved to start a new
+        // conversation) get their new thread id written by
+        // mo_mark_recipient_sent after sending. Including those ids would
+        // invalidate the approval hash mid-campaign, so they are normalized
+        // out. Resolved thread ids and all other thread_* fields stay in
+        // the hash.
+        foreach ($rows as &$row) {
+            $resolvedThread = ($meta['kind'] ?? '') === 'followup'
+                && ($row['thread_status'] ?? '') === 'resolved';
+            if (!$resolvedThread) { $row['gmail_thread_id'] = null; }
         }
+        unset($row);
         // Material delivery content is part of what was approved: the sender
         // signature config and the managed footer template. Dynamic
         // unsubscribe tokens are per-send and intentionally excluded.

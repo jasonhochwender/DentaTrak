@@ -11,6 +11,49 @@ require_once __DIR__ . '/../api/appConfig.php';
 require_once __DIR__ . '/../api/marketing/MarketingMailer.php';
 global $pdo, $appConfig;
 
+// --hash-diff <campaign_id>: explain a content-hash mismatch. Recomputes
+// the approval hash, then reports how many recipient rows carry a
+// gmail_thread_id that the hash treats as a send artifact (non-resolved
+// follow-ups / initial sends) versus resolved-thread references that
+// remain hash-relevant. READ-ONLY.
+if (in_array('--hash-diff', $argv, true)) {
+    require_once __DIR__ . '/../api/marketing/CampaignContentHash.php';
+    $pos = array_search('--hash-diff', $argv, true);
+    $cid = $argv[$pos + 1] ?? null;
+    if (!$cid) { echo "usage: --hash-diff <campaign_id>\n"; exit(1); }
+    $c = $pdo->prepare('SELECT id,name,kind,status,content_hash FROM marketing_campaigns WHERE id=?');
+    $c->execute([$cid]);
+    $camp = $c->fetch(PDO::FETCH_ASSOC);
+    if (!$camp) { echo "campaign $cid not found\n"; exit(1); }
+    echo "campaign {$camp['id']} name={$camp['name']} kind={$camp['kind']} status={$camp['status']}\n";
+    $stored = (string)($camp['content_hash'] ?? '');
+    $computed = CampaignContentHash::compute($pdo, $cid);
+    echo 'stored   : ' . substr($stored, 0, 16) . "...\n";
+    echo 'computed : ' . substr($computed, 0, 16) . '... '
+        . (hash_equals($stored, $computed) ? 'MATCH' : 'MISMATCH') . "\n";
+    $rs = $pdo->prepare("SELECT status, thread_status, COUNT(*) n,
+            SUM(gmail_thread_id IS NOT NULL AND gmail_thread_id<>'') with_thread
+        FROM marketing_campaign_recipients WHERE campaign_id=? GROUP BY status, thread_status");
+    $rs->execute([$cid]);
+    foreach ($rs->fetchAll(PDO::FETCH_ASSOC) as $r) {
+        printf("  status=%-10s thread=%-11s n=%-4d with_gmail_thread_id=%d\n",
+            $r['status'], $r['thread_status'] ?? 'NULL', $r['n'], $r['with_thread']);
+    }
+    // Rows whose gmail_thread_id is hash-irrelevant under the current rule
+    // but was present at approval time would indicate real drift; list the
+    // artifact carriers for audit.
+    $art = $pdo->prepare("SELECT id, status, thread_status FROM marketing_campaign_recipients
+        WHERE campaign_id=? AND gmail_thread_id IS NOT NULL AND gmail_thread_id<>''
+          AND (thread_status IS NULL OR thread_status<>'resolved')
+        ORDER BY id LIMIT 20");
+    $art->execute([$cid]);
+    $ids = array_map(static fn($r) => '#' . $r['id'] . '/' . $r['status'] . '/' . ($r['thread_status'] ?? 'NULL'),
+        $art->fetchAll(PDO::FETCH_ASSOC));
+    echo 'artifact thread ids (not hash-relevant): ' . count($ids) . ($ids ? ' e.g. ' . implode(', ', $ids) : '') . "\n";
+    echo "done\n";
+    exit(0);
+}
+
 // --gmail-probe: report whether the Gmail read path works in this
 // environment (status codes only - no tokens, no message content).
 if (in_array('--gmail-probe', $argv, true)) {

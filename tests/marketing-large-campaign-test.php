@@ -345,10 +345,35 @@ try {
     // addToCampaign requires outreach history these fixtures lack.
     $pdo->exec("UPDATE marketing_campaigns SET kind='followup' WHERE id=" . $pdo->quote($fcCid));
     $pdo->exec("UPDATE marketing_campaign_recipients SET subject='Hi', body_html='<p>Hi</p>', status='approved',
-        gmail_thread_id='resolved-thread' WHERE campaign_id=" . $pdo->quote($fcCid));
+        thread_status='resolved', gmail_thread_id='resolved-thread' WHERE campaign_id=" . $pdo->quote($fcCid));
     $fHash = CampaignContentHash::compute($pdo, $fcCid);
     $pdo->exec("UPDATE marketing_campaign_recipients SET gmail_thread_id='other-thread' WHERE campaign_id=" . $pdo->quote($fcCid));
-    $t('followup thread id remains hash-relevant', !hash_equals($fHash, CampaignContentHash::compute($pdo, $fcCid)));
+    $t('followup resolved thread id remains hash-relevant', !hash_equals($fHash, CampaignContentHash::compute($pdo, $fcCid)));
+
+    // Regression: an UNRESOLVED follow-up approved to start a new
+    // conversation gets its new Gmail thread id written by
+    // mo_mark_recipient_sent. That delivery artifact must not invalidate
+    // the approval hash - this stalled a partially sent campaign.
+    $uc = $admin->createCampaign(['name' => "$tag HashU", 'kind' => 'initial'], 500);
+    $ucCid = $uc['campaign_id']; $campaignIds[] = $ucCid;
+    $ucIds = [$mkAuthContact(73), $mkAuthContact(74)];
+    $admin->addToCampaign($ucIds, $ucCid, null, 'initial', 500);
+    $pdo->exec("UPDATE marketing_campaigns SET kind='followup' WHERE id=" . $pdo->quote($ucCid));
+    $pdo->exec("UPDATE marketing_campaign_recipients SET subject='Hi', body_html='<p>Hi</p>',
+        status='approved', thread_status='unresolved', gmail_thread_id=NULL
+        WHERE campaign_id=" . $pdo->quote($ucCid));
+    $uHash = CampaignContentHash::compute($pdo, $ucCid);
+    // First send completes on one recipient: Gmail assigns a brand-new
+    // thread id (new conversation), status flips to sent.
+    $pdo->exec("UPDATE marketing_campaign_recipients SET status='sent', gmail_message_id='m9',
+        gmail_thread_id='new-conversation-thread', sent_at=UTC_TIMESTAMP()
+        WHERE campaign_id=" . $pdo->quote($ucCid) . " AND prospect_email LIKE 'a73@%'");
+    $t('unresolved follow-up new thread id does not change hash',
+        hash_equals($uHash, CampaignContentHash::compute($pdo, $ucCid)));
+    // Real content edits still invalidate.
+    $pdo->exec("UPDATE marketing_campaign_recipients SET subject='Changed' WHERE campaign_id=" . $pdo->quote($ucCid));
+    $t('unresolved follow-up subject edit still changes hash',
+        !hash_equals($uHash, CampaignContentHash::compute($pdo, $ucCid)));
 
     // -- 9. MCP readiness on a larger campaign ---------------------------------
     $ready = $tools->getCampaignReadiness(['campaign_id' => $r['campaign_id']]);
