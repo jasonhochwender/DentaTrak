@@ -543,6 +543,7 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
         <div class="mo-toolbar mo-hidden" id="moReplyBulk" style="margin-bottom:10px;">
             <span class="mo-sub" id="moReplyBulkCount"></span>
             <button type="button" class="mo-btn small" data-bulk="review" title="<?php echo h(ma('reply_tip_review')); ?>"><?php echo h(ma('reply_mark_reviewed')); ?></button>
+            <button type="button" class="mo-btn secondary small" data-bulk="release_hold" title="<?php echo h(ma('reply_tip_release_hold')); ?>"><?php echo h(ma('reply_act_release_hold')); ?></button>
             <button type="button" class="mo-btn secondary small" data-bulk="suppress" title="<?php echo h(ma('reply_tip_suppress')); ?>"><?php echo h(ma('reply_act_suppress')); ?></button>
             <button type="button" class="mo-btn secondary small" data-bulk="suppress_review" title="<?php echo h(ma('reply_tip_suppress_review')); ?>"><?php echo h(ma('reply_act_suppress_review')); ?></button>
         </div>
@@ -743,7 +744,9 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
             srcUnsub: <?php echo json_encode(ma('reply_src_unsub')); ?>,
             actSuppress: <?php echo json_encode(ma('reply_act_suppress')); ?>,
             actSuppressReview: <?php echo json_encode(ma('reply_act_suppress_review')); ?>,
+            actReleaseHold: <?php echo json_encode(ma('reply_act_release_hold')); ?>,
             tipReview: <?php echo json_encode(ma('reply_tip_review')); ?>,
+            tipReleaseHold: <?php echo json_encode(ma('reply_tip_release_hold')); ?>,
             tipSuppress: <?php echo json_encode(ma('reply_tip_suppress')); ?>,
             tipSuppressReview: <?php echo json_encode(ma('reply_tip_suppress_review')); ?>,
             bulkSelected: <?php echo json_encode(ma('reply_bulk_selected')); ?>,
@@ -752,8 +755,10 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
             resSuppressed: <?php echo json_encode(ma('reply_res_suppressed')); ?>,
             resAlready: <?php echo json_encode(ma('reply_res_already')); ?>,
             resReviewed: <?php echo json_encode(ma('reply_res_reviewed')); ?>,
+            resReleased: <?php echo json_encode(ma('reply_res_released')); ?>,
             resFailed: <?php echo json_encode(ma('reply_res_failed')); ?>,
             errNoAddress: <?php echo json_encode(ma('reply_err_no_address')); ?>,
+            errNoHold: <?php echo json_encode(ma('reply_err_no_hold')); ?>,
             confirmSuppress: <?php echo json_encode(ma('reply_confirm_suppress')); ?>,
             unsubReview: <?php echo json_encode(ma('reply_unsub_review')); ?>,
             reviewed: <?php echo json_encode(ma('reply_reviewed_ok')); ?>,
@@ -1336,10 +1341,11 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
     // built from what the server reports it actually did.
     function replyAction(op, ids) {
         if (!ids.length) { showErr(STR.reply.bulkNone); return; }
-        if (op !== 'review' && !window.confirm(STR.reply.confirmSuppress.replace('{n}', ids.length))) return;
+        if (op !== 'review' && op !== 'release_hold' && !window.confirm(STR.reply.confirmSuppress.replace('{n}', ids.length))) return;
         apiPost('reply_action', { op: op, reply_ids: ids }).then(function (d) {
             if (!d || !d.success) { showErr((d && d.error) || STR.loadFailed); return; }
             var parts = [];
+            if (d.released) parts.push(STR.reply.resReleased.replace('{n}', d.released));
             if (d.suppressed) parts.push(STR.reply.resSuppressed.replace('{n}', d.suppressed));
             if (d.already_suppressed) parts.push(STR.reply.resAlready.replace('{n}', d.already_suppressed));
             if (d.reviewed) parts.push(STR.reply.resReviewed.replace('{n}', d.reviewed));
@@ -1347,6 +1353,7 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
             if (failed.length) {
                 parts.push(STR.reply.resFailed.replace('{n}', failed.length));
                 if (failed.some(function (f) { return f.error === 'no_address'; })) parts.push(STR.reply.errNoAddress);
+                if (failed.some(function (f) { return f.error === 'no_hold'; })) parts.push(STR.reply.errNoHold);
             }
             (failed.length ? showErr : showOk)(parts.join(' ') || STR.reply.resFailed.replace('{n}', ids.length));
             loadReplies();
@@ -1429,6 +1436,8 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
                 var actions = '';
                 if (isNew) actions += '<button type="button" class="mo-btn small" data-ract="review" data-rid="' + r.id + '"' +
                     tip(STR.reply.tipReview) + '>' + esc(STR.reply.markReviewed) + '</button> ';
+                if (r.hold_source === 'bounce_review') actions += '<button type="button" class="mo-btn secondary small" data-ract="release_hold" data-rid="' + r.id + '"' +
+                    tip(STR.reply.tipReleaseHold) + '>' + esc(STR.reply.actReleaseHold) + '</button> ';
                 if (canSuppress) actions += '<button type="button" class="mo-btn secondary small" data-ract="suppress" data-rid="' + r.id + '"' +
                     tip(STR.reply.tipSuppress) + '>' + esc(STR.reply.actSuppress) + '</button> ';
                 if (canSuppress && isNew) actions += '<button type="button" class="mo-btn secondary small" data-ract="suppress_review" data-rid="' + r.id + '"' +

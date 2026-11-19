@@ -1113,11 +1113,12 @@ final class ReplyTracker
 
     /**
      * A review hold exists only while an ambiguous bounce is unresolved.
-     * Once the admin has decided (reviewed/dismissed without suppressing)
-     * it is released; temporary-failure holds keep running to expiry and
-     * permanent suppression is never touched here.
+     * It is released only by the deliberate admin release action; marking
+     * an event reviewed never touches it. Temporary-failure holds keep
+     * running to expiry and permanent suppression is never touched here.
+     * Returns true when a hold was actually released.
      */
-    private function releaseReviewHold(int $eventId): void
+    private function releaseReviewHold(int $eventId): bool
     {
         try {
             $s = $this->pdo->prepare(
@@ -1129,7 +1130,7 @@ final class ReplyTracker
                   AND h.source='bounce_review' AND h.status IN ('active','escalated')");
             $s->execute([$eventId]);
             $email = $s->fetchColumn();
-            if (!$email) return;
+            if (!$email) return false;
             // Keep the hold while another bounce for the address is unresolved.
             $o = $this->pdo->prepare(
                 "SELECT COUNT(*) FROM marketing_reply_events r
@@ -1137,10 +1138,11 @@ final class ReplyTracker
                  WHERE r.classification='delivery_failure' AND r.review_status='new' AND r.id<>?
                    AND COALESCE(r.failed_recipient, c.email_normalized)=?");
             $o->execute([$eventId, $email]);
-            if ((int)$o->fetchColumn() > 0) return;
-            (new SuppressionService($this->pdo))->releaseHold((string)$email);
+            if ((int)$o->fetchColumn() > 0) return false;
+            return (new SuppressionService($this->pdo))->releaseHold((string)$email, 'bounce_review');
         } catch (Throwable $e) {
             error_log('[reply-sync] releaseReviewHold: ' . $e->getMessage());
+            return false;
         }
     }
 
@@ -1198,11 +1200,22 @@ final class ReplyTracker
             "UPDATE marketing_reply_events SET review_status=?, reviewed_at=UTC_TIMESTAMP(), reviewed_by=?
              WHERE id=?");
         $s->execute([$dismissed ? 'dismissed' : 'reviewed', substr($actor, 0, 190), $id]);
-        $ok = $s->rowCount() > 0;
-        // Acknowledging never suppresses. It only ends the review hold that
-        // existed while an ambiguous bounce was undecided.
-        if ($ok) $this->releaseReviewHold($id);
-        return $ok;
+        // Acknowledging only updates the review status. It never releases
+        // a hold: that is a separate deliberate admin action
+        // (releaseReviewHoldForEvent), and temporary holds always run to
+        // their own expiry.
+        return $s->rowCount() > 0;
+    }
+
+    /**
+     * Deliberately release the review hold created by an ambiguous bounce.
+     * Returns true only when an active bounce_review hold was released;
+     * the hold is kept while another bounce for the address is unresolved.
+     * Temporary-failure holds are never touched.
+     */
+    public function releaseReviewHoldForEvent(int $eventId): bool
+    {
+        return $this->releaseReviewHold($eventId);
     }
 
     /** Aggregate counts used by the dashboard. */

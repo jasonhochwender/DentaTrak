@@ -1044,21 +1044,34 @@ switch ($action) {
     case 'reply_action': {
         // Manual handling for one or many reply/bounce events:
         //   review          - acknowledge only; never changes suppression
+        //                     or any sending hold
+        //   release_hold    - deliberately end a bounce review hold, then
+        //                     acknowledge the event; never suppresses and
+        //                     never touches temporary-failure holds
         //   suppress        - permanently suppress the address + sync CRM
         //   suppress_review - both
         $op = (string)($in['op'] ?? '');
-        if (!in_array($op, ['review', 'suppress', 'suppress_review'], true)) mo_fail('invalid op');
+        if (!in_array($op, ['review', 'release_hold', 'suppress', 'suppress_review'], true)) mo_fail('invalid op');
         $ids = [];
         foreach ((array)($in['reply_ids'] ?? []) as $raw) { $i = (int)$raw; if ($i > 0) $ids[$i] = true; }
         $ids = array_keys($ids);
         if (!$ids) mo_fail('reply_ids required');
         if (count($ids) > 200) mo_fail('too many replies (max 200)');
         $rt = new ReplyTracker($pdo, function () { return ['status' => null, 'data' => []]; }, 'admin');
-        $out = ['reviewed' => 0, 'suppressed' => 0, 'already_suppressed' => 0, 'failed' => []];
+        $out = ['reviewed' => 0, 'released' => 0, 'suppressed' => 0, 'already_suppressed' => 0, 'failed' => []];
         foreach ($ids as $id) {
             if ($op === 'review') {
                 if ($rt->markReviewed($id, (string)$userEmail)) $out['reviewed']++;
                 else $out['failed'][] = ['id' => $id, 'error' => 'not_found'];
+                continue;
+            }
+            if ($op === 'release_hold') {
+                // Deliberate hold release: only a bounce_review hold is
+                // ended (temporary holds keep their own expiry), and only
+                // when no other unresolved bounce covers the address.
+                if (!$rt->releaseReviewHoldForEvent($id)) { $out['failed'][] = ['id' => $id, 'error' => 'no_hold']; continue; }
+                $out['released']++;
+                if ($rt->markReviewed($id, (string)$userEmail)) $out['reviewed']++;
                 continue;
             }
             $r = $rt->suppressFromEvent($id, (string)$userEmail, $op === 'suppress_review');

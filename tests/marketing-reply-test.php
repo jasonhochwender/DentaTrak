@@ -432,8 +432,12 @@ ok('Mark Reviewed does not suppress', $cnt("SELECT COUNT(*) FROM marketing_suppr
 ok('Mark Reviewed leaves contact status alone', $contact((int)$cAmb['id'])['status'] === 'Contacted' && (int)$contact((int)$cAmb['id'])['dnc'] === 0);
 ok('hold kept while another bounce for the address is unresolved', $svcT()->isHeld('amb@replytest.example'));
 $tracker->markReviewed((int)$evRow('m-rec-9')['id'], 'replytest-admin@example.com');
-ok('Mark Reviewed ends the review hold', !$svcT()->isHeld('amb@replytest.example'));
-// ...but never a temporary-failure hold.
+ok('Mark Reviewed keeps the review hold', $svcT()->isHeld('amb@replytest.example'));
+// Releasing the hold is a separate deliberate action.
+ok('no_hold refused for event without review hold', !$tracker->releaseReviewHoldForEvent((int)$evRow('m-rec-t3')['id']));
+ok('releaseReviewHoldForEvent releases the review hold', $tracker->releaseReviewHoldForEvent((int)$evRow('m-rec-9')['id']) && !$svcT()->isHeld('amb@replytest.example'));
+ok('release is idempotent', !$tracker->releaseReviewHoldForEvent((int)$evRow('m-rec-9')['id']));
+// ...and never a temporary-failure hold.
 $tracker->markReviewed((int)$evRow('m-rec-t3')['id'], 'replytest-admin@example.com');
 ok('Mark Reviewed keeps temporary hold', $svcT()->isHeld('temp@replytest.example'));
 

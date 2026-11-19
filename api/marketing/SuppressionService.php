@@ -572,13 +572,18 @@ final class SuppressionService
         return $n;
     }
 
-    /** Clear a hold manually (admin release action). */
-    public function releaseHold(string $email): bool
+    /** Clear a hold manually (admin release action). Optionally limited to
+     *  one hold source so releasing a review hold never touches a
+     *  temporary-failure hold on the same address. */
+    public function releaseHold(string $email, ?string $source = null): bool
     {
         if (!$this->hasHoldsTable()) return false;
-        $st = $this->pdo->prepare(
-            "UPDATE marketing_email_holds SET status='released' WHERE email_normalized=? AND status IN ('active','escalated')");
-        $st->execute([self::normalizeEmail($email)]);
+        $email = self::normalizeEmail($email);
+        $sql = "UPDATE marketing_email_holds SET status='released' WHERE email_normalized=? AND status IN ('active','escalated')";
+        $args = [$email];
+        if ($source !== null) { $sql .= ' AND source=?'; $args[] = $source; }
+        $st = $this->pdo->prepare($sql);
+        $st->execute($args);
         if ($this->holdSet !== null) unset($this->holdSet[self::normalizeEmail($email)]);
         return $st->rowCount() > 0;
     }
