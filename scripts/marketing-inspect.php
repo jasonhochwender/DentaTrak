@@ -59,15 +59,18 @@ if (in_array('--send-dry-run', $argv, true)) {
     $mailer = new MarketingMailer($pdo, (string)($appConfig['baseUrl'] ?? ''));
     $sendAuthorized = mo_campaign_send_authorized($pdo, $cid);
     $svc = new SuppressionService($pdo);
-    $crmReads = function_exists('isFeatureEnabled') && isFeatureEnabled('MARKETING_CRM_READS');
+    // The web service runs MARKETING_CRM_READS=true; the batch job env does
+    // not carry feature flags, so evaluate the CRM gate explicitly (it is
+    // the authoritative send-time check in production) and report the flag.
+    $flagOn = function_exists('isFeatureEnabled') && isFeatureEnabled('MARKETING_CRM_READS');
+    echo '  MARKETING_CRM_READS env flag in this runtime: ' . var_export($flagOn, true)
+        . ' (web service runs it enabled; CRM gate evaluated regardless)'."\n";
     $admin = null; $crmByEmail = [];
-    if ($crmReads) {
+    {
         $crm = new ProspectCrm($pdo);
         if (!$crm->available()) { echo "  crm_not_migrated - cannot evaluate\n"; exit(1); }
         $admin = new ProspectCrmAdmin($pdo, 'send-dry-run');
         $crmByEmail = $crm->findByEmails(array_map(static fn($r) => (string)$r['prospect_email'], $recips));
-    } else {
-        echo "  NOTE: MARKETING_CRM_READS off - sheet-mode precheck not evaluated\n";
     }
     $registeredMap = [];
     if (($camp['kind'] ?? 'initial') === 'initial') {
@@ -87,7 +90,7 @@ if (in_array('--send-dry-run', $argv, true)) {
             elseif (!empty($ctx['held'])) $reason = 'temp_hold';
             elseif (isset($registeredMap[$email])) $reason = 'already_registered';
         }
-        if ($reason === null && $crmReads) {
+        if ($reason === null) {
             $g = $admin->sendPrecheck($crmByEmail[$email] ?? null, (string)$camp['kind'], false);
             if ($g['action'] === 'suppressed') $reason = 'suppressed:' . $g['reason'];
             elseif ($g['action'] !== 'send') $reason = 'skip:' . implode(',', $g['flags']);
