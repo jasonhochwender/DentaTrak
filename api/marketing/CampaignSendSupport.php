@@ -39,6 +39,9 @@ function mo_elig_ctx(PDO $pdo, SuppressionService $svc, string $email, ?string $
     return [
         'suppressed' => $svc->isSuppressed($email),
         'org_suppressed' => $orgRef !== null && $svc->isOrgSuppressed($orgRef),
+        // Expiring bounce hold (temporary failure / unresolved review):
+        // blocks this send without permanently suppressing the address.
+        'held' => $svc->isHeld($email),
         'ledger_sent' => $st->fetchColumn() !== false,
         'require_in_sheet' => true,
     ];

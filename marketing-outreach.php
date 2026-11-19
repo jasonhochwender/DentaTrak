@@ -83,7 +83,6 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
         .mo-pill.thread-resolved, .mo-pill.sheet-synced { background: #d1fae5; color: #065f46; }
         .mo-sending { padding: 10px 14px; border-radius: 6px; font-size: 0.85rem; margin-bottom: 14px; border: 1px solid #d1d5db; background: #f9fafb; color: #374151; }
         .mo-sending.allowlist { border-color: #fde68a; background: #fffbeb; color: #92400e; }
-        .mo-sending.unrestricted { border-color: #fecaca; background: #fef2f2; color: #991b1b; font-weight: 600; }
         .mo-msg-note { font-size: 0.75rem; color: #6b7280; margin: 4px 0; }
         .mo-subj[readonly] { background: #f3f4f6; color: #4b5563; }
         .mo-toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
@@ -537,6 +536,13 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
             <button type="button" class="mo-btn secondary small" id="moReplySyncNow"><?php echo h(ma('reply_sync_now')); ?></button>
         </div>
         <p class="mo-step-note" id="moReplySyncNote"></p>
+        <p class="mo-step-note"><?php echo h(ma('reply_bounce_help')); ?></p>
+        <div class="mo-toolbar mo-hidden" id="moReplyBulk" style="margin-bottom:10px;">
+            <span class="mo-sub" id="moReplyBulkCount"></span>
+            <button type="button" class="mo-btn small" data-bulk="review" title="<?php echo h(ma('reply_tip_review')); ?>"><?php echo h(ma('reply_mark_reviewed')); ?></button>
+            <button type="button" class="mo-btn secondary small" data-bulk="suppress" title="<?php echo h(ma('reply_tip_suppress')); ?>"><?php echo h(ma('reply_act_suppress')); ?></button>
+            <button type="button" class="mo-btn secondary small" data-bulk="suppress_review" title="<?php echo h(ma('reply_tip_suppress_review')); ?>"><?php echo h(ma('reply_act_suppress_review')); ?></button>
+        </div>
         <div id="moReplyList"></div>
     </div>
 </section>
@@ -585,10 +591,9 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
         working: <?php echo json_encode(ma('working')); ?>,
         sendingDisabled: <?php echo json_encode(ma('sending_disabled_banner')); ?>,
         sendingAllowlist: <?php echo json_encode(ma('sending_allowlist_banner')); ?>,
-        sendingUnrestricted: <?php echo json_encode(ma('sending_unrestricted_banner')); ?>,
         approveOnly: <?php echo json_encode(ma('approve_only')); ?>,
         approveAndSend: <?php echo json_encode(ma('approve_and_send')); ?>,
-        approvedNotSent: <?php echo json_encode(ma('approved_not_sent')); ?>,
+        approvedReady: <?php echo json_encode(ma('approved_ready')); ?>,
         confirmApproveOnly: <?php echo json_encode(ma('confirm_approve_only')); ?>,
         confirmSendTest: <?php echo json_encode(ma('confirm_send_test')); ?>,
         sendResult: <?php echo json_encode(ma('send_result')); ?>,
@@ -725,6 +730,28 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
             clsBamb: <?php echo json_encode(ma('reply_cls_bamb')); ?>,
             suppressedBadge: <?php echo json_encode(ma('reply_suppressed_badge')); ?>,
             heldBadge: <?php echo json_encode(ma('reply_held_badge')); ?>,
+            reviewHoldBadge: <?php echo json_encode(ma('reply_review_hold_badge')); ?>,
+            escalatedBadge: <?php echo json_encode(ma('reply_escalated_badge')); ?>,
+            suppressedOn: <?php echo json_encode(ma('reply_suppressed_on')); ?>,
+            notSuppressed: <?php echo json_encode(ma('reply_not_suppressed')); ?>,
+            autoResolved: <?php echo json_encode(ma('reply_auto_resolved')); ?>,
+            srcAutoBounce: <?php echo json_encode(ma('reply_src_auto_bounce')); ?>,
+            srcManualBounce: <?php echo json_encode(ma('reply_src_manual_bounce')); ?>,
+            srcUnsub: <?php echo json_encode(ma('reply_src_unsub')); ?>,
+            actSuppress: <?php echo json_encode(ma('reply_act_suppress')); ?>,
+            actSuppressReview: <?php echo json_encode(ma('reply_act_suppress_review')); ?>,
+            tipReview: <?php echo json_encode(ma('reply_tip_review')); ?>,
+            tipSuppress: <?php echo json_encode(ma('reply_tip_suppress')); ?>,
+            tipSuppressReview: <?php echo json_encode(ma('reply_tip_suppress_review')); ?>,
+            bulkSelected: <?php echo json_encode(ma('reply_bulk_selected')); ?>,
+            bulkNone: <?php echo json_encode(ma('reply_bulk_none')); ?>,
+            selectAll: <?php echo json_encode(ma('reply_select_all')); ?>,
+            resSuppressed: <?php echo json_encode(ma('reply_res_suppressed')); ?>,
+            resAlready: <?php echo json_encode(ma('reply_res_already')); ?>,
+            resReviewed: <?php echo json_encode(ma('reply_res_reviewed')); ?>,
+            resFailed: <?php echo json_encode(ma('reply_res_failed')); ?>,
+            errNoAddress: <?php echo json_encode(ma('reply_err_no_address')); ?>,
+            confirmSuppress: <?php echo json_encode(ma('reply_confirm_suppress')); ?>,
             unsubReview: <?php echo json_encode(ma('reply_unsub_review')); ?>,
             reviewed: <?php echo json_encode(ma('reply_reviewed_ok')); ?>,
             syncDone: <?php echo json_encode(ma('reply_sync_done')); ?>,
@@ -783,16 +810,21 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
             headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
             .then(function (r) { return r.json(); });
     }
-    // Sending is controlled separately from this interface. The banner
-    // always states what an approved campaign can actually deliver.
+    // Sending is controlled separately from this interface. Normal live
+    // sending shows nothing; the banner appears only when delivery is
+    // actually restricted (disabled, or limited to an allowlist).
     function renderSending(sending) {
         if (!sending) return;
         state.sending = sending;
         var el = document.getElementById('moSendingBanner');
-        var text = sending.mode === 'unrestricted' ? STR.sendingUnrestricted
-            : sending.mode === 'allowlist' ? STR.sendingAllowlist.replace('{n}', sending.allowlist_count)
+        if (sending.mode === 'unrestricted') {
+            el.textContent = '';
+            el.className = 'mo-sending mo-hidden';
+            return;
+        }
+        el.textContent = sending.mode === 'allowlist'
+            ? STR.sendingAllowlist.replace('{n}', sending.allowlist_count)
             : STR.sendingDisabled;
-        el.textContent = text;
         el.className = 'mo-sending ' + sending.mode;
     }
     function sendSummary(d) {
@@ -1285,6 +1317,38 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
             delivery_failure: STR.reply.clsBounce, unsubscribe_request: STR.reply.clsUnsub,
             uncertain: STR.reply.clsUncertain }[c] || c;
     }
+    function replySourceLabel(src) {
+        return { bounce_permanent: STR.reply.srcAutoBounce, bounce_manual: STR.reply.srcManualBounce,
+            reply_unsubscribe: STR.reply.srcUnsub, email_unsubscribe: STR.reply.srcUnsub }[src] || src || '';
+    }
+    function replySelected() {
+        var ids = [];
+        $('moReplyList').querySelectorAll('.mo-reply-sel:checked').forEach(function (c) { ids.push(+c.value); });
+        return ids;
+    }
+    function replyBulkCount() {
+        $('moReplyBulkCount').textContent = STR.reply.bulkSelected.replace('{n}', replySelected().length);
+    }
+    // One code path for row buttons and the bulk bar. The message shown is
+    // built from what the server reports it actually did.
+    function replyAction(op, ids) {
+        if (!ids.length) { showErr(STR.reply.bulkNone); return; }
+        if (op !== 'review' && !window.confirm(STR.reply.confirmSuppress.replace('{n}', ids.length))) return;
+        apiPost('reply_action', { op: op, reply_ids: ids }).then(function (d) {
+            if (!d || !d.success) { showErr((d && d.error) || STR.loadFailed); return; }
+            var parts = [];
+            if (d.suppressed) parts.push(STR.reply.resSuppressed.replace('{n}', d.suppressed));
+            if (d.already_suppressed) parts.push(STR.reply.resAlready.replace('{n}', d.already_suppressed));
+            if (d.reviewed) parts.push(STR.reply.resReviewed.replace('{n}', d.reviewed));
+            var failed = d.failed || [];
+            if (failed.length) {
+                parts.push(STR.reply.resFailed.replace('{n}', failed.length));
+                if (failed.some(function (f) { return f.error === 'no_address'; })) parts.push(STR.reply.errNoAddress);
+            }
+            (failed.length ? showErr : showOk)(parts.join(' ') || STR.reply.resFailed.replace('{n}', ids.length));
+            loadReplies();
+        }).catch(function () { showErr(STR.loadFailed); });
+    }
     function replySyncNote(sync) {
         var el = $('moReplySyncNote'); if (!el) return;
         if (!sync || !sync.initialized) { el.textContent = STR.reply.syncRunning; return; }
@@ -1299,6 +1363,9 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
             replyWired = true;
             $('moReplyStatus').addEventListener('change', loadReplies);
             $('moReplyClass').addEventListener('change', loadReplies);
+            $('moReplyBulk').querySelectorAll('[data-bulk]').forEach(function (b) {
+                b.addEventListener('click', function () { replyAction(b.dataset.bulk, replySelected()); });
+            });
             $('moReplySyncNow').addEventListener('click', function () {
                 var btn = this; btn.disabled = true; btn.textContent = STR.reply.syncRunning;
                 apiPost('reply_sync_now', {}).then(function (d) {
@@ -1314,29 +1381,58 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
             replySyncNote(d.sync);
             var rows = d.replies || [];
             if (!rows.length) {
+                $('moReplyBulk').classList.add('mo-hidden');
                 $('moReplyList').innerHTML = '<div class="mo-empty-note">' + esc(STR.reply.empty) + '</div>';
                 return;
             }
-            var html = '<table class="mo-table"><thead><tr><th>' + esc(STR.reply.colDate) + '</th><th>' +
+            var html = '<table class="mo-table"><thead><tr><th><input type="checkbox" id="moReplyAll" title="' +
+                esc(STR.reply.selectAll) + '" aria-label="' + esc(STR.reply.selectAll) + '"></th><th>' +
+                esc(STR.reply.colDate) + '</th><th>' +
                 esc(STR.reply.colFrom) + '</th><th>' + esc(STR.reply.colSubject) + '</th><th>' +
                 esc(STR.reply.colClass) + '</th><th>' + esc(STR.reply.colCampaign) + '</th><th>' +
                 esc(STR.reply.colStatus) + '</th><th></th></tr></thead><tbody>';
+            var tip = function (t) { return ' title="' + esc(t) + '"'; };
             rows.forEach(function (r) {
                 var isBounce = r.classification === 'delivery_failure';
+                var isNew = r.review_status === 'new';
+                var suppressed = !!r.suppressed_email;
+                var canSuppress = !suppressed && (isBounce || r.classification === 'unsubscribe_request');
                 var clsPill = 'mo-pill ' + (r.classification === 'human' ? 'good'
                     : isBounce ? (r.bounce_kind === 'permanent' ? 'bad' : r.bounce_kind === 'temporary' ? 'warn' : 'alt')
                     : r.classification === 'unsubscribe_request' ? 'bad' : 'alt');
-                var stPill = r.review_status === 'new' ? '<span class="mo-pill warn">new</span>'
+                var auto = r.reviewed_by && String(r.reviewed_by).indexOf('auto') === 0;
+                var stPill = isNew ? '<span class="mo-pill warn">new</span>'
                     : '<span class="mo-pill">' + esc(r.review_status) + '</span>';
                 var badges = '';
                 if (r.ambiguous == 1) badges += '<br><span class="mo-flag do_not_contact">' + esc(STR.reply.ambiguous) + '</span>';
                 if (r.matched_via === 'none') badges += '<br><span class="mo-flag missing_contact">' + esc(STR.reply.unmatched) + '</span>';
-                if (r.suppressed_email) badges += '<br><span class="mo-flag do_not_contact">' + esc(STR.reply.suppressedBadge) + ': ' + esc(r.suppression_source || '') + '</span>';
-                if (r.action_taken === 'held') badges += '<br><span class="mo-flag missing_contact">' + esc(STR.reply.heldBadge) + '</span>';
+                if (r.failed_recipient) badges += '<br><span class="mo-sub">→ ' + esc(r.failed_recipient) + '</span>';
+                // Suppression state of the address this event is about.
+                if (suppressed) {
+                    badges += '<br><span class="mo-flag do_not_contact">' +
+                        esc(STR.reply.suppressedOn.replace('{date}', String(r.suppressed_at || '').slice(0, 10))) + '</span>' +
+                        '<br><span class="mo-sub">' + esc(replySourceLabel(r.suppression_source)) + '</span>';
+                } else if (r.hold_until) {
+                    badges += '<br><span class="mo-flag missing_contact">' + esc((r.hold_source === 'bounce_review'
+                        ? STR.reply.reviewHoldBadge
+                        : STR.reply.heldBadge.replace('{date}', String(r.hold_until).slice(0, 10)))) + '</span>';
+                    if (r.hold_escalated == 1) badges += ' <span class="mo-flag do_not_contact">' +
+                        esc(STR.reply.escalatedBadge.replace('{n}', r.hold_fail_count || 0)) + '</span>';
+                } else if (isBounce) {
+                    badges += '<br><span class="mo-sub">' + esc(STR.reply.notSuppressed) + '</span>';
+                }
                 if (r.unsubscribe_confidence === 'review' && r.classification === 'unsubscribe_request')
                     badges += '<br><span class="mo-flag missing_contact">' + esc(STR.reply.unsubReview) + '</span>';
-                if (r.failed_recipient) badges += '<br><span class="mo-sub">→ ' + esc(r.failed_recipient) + '</span>';
-                html += '<tr><td class="mo-sub">' + esc(fmtDT(r.gmail_internal_date)) + '</td>' +
+                var actions = '';
+                if (isNew) actions += '<button type="button" class="mo-btn small" data-ract="review" data-rid="' + r.id + '"' +
+                    tip(STR.reply.tipReview) + '>' + esc(STR.reply.markReviewed) + '</button> ';
+                if (canSuppress) actions += '<button type="button" class="mo-btn secondary small" data-ract="suppress" data-rid="' + r.id + '"' +
+                    tip(STR.reply.tipSuppress) + '>' + esc(STR.reply.actSuppress) + '</button> ';
+                if (canSuppress && isNew) actions += '<button type="button" class="mo-btn secondary small" data-ract="suppress_review" data-rid="' + r.id + '"' +
+                    tip(STR.reply.tipSuppressReview) + '>' + esc(STR.reply.actSuppressReview) + '</button> ';
+                if (isNew) actions += '<button type="button" class="mo-btn secondary small" data-dismiss="' + r.id + '">' + esc(STR.reply.dismiss) + '</button>';
+                html += '<tr><td>' + (isNew || canSuppress ? '<input type="checkbox" class="mo-reply-sel" value="' + r.id + '">' : '') + '</td>' +
+                    '<td class="mo-sub">' + esc(fmtDT(r.gmail_internal_date)) + '</td>' +
                     '<td><strong>' + esc(r.contact_name || r.from_name || r.from_email || '—') + '</strong>' +
                     (r.org_name ? '<br><span class="mo-sub">' + esc(r.org_name) + '</span>' : '') +
                     (!r.contact_name && r.from_name ? '<br><span class="mo-sub">' + esc(r.from_email || '') + '</span>' : '') +
@@ -1345,27 +1441,30 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
                     (r.snippet ? '<br><span class="mo-sub">' + esc(r.snippet) + '</span>' : '') + '</td>' +
                     '<td><span class="' + clsPill + '">' + esc(replyClassLabel(r)) + '</span></td>' +
                     '<td class="mo-sub">' + esc(r.campaign_name || '—') + '</td>' +
-                    '<td>' + stPill + (r.reviewed_by ? '<br><span class="mo-sub">' + esc(r.reviewed_by) + '</span>' : '') + '</td>' +
-                    '<td style="white-space:nowrap;">' +
+                    '<td>' + stPill + '<br><span class="mo-sub">' + esc(auto ? STR.reply.autoResolved : (r.reviewed_by || '')) + '</span></td>' +
+                    '<td>' +
                     (r.contact_id && window.MOCrm && MOCrm.openDrawer ? '<button type="button" class="mo-btn secondary small" data-prospect="' + r.contact_id + '">' + esc(<?php echo json_encode(ma('reply_view_prospect')); ?>) + '</button> ' : '') +
                     '<a class="mo-btn secondary small" href="' + esc(r.gmail_url) + '" target="_blank" rel="noopener">Gmail</a> ' +
-                    (r.review_status === 'new' ? '<button type="button" class="mo-btn small" data-review="' + r.id + '">' + esc(STR.reply.markReviewed) + '</button> ' +
-                    '<button type="button" class="mo-btn secondary small" data-dismiss="' + r.id + '">' + esc(STR.reply.dismiss) + '</button>' : '') +
-                    '</td></tr>';
+                    actions + '</td></tr>';
             });
             $('moReplyList').innerHTML = html + '</tbody></table>';
-            $('moReplyList').querySelectorAll('[data-review]').forEach(function (b) {
-                b.addEventListener('click', function () {
-                    apiPost('reply_mark_reviewed', { reply_id: +b.dataset.review }).then(function () {
-                        showOk(STR.reply.reviewed); loadReplies();
-                    });
-                });
+            $('moReplyBulk').classList.remove('mo-hidden');
+            replyBulkCount();
+            $('moReplyAll').addEventListener('change', function () {
+                var on = this.checked;
+                $('moReplyList').querySelectorAll('.mo-reply-sel').forEach(function (c) { c.checked = on; });
+                replyBulkCount();
+            });
+            $('moReplyList').querySelectorAll('.mo-reply-sel').forEach(function (c) { c.addEventListener('change', replyBulkCount); });
+            $('moReplyList').querySelectorAll('[data-ract]').forEach(function (b) {
+                b.addEventListener('click', function () { replyAction(b.dataset.ract, [+b.dataset.rid]); });
             });
             $('moReplyList').querySelectorAll('[data-dismiss]').forEach(function (b) {
                 b.addEventListener('click', function () {
-                    apiPost('reply_mark_reviewed', { reply_id: +b.dataset.dismiss, dismissed: 1 }).then(function () {
-                        showOk(STR.reply.reviewed); loadReplies();
-                    });
+                    apiPost('reply_mark_reviewed', { reply_id: +b.dataset.dismiss, dismissed: 1 }).then(function (d) {
+                        if (d && d.success) showOk(STR.reply.reviewed); else showErr((d && d.error) || STR.loadFailed);
+                        loadReplies();
+                    }).catch(function () { showErr(STR.loadFailed); });
                 });
             });
             $('moReplyList').querySelectorAll('[data-prospect]').forEach(function (b) {
@@ -1809,7 +1908,7 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
             if (!d.success) { btn.disabled = false; showErr(d.error || STR.loadFailed); openCampaign(state.currentCampaign); return; }
             if (!canSend) {
                 btn.disabled = false;
-                showOk(STR.approvedNotSent);
+                showOk(STR.approvedReady.replace('{n}', d.approved || 0));
                 openCampaign(state.currentCampaign);
                 return;
             }
@@ -2197,7 +2296,7 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
                 confirm: <?php echo json_encode(ma('confirm_dialog_title')); ?>,
                 yes: <?php echo json_encode(ma('yes_btn')); ?>,
                 confirmApproveOnly: <?php echo json_encode(ma('confirm_approve_only')); ?>,
-                approvedNotSent: <?php echo json_encode(ma('approved_not_sent')); ?>,
+                approvedReady: <?php echo json_encode(ma('approved_ready')); ?>,
                 confirmSendCampaign: <?php echo json_encode(ma('confirm_send_campaign')); ?>,
                 sendSummary: <?php echo json_encode(ma('send_summary')); ?>,
                 reconcileResult: <?php echo json_encode(ma('reconcile_result')); ?>,

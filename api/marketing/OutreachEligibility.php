@@ -34,7 +34,7 @@ final class OutreachEligibility
     /** Flags that exclude a recipient regardless of campaign kind. */
     public const HARD_FLAGS = [
         'invalid_email', 'suppressed', 'org_suppressed', 'do_not_contact',
-        'unsubscribed', 'bounced', 'invalid_address', 'not_in_sheet',
+        'unsubscribed', 'bounced', 'invalid_address', 'not_in_sheet', 'temp_hold',
     ];
 
     private const CONTACTED = ['sent', 'contacted'];
@@ -148,6 +148,7 @@ final class OutreachEligibility
         }
         if (!empty($ctx['suppressed'])) { $flags[] = 'suppressed'; }
         if (!empty($ctx['org_suppressed'])) { $flags[] = 'org_suppressed'; }
+        if (!empty($ctx['held'])) { $flags[] = 'temp_hold'; }
 
         $rows = $index['byEmail'][$email] ?? [];
         $inSheet = !empty($rows);

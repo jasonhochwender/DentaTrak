@@ -55,6 +55,15 @@ if (is_array($body) && isset($body['backfill_days'])) {
 
 try {
     $r = $tracker->sync();
+    // Bounce upkeep: retry handling that failed earlier and close out
+    // lapsed holds. Bookkeeping only - never sends, never blocks the sync.
+    try {
+        $retry = $tracker->reconcileBounces(true, true);
+        $r['bounce_retries'] = $retry['reviewed'];
+        $r['holds_expired'] = (new SuppressionService($pdo))->releaseExpiredHolds();
+    } catch (Throwable $e) {
+        error_log('[reply-sync] bounce upkeep: ' . $e->getMessage());
+    }
     http_response_code(!empty($r['ok']) ? 200 : 502);
     echo json_encode(['success' => !empty($r['ok']), 'result' => $r]);
 } catch (Throwable $e) {

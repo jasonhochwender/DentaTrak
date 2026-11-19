@@ -178,6 +178,14 @@ final class CampaignSendRunner
                 $skipped++; $results[] = ['email' => $email, 'status' => 'suppressed'];
                 continue;
             }
+            if (!empty($ctx['held'])) {
+                // Temporary bounce hold: skip this send only. The recipient
+                // row and history are preserved and the address becomes
+                // sendable again once the hold expires or is released.
+                $pdo->prepare("UPDATE marketing_campaign_recipients SET status='skipped', skip_reason='temp_hold', error='bounce_hold' WHERE id=?")->execute([$r['id']]);
+                $skipped++; $results[] = ['email' => $email, 'status' => 'skipped', 'reason' => 'temp_hold'];
+                continue;
+            }
             if (isset($registeredMap[$email])) {
                 // Already a DentaTrak customer: preserve the recipient row
                 // and its history, skip only this send.

@@ -1561,7 +1561,7 @@
                     refreshCampaign();
                     return;
                 }
-                showOk(S('approvedNotSent'));
+                showOk(S('approvedReady').replace('{n}', d.approved || 0));
                 refreshCampaign();
             });
         };

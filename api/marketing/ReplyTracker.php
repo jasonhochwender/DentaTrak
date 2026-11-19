@@ -21,6 +21,10 @@ final class ReplyTracker
     private ?string $ownEmail = null;
     private const MAX_MESSAGES = 400;
     private const PAGE = 100;
+    /** Temporary-failure hold: retry allowed after 7 days. */
+    private const TEMP_HOLD_TTL = 604800;
+    /** Unresolved ambiguous bounce: hold 30 days or until reviewed. */
+    private const REVIEW_HOLD_TTL = 2592000;
 
     public function __construct(PDO $pdo, callable $gmailGet, string $actor = 'reply-sync')
     {
@@ -269,7 +273,7 @@ final class ReplyTracker
                 return ['type' => 'suppress', 'email' => $target, 'source' => 'bounce_permanent'];
             }
             if ($kind === 'temporary' && $target !== null) {
-                return ['type' => 'hold', 'email' => $target, 'source' => 'bounce_temp_hold'];
+                return ['type' => 'hold', 'email' => $target, 'source' => 'bounce_temporary'];
             }
             return ['type' => 'review', 'email' => $failed ?? ($msg['from_email'] ?? null), 'source' => 'bounce_' . $kind];
         }
@@ -425,11 +429,17 @@ final class ReplyTracker
         if (preg_match_all('/\b([45])\.(\d{1,2})\.(\d{1,2})\b/', $text, $m, PREG_SET_ORDER)) {
             foreach ($m as $c) $codes[] = $c[1] . '.' . $c[2] . '.' . $c[3];
         }
-        $permanentCodes = ['5.1.1','5.1.2','5.1.3','5.1.6','5.1.10','5.2.1','5.2.2'];
+        // Mailbox/address codes only. 5.2.2 (mailbox full) is a quota
+        // problem, not an invalid address, so it is temporary.
+        $permanentCodes = ['5.1.1','5.1.2','5.1.3','5.1.6','5.1.10','5.2.1'];
         foreach ($codes as $c) if (in_array($c, $permanentCodes, true)) return 'permanent';
-        foreach ($codes as $c) if (str_starts_with($c, '4.')) return 'temporary';
+        foreach ($codes as $c) if ($c === '5.2.2' || str_starts_with($c, '4.')) return 'temporary';
+        // Policy/authentication/routing rejections (5.7.x spam or DMARC
+        // blocks, 5.4.x routing) describe OUR mail or the path, not the
+        // recipient's mailbox: never grounds for automatic suppression.
+        foreach ($codes as $c) if (str_starts_with($c, '5.7.') || str_starts_with($c, '5.4.')) return 'ambiguous';
         $low = strtolower($text);
-        if (preg_match('/failed permanently|user unknown|no such user|mailbox (is )?(unavailable|does not exist)|recipient address rejected|address rejected:|does not exist|is not a valid|invalid recipient/i', $low)) {
+        if (preg_match('/failed permanently|user unknown|no such user|mailbox (is )?(unavailable|does not exist)|recipient address rejected|address rejected:|does not exist|is not a valid|invalid recipient|address not found|address couldn\'?t be found/i', $low)) {
             // Strong permanent phrasing; require a 5xx or "permanently" context
             // to avoid over-reading quoted text.
             if (preg_match('/\b5\.\d|permanent/i', $low)) return 'permanent';
@@ -726,35 +736,10 @@ final class ReplyTracker
         }
 
         if ($cls === 'delivery_failure') {
-            $kind = $analysis['bounce_kind'] ?? 'ambiguous';
-            $failed = $analysis['failed_recipient'] ?? null;
-            // Suppress/hold only when the failed recipient is confidently
-            // identified AND resolves to this contact's address.
-            $contactEmail = $this->contactEmail($cid);
-            $target = null;
-            if ($failed !== null) {
-                // Prefer the DSN recipient; fall back to the contact's own
-                // address only when the DSN names it.
-                if ($contactEmail !== null && $failed === $contactEmail) $target = $contactEmail;
-                else {
-                    $hits = $this->contactsByEmail($failed);
-                    if (count($hits) === 1 && (int)$hits[0]['id'] === (int)$cid) $target = $failed;
-                }
-            }
-            if ($kind === 'permanent' && $target !== null) {
-                $this->suppressionResult($target, 'bounce_permanent', $match, $msg);
-                $flagReview('email_bounce_permanent');
-                return 'suppressed';
-            }
-            if ($kind === 'temporary' && $target !== null) {
-                // Temporary failure: hold pending admin review, never a
-                // permanent-looking silent block.
-                $this->suppressionResult($target, 'bounce_temp_hold', $match, $msg);
-                $flagReview('email_bounce_temporary');
-                return 'held';
-            }
-            $flagReview($kind === 'ambiguous' ? 'email_bounce_ambiguous' : 'email_bounce');
-            return 'review';
+            $r = $this->handleBounce((int)$cid, (string)($analysis['bounce_kind'] ?? 'ambiguous'),
+                $analysis['failed_recipient'] ?? null, $match['campaign_id'] ?? null,
+                (string)($msg['id'] ?? ''), null);
+            return $r['action'];
         }
         // auto_response / uncertain: event only, no status change.
         return null;
@@ -768,8 +753,11 @@ final class ReplyTracker
         return $e ? strtolower((string)$e) : null;
     }
 
-    /** Idempotent suppression + prospect-event audit trail. */
-    private function suppressionResult(string $email, string $source, array $match, array $msg): void
+    /**
+     * Idempotent suppression + prospect-event audit trail.
+     * @return ?array ['already_suppressed'=>bool] or null when it failed.
+     */
+    private function suppressionResult(string $email, string $source, array $match, array $msg): ?array
     {
         try {
             $svc = new SuppressionService($this->pdo);
@@ -786,10 +774,376 @@ final class ReplyTracker
                     'already_suppressed' => !empty($res['already_suppressed'])]),
                 $this->actor, $email,
             ]);
+            return ['already_suppressed' => !empty($res['already_suppressed'])];
         } catch (Throwable $e) {
-            error_log('[reply-sync] suppression: ' . $e->getMessage());
+            error_log('[reply-sync] suppression failed for event ' . ($msg['id'] ?? '?') . ': ' . $e->getMessage());
+            return null;
         }
     }
+
+    // ---------------------------------------------------------------
+    // Bounce handling (shared by live sync, reconciliation, admin actions)
+    // ---------------------------------------------------------------
+    private function flagContactReview(int $cid, string $reason): void
+    {
+        $this->pdo->prepare(
+            "UPDATE marketing_contacts SET needs_review=1,
+                review_reason=IF(needs_review=1 AND review_reason IS NOT NULL AND review_reason<>'',
+                    review_reason, ?)
+             WHERE id=?"
+        )->execute([substr($reason, 0, 120), $cid]);
+    }
+
+    /**
+     * The address a bounce may act on: the DSN's failed recipient, and only
+     * when it is exactly this contact's address (or resolves to this one
+     * contact). Anything else is not confident enough to act on.
+     */
+    private function bounceTarget(int $cid, ?string $failed): ?string
+    {
+        if ($failed === null || $failed === '') return null;
+        $failed = SuppressionService::normalizeEmail($failed);
+        $contactEmail = $this->contactEmail($cid);
+        if ($contactEmail !== null && $failed === $contactEmail) return $contactEmail;
+        $hits = $this->contactsByEmail($failed);
+        if (count($hits) === 1 && (int)$hits[0]['id'] === $cid) return $failed;
+        return null;
+    }
+
+    /**
+     * Apply the policy for one delivery failure:
+     *   permanent + confident address -> permanent suppression, CRM contact
+     *       marked bounced, event auto-resolved (no review needed);
+     *   temporary + confident address -> expiring hold, auto-resolved unless
+     *       repeated failures escalate it to review;
+     *   anything else -> review queue, plus a review hold when the failed
+     *       mailbox is known. Never a permanent suppression.
+     * Marks the event processed only when its handling fully succeeded, so
+     * a failure stays visible and is retried by reconciliation.
+     *
+     * @return array{action:string, outcome:string, email:?string, already_suppressed?:bool, escalated?:bool, held?:bool}
+     */
+    private function handleBounce(int $cid, string $kind, ?string $failed, ?string $campaignId,
+                                  string $gmailMessageId, ?int $eventTs): array
+    {
+        $match = ['contact_id' => $cid, 'campaign_id' => $campaignId];
+        $msg = ['id' => $gmailMessageId];
+        $target = $this->bounceTarget($cid, $failed);
+
+        if ($kind === 'permanent' && $target !== null) {
+            $res = $this->suppressionResult($target, 'bounce_permanent', $match, $msg);
+            if ($res === null || !$this->markContactsBounced($target, 'bounce_permanent', $gmailMessageId)) {
+                $this->flagContactReview($cid, 'email_bounce_permanent');
+                return ['action' => 'suppress_failed', 'outcome' => 'error', 'email' => $target];
+            }
+            (new SuppressionService($this->pdo))->releaseHold($target);
+            $this->finishBounceEvent($gmailMessageId, true, 'suppressed');
+            return ['action' => 'suppressed', 'outcome' => 'suppressed', 'email' => $target,
+                    'already_suppressed' => $res['already_suppressed']];
+        }
+        if ($kind === 'temporary' && $target !== null) {
+            $h = $this->holdResult($target, 'bounce_temporary', self::TEMP_HOLD_TTL, $match, $msg, $eventTs);
+            if ($h === null) {
+                $this->flagContactReview($cid, 'email_bounce_temporary');
+                return ['action' => 'hold_failed', 'outcome' => 'error', 'email' => $target];
+            }
+            if (!empty($h['escalated'])) $this->flagContactReview($cid, 'email_bounce_repeated_temporary');
+            // A one-off temporary failure needs no attention; an escalated
+            // streak stays in the review queue.
+            $this->finishBounceEvent($gmailMessageId, empty($h['escalated']), 'held');
+            return ['action' => 'held', 'outcome' => 'temporary', 'email' => $target,
+                    'escalated' => !empty($h['escalated']), 'held' => !empty($h['held'])];
+        }
+        // Ambiguous evidence, or a failed recipient we cannot tie to this
+        // contact: a human decides.
+        $held = false;
+        if ($target !== null) {
+            $h = $this->holdResult($target, 'bounce_review', self::REVIEW_HOLD_TTL, $match, $msg, $eventTs);
+            if ($h === null) {
+                $this->flagContactReview($cid, 'email_bounce_ambiguous');
+                return ['action' => 'hold_failed', 'outcome' => 'error', 'email' => $target];
+            }
+            $held = !empty($h['held']);
+        }
+        $this->flagContactReview($cid, $kind === 'ambiguous' ? 'email_bounce_ambiguous' : 'email_bounce');
+        $this->finishBounceEvent($gmailMessageId, false, 'review');
+        return ['action' => 'review', 'outcome' => 'review', 'email' => $target, 'held' => $held];
+    }
+
+    /** Record that an event's bounce handling completed; optionally resolve it. */
+    private function finishBounceEvent(string $gmailMessageId, bool $resolve, string $action): void
+    {
+        if ($gmailMessageId === '') return;
+        try {
+            $this->pdo->prepare(
+                "UPDATE marketing_reply_events SET bounce_processed_at=UTC_TIMESTAMP(), action_taken=?
+                  WHERE gmail_message_id=?"
+            )->execute([substr($action, 0, 40), substr($gmailMessageId, 0, 80)]);
+            if ($resolve) {
+                $this->pdo->prepare(
+                    "UPDATE marketing_reply_events
+                        SET review_status='reviewed', reviewed_at=UTC_TIMESTAMP(), reviewed_by=?
+                      WHERE gmail_message_id=? AND review_status='new'"
+                )->execute(['auto: ' . $action, substr($gmailMessageId, 0, 80)]);
+            }
+        } catch (Throwable $e) {
+            error_log('[reply-sync] finishBounceEvent ' . $gmailMessageId . ': ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * CRM state for a suppressed bounced address: every contact with that
+     * exact email becomes do-not-contact with status 'Bounced'. Contacts,
+     * org links, notes and outreach history are kept; customer-lifecycle
+     * and stronger statuses (signed up, unsubscribed, do not contact) are
+     * not overwritten. Never touches other addresses at the organization.
+     */
+    private function markContactsBounced(string $email, string $source, string $ref): bool
+    {
+        try {
+            $s = $this->pdo->prepare('SELECT id, status, dnc FROM marketing_contacts WHERE email_normalized=?');
+            $s->execute([SuppressionService::normalizeEmail($email)]);
+            $keep = ['do not contact', 'unsubscribed', 'bounced', 'invalid',
+                     'signed up', 'registered', 'registered - setup incomplete'];
+            foreach ($s->fetchAll(PDO::FETCH_ASSOC) as $c) {
+                $status = strtolower(trim((string)$c['status']));
+                $setStatus = !in_array($status, $keep, true);
+                if (!$setStatus && (int)$c['dnc'] === 1) continue; // already in sync
+                $this->pdo->prepare(
+                    'UPDATE marketing_contacts SET dnc=1' . ($setStatus ? ", status='Bounced'" : '') . ' WHERE id=?'
+                )->execute([(int)$c['id']]);
+                $this->pdo->prepare(
+                    "INSERT INTO marketing_prospect_events (contact_id, org_id, event_type, details, actor, source)
+                     SELECT id, org_id, 'email_bounced', ?, ?, 'reply_sync' FROM marketing_contacts WHERE id=?"
+                )->execute([json_encode(['email' => $email, 'source' => $source, 'ref' => $ref,
+                    'previous_status' => (string)$c['status']]), $this->actor, (int)$c['id']]);
+            }
+            return true;
+        } catch (Throwable $e) {
+            error_log('[reply-sync] CRM bounce update failed (' . $ref . '): ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /** Expiring (non-permanent) send hold + audit event. Null on failure. */
+    private function holdResult(string $email, string $source, int $ttl, array $match, array $msg, ?int $eventTs): ?array
+    {
+        try {
+            $svc = new SuppressionService($this->pdo);
+            // A permanently suppressed address needs no hold.
+            if ($svc->isSuppressed($email)) return ['held' => false, 'escalated' => false, 'fail_count' => 0];
+            $res = $svc->holdEmail($email, $source, $ttl, 'gmail:' . ($msg['id'] ?? ''), $eventTs);
+            $this->pdo->prepare(
+                "INSERT INTO marketing_prospect_events (contact_id, org_id, event_type, details, actor, source)
+                 SELECT ?, org_id, 'send_hold', ?, ?, 'reply_sync'
+                 FROM marketing_contacts WHERE id = ?"
+            )->execute([
+                $match['contact_id'] ?? null,
+                json_encode(['email' => $email, 'source' => $source, 'hold_until' => $res['hold_until'],
+                    'fail_count' => $res['fail_count'], 'escalated' => $res['escalated'],
+                    'gmail_message_id' => $msg['id'] ?? null]),
+                $this->actor, $match['contact_id'] ?? null,
+            ]);
+            return $res;
+        } catch (Throwable $e) {
+            error_log('[reply-sync] hold failed for event ' . ($msg['id'] ?? '?') . ': ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Reconcile recorded delivery failures whose handling has not been
+     * applied (history from before automatic handling, or events whose
+     * handling failed). Idempotent: each event is processed once
+     * (bounce_processed_at); reruns only pick up what is still unhandled.
+     * Never sends email. $retryOnly limits the pass to events whose
+     * automatic handling previously failed (used by the scheduled sync).
+     */
+    public function reconcileBounces(bool $apply = false, bool $retryOnly = false): array
+    {
+        $rep = ['apply' => $apply, 'reviewed' => 0, 'permanent' => 0, 'newly_suppressed' => 0,
+                'already_suppressed' => 0, 'temporary' => 0, 'holds_active' => 0, 'escalated' => 0,
+                'ambiguous' => 0, 'unmatched' => 0, 'errors' => 0];
+        $rows = $this->pdo->query(
+            "SELECT id, gmail_message_id, contact_id, campaign_id, bounce_kind, failed_recipient,
+                    subject, snippet, gmail_internal_date
+               FROM marketing_reply_events
+              WHERE classification='delivery_failure' AND bounce_processed_at IS NULL"
+            . ($retryOnly ? " AND action_taken IN ('suppress_failed','hold_failed')" : '') . "
+              ORDER BY gmail_internal_date, id"
+        )->fetchAll(PDO::FETCH_ASSOC);
+        $svc = new SuppressionService($this->pdo);
+        $seen = [];
+        foreach ($rows as $ev) {
+            $rep['reviewed']++;
+            // Events recorded before bounce analysis existed carry no kind:
+            // classify from the stored text, conservatively.
+            $text = trim((string)$ev['subject'] . "\n" . (string)$ev['snippet']);
+            $kind = (string)($ev['bounce_kind'] ?? '');
+            if ($kind === '') $kind = $this->bounceKind(['text' => $text]);
+            $failed = (string)($ev['failed_recipient'] ?? '');
+            if ($failed === '') $failed = (string)($this->failedRecipient(['text' => $text]) ?? '');
+            $failedOrNull = $failed !== '' ? $failed : null;
+            $cid = $ev['contact_id'] !== null ? (int)$ev['contact_id'] : null;
+
+            if (!$apply) {
+                $target = $cid !== null ? $this->bounceTarget($cid, $failedOrNull) : null;
+                if ($cid === null) $rep['unmatched']++;
+                elseif ($target !== null && $kind === 'permanent') {
+                    $rep['permanent']++;
+                    if ($svc->isSuppressed($target) || isset($seen[$target])) $rep['already_suppressed']++;
+                    else $rep['newly_suppressed']++;
+                    $seen[$target] = true;
+                } elseif ($target !== null && $kind === 'temporary') $rep['temporary']++;
+                else $rep['ambiguous']++;
+                continue;
+            }
+            $this->pdo->prepare(
+                "UPDATE marketing_reply_events SET bounce_kind=COALESCE(bounce_kind, ?),
+                        failed_recipient=COALESCE(failed_recipient, ?) WHERE id=?"
+            )->execute([$kind, $failedOrNull, (int)$ev['id']]);
+            if ($cid === null) {
+                // No CRM contact to act on: stays in the review queue.
+                $this->finishBounceEvent((string)$ev['gmail_message_id'], false, 'review');
+                $rep['unmatched']++;
+                continue;
+            }
+            $ts = strtotime((string)$ev['gmail_internal_date'] . ' UTC') ?: null;
+            $r = $this->handleBounce($cid, $kind, $failedOrNull,
+                $ev['campaign_id'] !== null ? (string)$ev['campaign_id'] : null,
+                (string)$ev['gmail_message_id'], $ts);
+            switch ($r['outcome']) {
+                case 'suppressed':
+                    $rep['permanent']++;
+                    if (!empty($r['already_suppressed'])) $rep['already_suppressed']++;
+                    else $rep['newly_suppressed']++;
+                    break;
+                case 'temporary':
+                    $rep['temporary']++;
+                    if (!empty($r['held'])) $rep['holds_active']++;
+                    if (!empty($r['escalated'])) $rep['escalated']++;
+                    break;
+                case 'review': $rep['ambiguous']++; break;
+                default: $rep['errors']++;
+            }
+        }
+        // Standing state, whatever run produced it.
+        $rep['state'] = $this->bounceState();
+        return $rep;
+    }
+
+    /** Standing bounce counts. */
+    public function bounceState(): array
+    {
+        $q = fn(string $sql) => (int)$this->pdo->query($sql)->fetchColumn();
+        $out = [
+            'delivery_failures_total' => $q("SELECT COUNT(*) FROM marketing_reply_events WHERE classification='delivery_failure'"),
+            'unprocessed' => $q("SELECT COUNT(*) FROM marketing_reply_events WHERE classification='delivery_failure' AND bounce_processed_at IS NULL"),
+            'needs_review' => $q("SELECT COUNT(*) FROM marketing_reply_events WHERE classification='delivery_failure' AND review_status='new'"),
+            'bounce_suppressions' => $q("SELECT COUNT(*) FROM marketing_suppressions WHERE source IN ('bounce_permanent','bounce_manual')"),
+            'legacy_temp_hold_suppressions' => $q("SELECT COUNT(*) FROM marketing_suppressions WHERE source='bounce_temp_hold'"),
+            'active_holds' => 0, 'escalated_holds' => 0,
+        ];
+        try {
+            $out['active_holds'] = $q("SELECT COUNT(*) FROM marketing_email_holds WHERE status IN ('active','escalated') AND hold_until > UTC_TIMESTAMP()");
+            $out['escalated_holds'] = $q("SELECT COUNT(*) FROM marketing_email_holds WHERE status='escalated' AND hold_until > UTC_TIMESTAMP()");
+        } catch (Throwable $e) { /* holds table not migrated yet */ }
+        return $out;
+    }
+
+    /**
+     * Admin action: permanently suppress the address behind a reply event
+     * and sync the CRM. Idempotent. Optionally marks the event reviewed.
+     * @return array{ok:bool, error?:string, email?:string, already_suppressed?:bool, reviewed?:bool}
+     */
+    public function suppressFromEvent(int $id, string $actor, bool $markReviewed): array
+    {
+        $s = $this->pdo->prepare(
+            "SELECT r.*, c.email_normalized AS contact_email FROM marketing_reply_events r
+             LEFT JOIN marketing_contacts c ON c.id = r.contact_id WHERE r.id=?");
+        $s->execute([$id]);
+        $ev = $s->fetch(PDO::FETCH_ASSOC);
+        if (!$ev) return ['ok' => false, 'error' => 'not_found'];
+        $isBounce = $ev['classification'] === 'delivery_failure';
+        // A bounce names the failed mailbox; the bounce's own sender is a
+        // mail system and must never be the suppressed address.
+        $email = $isBounce
+            ? (string)($ev['failed_recipient'] ?: $ev['contact_email'])
+            : (string)($ev['contact_email'] ?: $ev['from_email']);
+        $email = SuppressionService::normalizeEmail($email);
+        if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return ['ok' => false, 'error' => 'no_address'];
+        }
+        $source = $isBounce ? 'bounce_manual' : 'admin_manual';
+        $prevActor = $this->actor;
+        $this->actor = substr($actor, 0, 190);
+        try {
+            $res = $this->suppressionResult($email, $source,
+                ['contact_id' => $ev['contact_id'], 'campaign_id' => $ev['campaign_id']],
+                ['id' => $ev['gmail_message_id']]);
+            if ($res === null) return ['ok' => false, 'error' => 'suppression_failed'];
+            $crmOk = $isBounce
+                ? $this->markContactsBounced($email, $source, (string)$ev['gmail_message_id'])
+                : $this->markContactsDnc($email);
+            if (!$crmOk) return ['ok' => false, 'error' => 'crm_update_failed'];
+            (new SuppressionService($this->pdo))->releaseHold($email);
+            $this->pdo->prepare(
+                "UPDATE marketing_reply_events SET action_taken='suppressed',
+                        bounce_processed_at=COALESCE(bounce_processed_at, UTC_TIMESTAMP()) WHERE id=?"
+            )->execute([$id]);
+            $reviewed = $markReviewed && $ev['review_status'] === 'new' && $this->markReviewed($id, $actor);
+            return ['ok' => true, 'email' => $email, 'already_suppressed' => $res['already_suppressed'],
+                    'reviewed' => (bool)$reviewed];
+        } finally {
+            $this->actor = $prevActor;
+        }
+    }
+
+    private function markContactsDnc(string $email): bool
+    {
+        try {
+            $this->pdo->prepare('UPDATE marketing_contacts SET dnc=1 WHERE email_normalized=? AND dnc=0')
+                ->execute([SuppressionService::normalizeEmail($email)]);
+            return true;
+        } catch (Throwable $e) {
+            error_log('[reply-sync] CRM dnc update failed: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * A review hold exists only while an ambiguous bounce is unresolved.
+     * Once the admin has decided (reviewed/dismissed without suppressing)
+     * it is released; temporary-failure holds keep running to expiry and
+     * permanent suppression is never touched here.
+     */
+    private function releaseReviewHold(int $eventId): void
+    {
+        try {
+            $s = $this->pdo->prepare(
+                "SELECT h.email_normalized FROM marketing_reply_events r
+                 LEFT JOIN marketing_contacts c ON c.id = r.contact_id
+                 JOIN marketing_email_holds h
+                   ON h.email_normalized = COALESCE(r.failed_recipient, c.email_normalized)
+                WHERE r.id=? AND r.classification='delivery_failure'
+                  AND h.source='bounce_review' AND h.status IN ('active','escalated')");
+            $s->execute([$eventId]);
+            $email = $s->fetchColumn();
+            if (!$email) return;
+            // Keep the hold while another bounce for the address is unresolved.
+            $o = $this->pdo->prepare(
+                "SELECT COUNT(*) FROM marketing_reply_events r
+                 LEFT JOIN marketing_contacts c ON c.id = r.contact_id
+                 WHERE r.classification='delivery_failure' AND r.review_status='new' AND r.id<>?
+                   AND COALESCE(r.failed_recipient, c.email_normalized)=?");
+            $o->execute([$eventId, $email]);
+            if ((int)$o->fetchColumn() > 0) return;
+            (new SuppressionService($this->pdo))->releaseHold((string)$email);
+        } catch (Throwable $e) {
+            error_log('[reply-sync] releaseReviewHold: ' . $e->getMessage());
+        }
+    }
+
 
     // ---------------------------------------------------------------
     // Review queries
@@ -800,17 +1154,38 @@ final class ReplyTracker
         if (!empty($f['status'])) { $where .= ' AND r.review_status=?'; $args[] = $f['status']; }
         if (!empty($f['class'])) { $where .= ' AND r.classification=?'; $args[] = $f['class']; }
         if (!empty($f['contact_id'])) { $where .= ' AND r.contact_id=?'; $args[] = (int)$f['contact_id']; }
+        if (!empty($f['ids'])) {
+            $ids = array_values(array_unique(array_filter(array_map('intval', (array)$f['ids']))));
+            if (!$ids) return [];
+            $where .= ' AND r.id IN (' . implode(',', $ids) . ')';
+        }
         $lim = max(1, min(200, (int)($f['limit'] ?? 100)));
+        // The address an event is about: for a bounce, the mailbox that
+        // failed - never the mail system that sent the notice.
+        $addr = "(CASE WHEN r.classification='delivery_failure'
+                        THEN COALESCE(NULLIF(r.failed_recipient,''), c.email_normalized)
+                        ELSE COALESCE(c.email_normalized, r.from_email) END)";
+        $holdCols = ''; $holdJoin = '';
+        if ((new SuppressionService($this->pdo))->holdsAvailable()) {
+            $holdCols = "
+                    mh.hold_until, mh.source AS hold_source, mh.fail_count AS hold_fail_count,
+                    (mh.status='escalated') AS hold_escalated,";
+            $holdJoin = "
+             LEFT JOIN marketing_email_holds mh
+               ON mh.email_normalized = $addr AND mh.status IN ('active','escalated')
+              AND mh.hold_until > UTC_TIMESTAMP()";
+        }
         $s = $this->pdo->prepare(
             "SELECT r.*, c.full_name AS contact_name, c.email AS contact_email,
                     o.name AS org_name,
                     ms.email_normalized AS suppressed_email, ms.source AS suppression_source,
+                    ms.unsubscribed_at AS suppressed_at,$holdCols
                     camp.name AS campaign_name
              FROM marketing_reply_events r
              LEFT JOIN marketing_contacts c ON c.id = r.contact_id
              LEFT JOIN marketing_orgs o ON o.id = c.org_id
              LEFT JOIN marketing_suppressions ms
-               ON ms.email_normalized = COALESCE(c.email_normalized, r.from_email)
+               ON ms.email_normalized = $addr$holdJoin
              LEFT JOIN marketing_campaigns camp ON camp.id = r.campaign_id
              WHERE $where ORDER BY r.gmail_internal_date DESC, r.id DESC LIMIT $lim");
         $s->execute($args);
@@ -823,7 +1198,11 @@ final class ReplyTracker
             "UPDATE marketing_reply_events SET review_status=?, reviewed_at=UTC_TIMESTAMP(), reviewed_by=?
              WHERE id=?");
         $s->execute([$dismissed ? 'dismissed' : 'reviewed', substr($actor, 0, 190), $id]);
-        return $s->rowCount() > 0;
+        $ok = $s->rowCount() > 0;
+        // Acknowledging never suppresses. It only ends the review hold that
+        // existed while an ambiguous bounce was undecided.
+        if ($ok) $this->releaseReviewHold($id);
+        return $ok;
     }
 
     /** Aggregate counts used by the dashboard. */

@@ -85,6 +85,35 @@ check(preg_match('/apiGet\(\'overview\'\)[\s\S]{0,200}showErr/', $script) === 1
     'API failure calls showErr');
 check(strpos($script, "showErr(d.error || STR.loadFailed)") !== false, 'API error payload shown');
 
+// ---- 6. Redundant sending notices removed; bounce actions present ----
+check(strpos($html, 'sending_unrestricted_banner') === false && strpos($html, 'sendingUnrestricted') === false,
+    'live-sending banner string not referenced');
+check(strpos($html, 'approved_not_sent') === false && strpos($html, 'approvedNotSent') === false,
+    'misleading approved-not-sent message not referenced');
+check(preg_match("/sending\.mode === 'unrestricted'\) \{\s*el\.textContent = '';\s*el\.className = 'mo-sending mo-hidden';/", $html) === 1,
+    'unrestricted sending renders no banner');
+check(strpos($html, "STR.approvedReady.replace('{n}', d.approved || 0)") !== false, 'approval feedback uses the server-reported count');
+$crmJs = (string)@file_get_contents(__DIR__ . '/../js/marketing-crm.js');
+check(strpos($crmJs, 'approvedNotSent') === false && strpos($crmJs, "S('approvedReady')") !== false, 'CRM approve feedback updated');
+foreach (glob(__DIR__ . '/../locales/*.json') as $lf) {
+    $raw = (string)file_get_contents($lf);
+    $loc = basename($lf);
+    check(json_decode($raw) !== null, "$loc parses");
+    check(strpos($raw, '"sending_unrestricted_banner"') === false && strpos($raw, '"approved_not_sent"') === false, "$loc: removed notices gone");
+    foreach (['approved_ready', 'reply_act_suppress', 'reply_act_suppress_review', 'reply_tip_review', 'reply_tip_suppress',
+              'reply_tip_suppress_review', 'reply_bounce_help', 'reply_confirm_suppress'] as $k) {
+        check(strpos($raw, '"' . $k . '"') !== false, "$loc: $k present");
+    }
+}
+check(strpos($raw = (string)file_get_contents(__DIR__ . '/../locales/en-US.json'), 'Live sending is ON') === false
+    && strpos($raw, 'Nothing was sent because sending is disabled') === false, 'en-US: removed notice text gone');
+foreach (['data-bulk="review"', 'data-bulk="suppress"', 'data-bulk="suppress_review"', "apiPost('reply_action'",
+          'data-ract="review"', 'data-ract="suppress"', 'data-ract="suppress_review"', 'mo-reply-sel'] as $needle) {
+    check(strpos($html, $needle) !== false, "replies UI has $needle");
+}
+$api = (string)file_get_contents(__DIR__ . '/../api/marketing-admin.php');
+check(strpos($api, "case 'reply_action':") !== false && strpos($api, "mo_audit(\$pdo, \$userEmail, 'reply_action'") !== false,
+    'reply_action endpoint exists and is audited');
 echo "marketing-outreach-page-test: $passes passed, " . count($failures) . " failed\n";
 foreach ($failures as $f) echo "  FAIL: $f\n";
 exit($failures ? 1 : 0);

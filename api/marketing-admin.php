@@ -1030,6 +1030,37 @@ switch ($action) {
         mo_out(['success' => true]);
     }
 
+    case 'reply_action': {
+        // Manual handling for one or many reply/bounce events:
+        //   review          - acknowledge only; never changes suppression
+        //   suppress        - permanently suppress the address + sync CRM
+        //   suppress_review - both
+        $op = (string)($in['op'] ?? '');
+        if (!in_array($op, ['review', 'suppress', 'suppress_review'], true)) mo_fail('invalid op');
+        $ids = [];
+        foreach ((array)($in['reply_ids'] ?? []) as $raw) { $i = (int)$raw; if ($i > 0) $ids[$i] = true; }
+        $ids = array_keys($ids);
+        if (!$ids) mo_fail('reply_ids required');
+        if (count($ids) > 200) mo_fail('too many replies (max 200)');
+        $rt = new ReplyTracker($pdo, function () { return ['status' => null, 'data' => []]; }, 'admin');
+        $out = ['reviewed' => 0, 'suppressed' => 0, 'already_suppressed' => 0, 'failed' => []];
+        foreach ($ids as $id) {
+            if ($op === 'review') {
+                if ($rt->markReviewed($id, (string)$userEmail)) $out['reviewed']++;
+                else $out['failed'][] = ['id' => $id, 'error' => 'not_found'];
+                continue;
+            }
+            $r = $rt->suppressFromEvent($id, (string)$userEmail, $op === 'suppress_review');
+            if (empty($r['ok'])) { $out['failed'][] = ['id' => $id, 'error' => $r['error'] ?? 'failed']; continue; }
+            if (!empty($r['already_suppressed'])) $out['already_suppressed']++; else $out['suppressed']++;
+            if (!empty($r['reviewed'])) $out['reviewed']++;
+        }
+        mo_audit($pdo, $userEmail, 'reply_action', null, ['action' => $op, 'reply_ids' => $ids,
+            'reviewed' => $out['reviewed'], 'suppressed' => $out['suppressed'],
+            'already_suppressed' => $out['already_suppressed'], 'failed' => count($out['failed'])]);
+        mo_out(['success' => true] + $out);
+    }
+
     case 'reply_sync_now': {
         // Admin-triggered bounded sync pass (same code path as the scheduler).
         $mailer = new MarketingMailer($pdo, $baseUrl);

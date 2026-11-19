@@ -165,6 +165,10 @@ if ($name==='check_eligibility') {
             $pdo->prepare("UPDATE marketing_batch_recipients SET status='skipped',error='suppressed_recheck' WHERE id=:id")->execute([':id'=>$r['id']]);
             $skipped++; continue;
         }
+        if ($svc->isHeld($r['email'])) {
+            $pdo->prepare("UPDATE marketing_batch_recipients SET status='skipped',error='bounce_hold' WHERE id=:id")->execute([':id'=>$r['id']]);
+            $skipped++; continue;
+        }
         $pre = $sheet->preCheck($r['email']);
         if (!$pre['ok']) {
             $pdo->prepare("UPDATE marketing_batch_recipients SET status='skipped',error=:e WHERE id=:id")->execute([':e'=>implode(',',$pre['flags']),':id'=>$r['id']]);

@@ -29,6 +29,13 @@ global $pdo;
 
 require_once $baseDir . '/migrations/2026_11_20_marketing_reply_tracking.php';
 require_once $baseDir . '/migrations/2026_11_21_marketing_reply_suppression.php';
+require_once $baseDir . '/migrations/2026_11_29_marketing_bounce_holds.php';
+require_once $baseDir . '/api/marketing/ProspectCrm.php';
+require_once $baseDir . '/api/marketing/OutreachEligibility.php';
+require_once $baseDir . '/api/marketing/MarketingMailer.php';
+require_once $baseDir . '/api/marketing/CampaignSendSupport.php';
+require_once $baseDir . '/api/marketing/CampaignSendRunner.php';
+require_once $baseDir . '/api/marketing/MarketingSendingPolicy.php';
 
 $pass = 0; $fail = 0;
 function ok(string $msg, bool $cond): void {
@@ -55,6 +62,8 @@ function cleanupReply(): void {
     $pdo->exec("DELETE FROM marketing_orgs WHERE name LIKE 'REPLYTEST%'");
     $pdo->exec("DELETE q FROM marketing_sync_queue q JOIN marketing_suppressions s ON s.id=q.suppression_id WHERE s.email_normalized LIKE '%@replytest%'");
     $pdo->exec("DELETE FROM marketing_suppressions WHERE email_normalized LIKE '%@replytest%'");
+    $pdo->exec("DELETE FROM marketing_email_holds WHERE email_normalized LIKE '%@replytest%'");
+    $pdo->exec("DELETE FROM marketing_sends WHERE email_normalized LIKE '%@replytest%'");
     $pdo->exec("DELETE FROM marketing_settings WHERE sk LIKE 'reply_sync%'");
 }
 cleanupReply();
@@ -263,7 +272,7 @@ ok('permanent bounce suppresses', $bsup === 'bounce_permanent');
 ok('permanent bounce action=suppressed', $pdo->query("SELECT action_taken FROM marketing_reply_events WHERE gmail_message_id='m-rec-7'")->fetchColumn() === 'suppressed');
 ok('bounce_kind persisted', $pdo->query("SELECT bounce_kind FROM marketing_reply_events WHERE gmail_message_id='m-rec-7'")->fetchColumn() === 'permanent');
 
-// Temporary bounce -> hold suppression.
+// Temporary bounce -> expiring hold, never the permanent store.
 $tracker->record($norm('m-rec-8', 'x', 'mailer-daemon@google.com',
     ['subject' => 'Delivery Status Notification', 'text' => "452 4.2.2 mailbox full\nFinal-Recipient: rfc822;temp@replytest.example"]),
     ['matched' => true, 'via' => 'email', 'contact_id' => $cTemp['id'], 'campaign_id' => null,
@@ -271,7 +280,8 @@ $tracker->record($norm('m-rec-8', 'x', 'mailer-daemon@google.com',
     ['class' => 'delivery_failure', 'bounce_kind' => 'temporary', 'unsubscribe_confidence' => null,
      'failed_recipient' => 'temp@replytest.example']);
 $tsup = $pdo->query("SELECT source FROM marketing_suppressions WHERE email_normalized='temp@replytest.example'")->fetchColumn();
-ok('temporary bounce creates hold', $tsup === 'bounce_temp_hold');
+ok('temporary bounce creates NO permanent suppression', $tsup === false);
+ok('temporary bounce creates expiring hold', $pdo->query("SELECT source FROM marketing_email_holds WHERE email_normalized='temp@replytest.example' AND hold_until > UTC_TIMESTAMP()")->fetchColumn() === 'bounce_temporary');
 
 // Ambiguous bounce -> review only, no suppression.
 $tracker->record($norm('m-rec-9', 'x', 'mailer-daemon@google.com',
@@ -322,7 +332,7 @@ ok('dashboardStats new_review', ($stats['new_review'] ?? 0) >= 4);
 ok('dashboardStats per_campaign', isset($stats['per_campaign'][$cid]['human']));
 ok('dashboardStats cohort replies', ($stats['cohort_replies'][$cid] ?? 0) >= 1);
 ok('dashboardStats bounce kinds', ($stats['bounce_permanent'] ?? 0) >= 1 && ($stats['bounce_temporary'] ?? 0) >= 1);
-ok('dashboardStats suppressed contacts', ($stats['suppressed_contacts'] ?? 0) >= 3);
+ok('dashboardStats suppressed contacts', ($stats['suppressed_contacts'] ?? 0) >= 2);
 
 /* ---------------- 5b. backfill dry-run purity ---------------- */
 // Add a permanent-bounce message to the fake mailbox so the dry-run has a
@@ -346,6 +356,203 @@ $st = $pdo->query("SELECT review_status, reviewed_by FROM marketing_reply_events
 ok('review status persisted', $st['review_status'] === 'reviewed' && $st['reviewed_by'] === 'replytest-admin@example.com');
 $list = $tracker->listReplies(['status' => 'reviewed']);
 ok('listReplies filters', count(array_filter($list, fn($r) => (int)$r['id'] === $rid)) === 1);
+
+/* ---------------- 6b. automatic bounce handling ---------------- */
+$svcT = fn() => new SuppressionService($pdo);
+$evRow = fn(string $mid) => $pdo->query("SELECT * FROM marketing_reply_events WHERE gmail_message_id=" . $pdo->quote($mid))->fetch(PDO::FETCH_ASSOC);
+$contact = fn(int $id) => $pdo->query("SELECT * FROM marketing_contacts WHERE id=$id")->fetch(PDO::FETCH_ASSOC);
+$bounceMatch = fn(int $cidX) => ['matched' => true, 'via' => 'email', 'contact_id' => $cidX, 'campaign_id' => null,
+    'campaign_recipient_id' => null, 'ambiguous' => false];
+$recBounce = function (string $mid, int $cidX, string $kind, ?string $failed, string $text = 'x') use ($tracker, $norm, $bounceMatch) {
+    return $tracker->record($norm($mid, 'x', 'mailer-daemon@google.com', ['subject' => 'Delivery Status Notification', 'text' => $text]),
+        $bounceMatch($cidX), 'delivery_failure',
+        ['class' => 'delivery_failure', 'bounce_kind' => $kind, 'unsubscribe_confidence' => null, 'failed_recipient' => $failed]);
+};
+
+// Classification hardening.
+ok('5.2.2 mailbox full is temporary, not permanent', $tracker->bounceKind(['text' => '552 5.2.2 The email account is over quota']) === 'temporary');
+ok('5.7.1 policy block is not a recipient failure', $tracker->bounceKind(['text' => '550 5.7.1 Message rejected as spam; user unknown permanently']) === 'ambiguous');
+ok('5.7.26 auth failure is not a recipient failure', $tracker->bounceKind(['text' => '550 5.7.26 unauthenticated mail, failed permanently']) === 'ambiguous');
+ok('5.1.1 still permanent', $tracker->bounceKind(['text' => '550 5.1.1 The email account that you tried to reach does not exist']) === 'permanent');
+
+// Permanent (m-rec-7 above): auto-resolved, CRM synced, org untouched.
+$e7 = $evRow('m-rec-7');
+ok('permanent bounce auto-resolved', $e7['review_status'] === 'reviewed' && str_starts_with((string)$e7['reviewed_by'], 'auto'));
+ok('permanent bounce marked processed', $e7['bounce_processed_at'] !== null);
+$cb = $contact((int)$cBounce['id']);
+ok('CRM contact marked Bounced + dnc', $cb['status'] === 'Bounced' && (int)$cb['dnc'] === 1);
+ok('CRM contact keeps org link', (int)$cb['org_id'] === (int)$org['id']);
+ok('diagnostics preserved', $e7['failed_recipient'] === 'bounce@replytest.example' && $e7['bounce_kind'] === 'permanent');
+ok('other contacts at org NOT suppressed', !$svcT()->isSuppressed('human@replytest.example') && (int)$contact((int)$cHuman['id'])['dnc'] === 0);
+ok('no org-level suppression', $cnt("SELECT COUNT(*) FROM marketing_org_suppressions WHERE org_ref='replytest.example'") === 0);
+ok('bounce audit event recorded', $cnt("SELECT COUNT(*) FROM marketing_prospect_events WHERE contact_id=" . (int)$cBounce['id'] . " AND event_type='email_bounced'") === 1);
+ok('suppression date + reason recorded', (bool)$pdo->query("SELECT unsubscribed_at IS NOT NULL AND source='bounce_permanent' FROM marketing_suppressions WHERE email_normalized='bounce@replytest.example'")->fetchColumn());
+
+// Temporary (m-rec-8): hold only.
+$e8 = $evRow('m-rec-8');
+ok('temporary: no permanent suppression', $cnt("SELECT COUNT(*) FROM marketing_suppressions WHERE email_normalized='temp@replytest.example'") === 0);
+ok('temporary: send-blocked while held', $svcT()->isHeld('temp@replytest.example') && $svcT()->isBlocked('temp@replytest.example'));
+ok('temporary: one-off auto-resolved', $e8['review_status'] === 'reviewed' && $e8['action_taken'] === 'held');
+ok('temporary: contact not marked bounced', $contact((int)$cTemp['id'])['status'] === 'Contacted' && (int)$contact((int)$cTemp['id'])['dnc'] === 0);
+$ctxH = mo_elig_ctx($pdo, $svcT(), 'temp@replytest.example');
+ok('send ctx reports hold, not suppression', !empty($ctxH['held']) && empty($ctxH['suppressed']));
+$elH = OutreachEligibility::evaluate(['byEmail' => []], 'temp@replytest.example', 'followup', $ctxH + ['require_in_sheet' => false]);
+ok('eligibility: temp_hold blocks (hard)', !$elH['ok'] && in_array('temp_hold', $elH['flags'], true) && $elH['hard']);
+ok('mailer-level eligibility blocks held address', empty($svcT()->eligibility(['temp@replytest.example'])[0]['eligible']));
+// Expiry restores eligibility.
+$pdo->exec("UPDATE marketing_email_holds SET hold_until = UTC_TIMESTAMP() - INTERVAL 1 MINUTE WHERE email_normalized='temp@replytest.example'");
+ok('expired hold no longer blocks', !$svcT()->isHeld('temp@replytest.example') && !empty($svcT()->eligibility(['temp@replytest.example'])[0]['eligible']));
+ok('expiry sweep marks expired', $svcT()->releaseExpiredHolds() >= 1
+    && $pdo->query("SELECT status FROM marketing_email_holds WHERE email_normalized='temp@replytest.example'")->fetchColumn() === 'expired');
+// Repeated temporary failures escalate.
+$recBounce('m-rec-t2', (int)$cTemp['id'], 'temporary', 'temp@replytest.example');
+ok('2nd temp failure: held again, not escalated', $svcT()->isHeld('temp@replytest.example') && $evRow('m-rec-t2')['review_status'] === 'reviewed');
+$recBounce('m-rec-t3', (int)$cTemp['id'], 'temporary', 'temp@replytest.example');
+$hr = $pdo->query("SELECT * FROM marketing_email_holds WHERE email_normalized='temp@replytest.example'")->fetch(PDO::FETCH_ASSOC);
+ok('3rd temp failure escalates', $hr['status'] === 'escalated' && (int)$hr['fail_count'] === 3);
+ok('escalated event stays in review queue', $evRow('m-rec-t3')['review_status'] === 'new');
+ok('escalated hold is longer', strtotime($hr['hold_until']) - time() > 20 * 86400);
+ok('escalation still not a permanent suppression', $cnt("SELECT COUNT(*) FROM marketing_suppressions WHERE email_normalized='temp@replytest.example'") === 0);
+ok('escalation flags contact for review', (int)$contact((int)$cTemp['id'])['needs_review'] === 1);
+
+// Ambiguous with a known mailbox: review + hold, no suppression.
+$recBounce('m-rec-a2', (int)$cAmb['id'], 'ambiguous', 'amb@replytest.example');
+$ea = $evRow('m-rec-a2');
+ok('ambiguous: not suppressed', !$svcT()->isSuppressed('amb@replytest.example'));
+ok('ambiguous: needs review', $ea['review_status'] === 'new' && $ea['action_taken'] === 'review');
+ok('ambiguous: held while unresolved', $svcT()->isHeld('amb@replytest.example'));
+// Failed recipient that is NOT this contact: no action on anyone.
+$recBounce('m-rec-a3', (int)$cAmb['id'], 'permanent', 'human@replytest.example');
+ok('mismatched failed recipient: nothing suppressed', !$svcT()->isSuppressed('human@replytest.example') && $evRow('m-rec-a3')['review_status'] === 'new');
+
+// Mark Reviewed: acknowledges only.
+$supBefore = $cnt("SELECT COUNT(*) FROM marketing_suppressions");
+ok('markReviewed ok', $tracker->markReviewed((int)$ea['id'], 'replytest-admin@example.com'));
+ok('Mark Reviewed does not suppress', $cnt("SELECT COUNT(*) FROM marketing_suppressions") === $supBefore && !$svcT()->isSuppressed('amb@replytest.example'));
+ok('Mark Reviewed leaves contact status alone', $contact((int)$cAmb['id'])['status'] === 'Contacted' && (int)$contact((int)$cAmb['id'])['dnc'] === 0);
+ok('hold kept while another bounce for the address is unresolved', $svcT()->isHeld('amb@replytest.example'));
+$tracker->markReviewed((int)$evRow('m-rec-9')['id'], 'replytest-admin@example.com');
+ok('Mark Reviewed ends the review hold', !$svcT()->isHeld('amb@replytest.example'));
+// ...but never a temporary-failure hold.
+$tracker->markReviewed((int)$evRow('m-rec-t3')['id'], 'replytest-admin@example.com');
+ok('Mark Reviewed keeps temporary hold', $svcT()->isHeld('temp@replytest.example'));
+
+// Suppress Address (no review) then Suppress + Review.
+$recBounce('m-rec-a4', (int)$cAmb['id'], 'ambiguous', 'amb@replytest.example');
+$e4 = $evRow('m-rec-a4');
+$r4 = $tracker->suppressFromEvent((int)$e4['id'], 'replytest-admin@example.com', false);
+ok('Suppress Address suppresses', !empty($r4['ok']) && $svcT()->isSuppressed('amb@replytest.example') && empty($r4['already_suppressed']));
+ok('Suppress Address source recorded', $pdo->query("SELECT source FROM marketing_suppressions WHERE email_normalized='amb@replytest.example'")->fetchColumn() === 'bounce_manual');
+ok('Suppress Address syncs CRM', $contact((int)$cAmb['id'])['status'] === 'Bounced' && (int)$contact((int)$cAmb['id'])['dnc'] === 1);
+ok('Suppress Address leaves review status', $evRow('m-rec-a4')['review_status'] === 'new');
+ok('Suppress Address clears the hold', $cnt("SELECT COUNT(*) FROM marketing_email_holds WHERE email_normalized='amb@replytest.example' AND status IN ('active','escalated')") === 0);
+$r4b = $tracker->suppressFromEvent((int)$e4['id'], 'replytest-admin@example.com', true);
+ok('Suppress + Review is idempotent and reviews', !empty($r4b['ok']) && !empty($r4b['already_suppressed']) && !empty($r4b['reviewed'])
+    && $evRow('m-rec-a4')['review_status'] === 'reviewed');
+ok('no duplicate suppression rows', $cnt("SELECT COUNT(*) FROM marketing_suppressions WHERE email_normalized='amb@replytest.example'") === 1);
+ok('no duplicate bounce audit events', $cnt("SELECT COUNT(*) FROM marketing_prospect_events WHERE contact_id=" . (int)$cAmb['id'] . " AND event_type='email_bounced'") === 1);
+// A bounce with no identified recipient never suppresses the mail system.
+$pdo->exec("UPDATE marketing_reply_events SET failed_recipient=NULL, contact_id=NULL WHERE gmail_message_id='m-rec-a3'");
+$rNo = $tracker->suppressFromEvent((int)$evRow('m-rec-a3')['id'], 'replytest-admin@example.com', true);
+ok('no address -> refused, mailer-daemon never suppressed', empty($rNo['ok']) && $rNo['error'] === 'no_address'
+    && !$svcT()->isSuppressed('mailer-daemon@google.com'));
+
+// listReplies exposes suppression + hold state for the failed address.
+$lr = $tracker->listReplies(['ids' => [(int)$e7['id'], (int)$evRow('m-rec-t3')['id']]]);
+$by = []; foreach ($lr as $x) $by[$x['gmail_message_id']] = $x;
+ok('listReplies: suppressed state + source + date', ($by['m-rec-7']['suppressed_email'] ?? '') === 'bounce@replytest.example'
+    && $by['m-rec-7']['suppression_source'] === 'bounce_permanent' && !empty($by['m-rec-7']['suppressed_at']));
+ok('listReplies: hold state', !empty($by['m-rec-t3']['hold_until']) && (int)$by['m-rec-t3']['hold_escalated'] === 1 && empty($by['m-rec-t3']['suppressed_email']));
+
+// CRM annotation: suppressed + held addresses are ineligible for every kind.
+$crmE = new ProspectCrm($pdo);
+foreach (['bounce@replytest.example' => 'suppressed', 'temp@replytest.example' => 'held'] as $em => $why) {
+    $p = $crmE->findByEmail($em);
+    ok("CRM eligibility excludes $why address", $p !== null && empty($p['eligibility']['initial']['ok']) && empty($p['eligibility']['followup']['ok']));
+}
+
+/* ---------------- 6c. historical reconciliation ---------------- */
+$cH1 = $admin->createContact(['full_name' => 'REPLYTEST Hist Perm', 'email' => 'histperm@replytest.example', 'org_id' => $org['id'], 'status' => 'Contacted']);
+$cH2 = $admin->createContact(['full_name' => 'REPLYTEST Hist Temp', 'email' => 'histtemp@replytest.example', 'org_id' => $org['id'], 'status' => 'Contacted']);
+$cH3 = $admin->createContact(['full_name' => 'REPLYTEST Hist Amb', 'email' => 'histamb@replytest.example', 'org_id' => $org['id'], 'status' => 'Contacted']);
+$cH4 = $admin->createContact(['full_name' => 'REPLYTEST Hist Signed', 'email' => 'histsigned@replytest.example', 'org_id' => $org['id'], 'status' => 'Signed Up']);
+$hist = $pdo->prepare("INSERT INTO marketing_reply_events
+    (gmail_message_id, gmail_thread_id, contact_id, matched_via, classification, review_status, from_email, subject, snippet,
+     gmail_internal_date, bounce_kind, failed_recipient, action_taken)
+    VALUES (?, 'x', ?, 'email', 'delivery_failure', ?, 'mailer-daemon@google.com', 'Delivery Status Notification', ?, ?, ?, ?, ?)");
+$old = gmdate('Y-m-d H:i:s', time() - 40 * 86400);
+$recent = gmdate('Y-m-d H:i:s', time() - 86400);
+// Pre-automation permanent bounce: flagged but never suppressed.
+$hist->execute(['m-hist-1', $cH1['id'], 'new', 'x', $old, 'permanent', 'histperm@replytest.example', 'review']);
+// Legacy event with no stored analysis: classified from the snippet.
+$hist->execute(['m-hist-2', $cH4['id'], 'new', "550 5.1.1 user unknown Final-Recipient: rfc822; histsigned@replytest.example", $old, null, null, null]);
+$hist->execute(['m-hist-3', $cH2['id'], 'new', 'x', $old, 'temporary', 'histtemp@replytest.example', 'held']);
+$hist->execute(['m-hist-4', $cH2['id'], 'new', 'x', $recent, 'temporary', 'histtemp@replytest.example', 'held']);
+$hist->execute(['m-hist-5', $cH3['id'], 'new', 'x', $recent, 'ambiguous', null, 'review']);
+$hist->execute(['m-hist-6', null, 'new', 'x', $recent, 'permanent', 'nobody@replytest.example', null]);
+$pdo->exec("UPDATE marketing_reply_events SET bounce_processed_at=NULL WHERE gmail_message_id LIKE 'm-hist-%'");
+$pdo->exec("UPDATE marketing_reply_events SET bounce_processed_at=UTC_TIMESTAMP() WHERE classification='delivery_failure' AND bounce_processed_at IS NULL AND gmail_message_id NOT LIKE 'm-hist-%' AND (gmail_message_id LIKE 'm-%' OR gmail_message_id LIKE 'rt%')");
+$scope = "gmail_message_id LIKE 'm-hist-%'";
+$otherUnprocessed = $cnt("SELECT COUNT(*) FROM marketing_reply_events WHERE classification='delivery_failure' AND bounce_processed_at IS NULL AND NOT ($scope)");
+if ($otherUnprocessed > 0) {
+    echo "SKIP: reconciliation tests (local DB has $otherUnprocessed unrelated unprocessed bounce events)\n";
+} else {
+    $supB = $cnt("SELECT COUNT(*) FROM marketing_suppressions");
+    $dry = $tracker->reconcileBounces(false);
+    ok('dry-run counts', $dry['reviewed'] === 6 && $dry['newly_suppressed'] === 2 && $dry['temporary'] === 2 && $dry['ambiguous'] === 1 && $dry['unmatched'] === 1);
+    ok('dry-run writes nothing', $cnt("SELECT COUNT(*) FROM marketing_suppressions") === $supB
+        && $cnt("SELECT COUNT(*) FROM marketing_reply_events WHERE $scope AND bounce_processed_at IS NOT NULL") === 0);
+    $ap = $tracker->reconcileBounces(true);
+    ok('apply counts', $ap['reviewed'] === 6 && $ap['newly_suppressed'] === 2 && $ap['temporary'] === 2 && $ap['ambiguous'] === 1
+        && $ap['unmatched'] === 1 && $ap['errors'] === 0);
+    ok('historical permanent suppressed + CRM + resolved', $svcT()->isSuppressed('histperm@replytest.example')
+        && $contact((int)$cH1['id'])['status'] === 'Bounced' && $evRow('m-hist-1')['review_status'] === 'reviewed');
+    ok('legacy event classified from snippet', $evRow('m-hist-2')['bounce_kind'] === 'permanent' && $svcT()->isSuppressed('histsigned@replytest.example'));
+    ok('customer status preserved, still do-not-contact', $contact((int)$cH4['id'])['status'] === 'Signed Up' && (int)$contact((int)$cH4['id'])['dnc'] === 1);
+    ok('historical temporary: never permanent', !$svcT()->isSuppressed('histtemp@replytest.example'));
+    ok('hold anchored to failure date (recent one still active)', $svcT()->isHeld('histtemp@replytest.example') && $ap['holds_active'] === 1);
+    ok('historical temporary resolved', $evRow('m-hist-3')['review_status'] === 'reviewed' && $evRow('m-hist-4')['review_status'] === 'reviewed');
+    ok('historical ambiguous stays in review, unsuppressed', $evRow('m-hist-5')['review_status'] === 'new' && !$svcT()->isSuppressed('histamb@replytest.example'));
+    ok('unmatched stays in review, nothing suppressed', $evRow('m-hist-6')['review_status'] === 'new' && !$svcT()->isSuppressed('nobody@replytest.example'));
+    $evB = $cnt("SELECT COUNT(*) FROM marketing_prospect_events");
+    $holdB = $pdo->query("SELECT fail_count FROM marketing_email_holds WHERE email_normalized='histtemp@replytest.example'")->fetchColumn();
+    $again = $tracker->reconcileBounces(true);
+    ok('rerun is a no-op', $again['reviewed'] === 0 && $cnt("SELECT COUNT(*) FROM marketing_suppressions") === $supB + 2
+        && $cnt("SELECT COUNT(*) FROM marketing_prospect_events") === $evB
+        && $pdo->query("SELECT fail_count FROM marketing_email_holds WHERE email_normalized='histtemp@replytest.example'")->fetchColumn() === $holdB);
+}
+
+/* ---------------- 6d. send-time gate (no mail leaves the test) ---------------- */
+$sendCalls = 0;
+$httpFake = function (string $method, string $url, array $headers, ?string $body, int $timeout) use (&$sendCalls) {
+    if (strpos($url, 'oauth2.googleapis.com/token') !== false) return ['status' => 200, 'body' => '{"access_token":"fake-at"}'];
+    if (strpos($url, '/messages/send') !== false) { $sendCalls++; return ['status' => 200, 'body' => '{"id":"gm-rt","threadId":"gt-rt"}']; }
+    if (strpos($url, '/messages?') !== false) return ['status' => 200, 'body' => '{"messages":[]}'];
+    return ['status' => 404, 'body' => '{}'];
+};
+$envFn = static fn(string $k) => ['MARKETING_SENDING' => 'true', 'MARKETING_SEND_ALLOWLIST' => '*',
+    'GOOGLE_CLIENT_ID' => 'cid', 'GOOGLE_CLIENT_SECRET' => 'sec', 'GMAIL_REFRESH_TOKEN' => 'rtok'][$k] ?? null;
+$gateMailer = new MarketingMailer($pdo, 'https://dentatrak.test', [
+    'policy' => new MarketingSendingPolicy($envFn), 'http' => $httpFake, 'env' => $envFn, 'clock' => fn() => time()]);
+$gid = 'rt-campaign-0001-0000-000000000002';
+$pdo->prepare("INSERT INTO marketing_campaigns (id,name,kind,status,created_by,recipient_count)
+    VALUES (?, 'REPLYTEST Gate','followup','approved','replytest',2)")->execute([$gid]);
+foreach ([['temp@replytest.example', $cTemp['id']], ['bounce@replytest.example', $cBounce['id']]] as [$em, $cidX]) {
+    $pdo->prepare("INSERT INTO marketing_campaign_recipients (campaign_id, prospect_email, contact_id, status, subject, body_html)
+        VALUES (?,?,?,'approved','Hi','<p>x</p>')")->execute([$gid, $em, $cidX]);
+}
+putenv('MARKETING_CRM_READS=true');
+$gateRunner = new CampaignSendRunner($pdo, 'https://dentatrak.test', $gateMailer);
+$gateCamp = $pdo->query("SELECT * FROM marketing_campaigns WHERE id=" . $pdo->quote($gid))->fetch(PDO::FETCH_ASSOC);
+$gres = $gateRunner->runBatch($gateCamp, $gateRunner->nextBatch($gid, 10, null, true));
+$grow = fn(string $em) => $pdo->query("SELECT status, skip_reason FROM marketing_campaign_recipients WHERE campaign_id=" . $pdo->quote($gid) . " AND prospect_email=" . $pdo->quote($em))->fetch(PDO::FETCH_ASSOC);
+ok('send gate: held address skipped as temp_hold (row preserved)', $grow('temp@replytest.example') == ['status' => 'skipped', 'skip_reason' => 'temp_hold'], json_encode($gres['results'] ?? null));
+ok('send gate: suppressed address marked suppressed', $grow('bounce@replytest.example')['status'] === 'suppressed');
+ok('send gate: nothing was sent', $sendCalls === 0 && (int)($gres['sent'] ?? 0) === 0);
+// The mailer itself refuses a held address even if a caller skips the runner gate.
+$direct = $gateMailer->send(['to' => 'temp@replytest.example', 'subject' => 'Hi', 'html' => '<p>x</p>', 'campaign' => 'replytest-direct']);
+putenv('MARKETING_CRM_READS');
+ok('mailer refuses held address directly', ($direct['status'] ?? '') === 'skipped_suppressed' && $sendCalls === 0, json_encode($direct));
 
 /* ---------------- 7. lock behavior ---------------- */
 // Named locks are per-connection; hold the lock on a SECOND PDO so the

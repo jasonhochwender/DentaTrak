@@ -212,6 +212,7 @@ final class ProspectDirectory
             $ctx = [
                 'suppressed' => $suppressed,
                 'org_suppressed' => !$suppressed && $orgRef !== null && $suppression->isOrgSuppressed($orgRef),
+                'held' => $email !== '' && $suppression->isHeld($email),
                 'ledger_sent' => isset($ledger[$email]),
                 'registered' => !empty($f['registered']),
             ];
