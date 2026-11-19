@@ -187,6 +187,39 @@ ok('recipient marked synced (CRM write-back)', $sss === 'synced');
 $st2 = $pdo->query("SELECT status FROM marketing_contacts WHERE id=" . $id4)->fetch(PDO::FETCH_ASSOC);
 ok('shared-email contact also marked Sent', $st2['status'] === 'Sent');
 
+/* ---------------- follow-up send clears completed follow-up date ---------------- */
+// A confirmed follow-up send completes the scheduled follow-up: a
+// followup_date on/before the send date is cleared; a later date is an
+// explicitly scheduled next follow-up and is preserved. Initial sends
+// never touch it.
+$fuPast = $admin->createContact(['org_id' => $orgId, 'full_name' => 'CRMTEST4 FuPast',
+    'email' => 'fupast@crmtest4.example.com', 'status' => 'Sent', 'followup_date' => '2020-01-01']);
+$fuFuture = $admin->createContact(['org_id' => $orgId, 'full_name' => 'CRMTEST4 FuFuture',
+    'email' => 'fufuture@crmtest4.example.com', 'status' => 'Sent', 'followup_date' => '2999-01-01']);
+$fuInit = $admin->createContact(['org_id' => $orgId, 'full_name' => 'CRMTEST4 FuInit',
+    'email' => 'fuinit@crmtest4.example.com', 'status' => 'Contacted', 'followup_date' => '2020-01-01']);
+$fuRow = function (string $email) use ($pdo) {
+    return $pdo->query("SELECT * FROM marketing_contacts WHERE email_normalized=" . $pdo->quote($email) . " LIMIT 1")->fetch(PDO::FETCH_ASSOC);
+};
+$mkSend = function (string $email) use ($pdo) {
+    return ['id' => 0, 'prospect_email' => $email, 'status' => 'sent',
+        'sent_at' => gmdate('Y-m-d H:i:s'), 'gmail_message_id' => 'FU' . substr(md5($email), 0, 8)];
+};
+$admin->recordSend($mkSend('fupast@crmtest4.example.com'), ['id' => 'fu-c', 'name' => 'FU', 'kind' => 'followup']);
+ok('follow-up send clears past followup_date', $fuRow('fupast@crmtest4.example.com')['followup_date'] === null);
+$admin->recordSend($mkSend('fufuture@crmtest4.example.com'), ['id' => 'fu-c', 'name' => 'FU', 'kind' => 'followup']);
+ok('explicitly scheduled future followup_date preserved', $fuRow('fufuture@crmtest4.example.com')['followup_date'] === '2999-01-01');
+$admin->recordSend($mkSend('fuinit@crmtest4.example.com'), ['id' => 'ini-c', 'name' => 'INI', 'kind' => 'initial']);
+ok('initial send does not clear followup_date', $fuRow('fuinit@crmtest4.example.com')['followup_date'] === '2020-01-01');
+// Bucket moves the cleared contact out of overdue into awaiting_response.
+$crmFresh = new ProspectCrm($pdo);
+$fuList = $crmFresh->followups('overdue');
+$overdueEmails = array_map(static fn($p) => strtolower((string)($p['fields']['email'] ?? '')), $fuList);
+ok('cleared follow-up no longer overdue', !in_array('fupast@crmtest4.example.com', $overdueEmails, true));
+$fuAwait = $crmFresh->followups('awaiting_response');
+$awaitEmails = array_map(static fn($p) => strtolower((string)($p['fields']['email'] ?? '')), $fuAwait);
+ok('cleared follow-up is awaiting_response', in_array('fupast@crmtest4.example.com', $awaitEmails, true));
+
 /* ---------------- CSV unmapped + aliases ---------------- */
 $csv = "Email,Org,Demo Status,Trial Status,Outcome,Mystery Col\nalice2@crmtest4.example.com,CRMTEST4 Dental Group,yes,no,interested,x\n";
 $admin->previewImport($csv);

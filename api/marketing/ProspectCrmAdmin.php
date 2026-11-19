@@ -1335,6 +1335,17 @@ final class ProspectCrmAdmin
             $this->event((int)$c['id'], null, 'send_recorded',
                 ['campaign_id' => $campaign['id'], 'kind' => $campaign['kind'], 'gmail' => $msgId]);
         }
+        if ($followup) {
+            // A confirmed follow-up completes the scheduled follow-up it
+            // was sent for: clear followup_date when it is not later than
+            // the send date. A date still in the future is an explicitly
+            // scheduled next follow-up and is preserved. Initial sends do
+            // not touch it.
+            $this->pdo->prepare(
+                'UPDATE marketing_contacts SET followup_date=NULL, updated_at=UTC_TIMESTAMP()
+                 WHERE email_normalized=? AND followup_date IS NOT NULL AND followup_date<=?'
+            )->execute([$email, $date]);
+        }
         $this->pdo->prepare("UPDATE marketing_campaign_recipients SET sheet_sync_status='synced', sheet_sync_attempts=sheet_sync_attempts+1, sheet_sync_error=NULL, sheet_synced_at=UTC_TIMESTAMP() WHERE id=?")
             ->execute([(int)$recipient['id']]);
         return true;
