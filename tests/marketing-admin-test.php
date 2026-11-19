@@ -89,7 +89,7 @@ assertContains($api, '/content changed since approval/', 'send must refuse conte
 $runner = $baseDir . '/api/marketing/CampaignSendRunner.php';
 $support = $baseDir . '/api/marketing/CampaignSendSupport.php';
 assertContains($support, '/isSuppressed\(\$email\)/', 'send must re-check email suppression');
-assertContains($support, '/isOrgSuppressed\(\$orgRef\)/', 'send must re-check org suppression');
+assertContains($support, '/isOrgBlocked\(\$email\)/', 'send must re-check org suppression and org-level Do Not Contact');
 assertContains($runner, '/preCheck\(\$email, \$camp\[\'kind\'\], \$ctx\)/', 'send must run the kind-aware sheet pre-check');
 assertContains($runner, '/mo_elig_ctx\(/', 'send must build per-recipient eligibility context');
 assertContains($runner, '/new_thread_not_acknowledged/', 'send must skip unacknowledged unthreaded follow-ups');

@@ -70,6 +70,7 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
         .mo-flag { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 0.68rem; margin: 1px 3px 1px 0; white-space: nowrap; }
         .mo-flag.missing_contact { background: #fee2e2; color: #991b1b; }
         .mo-flag.do_not_contact { background: #1f2937; color: #fff; }
+        .mo-flag.do_not_contact.org, .mo-flag.org_do_not_contact { background: #7f1d1d; color: #fff; }
         .mo-flag.duplicate_org { background: #fef3c7; color: #92400e; }
         .mo-flag.setup_incomplete { background: #e0e7ff; color: #3730a3; }
         .mo-pill { display: inline-block; padding: 2px 9px; border-radius: 10px; font-size: 0.72rem; white-space: nowrap; background: #f3f4f6; color: #374151; }
@@ -331,6 +332,7 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
             <option value=""><?php echo h(ma('filter_all_flags')); ?></option>
             <option value="missing_contact"><?php echo h(ma('flag_missing_contact')); ?></option>
             <option value="do_not_contact"><?php echo h(ma('flag_do_not_contact')); ?></option>
+            <option value="org_do_not_contact"><?php echo h(ma('flag_org_do_not_contact')); ?></option>
             <option value="duplicate_org"><?php echo h(ma('flag_duplicate_org')); ?></option>
             <option value="setup_incomplete"><?php echo h(ma('flag_setup_incomplete')); ?></option>
         </select>
@@ -372,6 +374,7 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
             <option value=""><?php echo h(ma('filter_all')); ?></option>
             <option value="missing_contact"><?php echo h(ma('flag_missing_contact')); ?></option>
             <option value="do_not_contact"><?php echo h(ma('flag_do_not_contact')); ?></option>
+            <option value="org_do_not_contact"><?php echo h(ma('flag_org_do_not_contact')); ?></option>
             <option value="duplicate_org"><?php echo h(ma('flag_duplicate_org')); ?></option>
             <option value="setup_incomplete"><?php echo h(ma('flag_setup_incomplete')); ?></option>
         </select>
@@ -2169,6 +2172,30 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
                 reviewResolved: <?php echo json_encode(ma('review_resolved')); ?>,
                 organization: <?php echo json_encode(ma('organization')); ?>,
                 editOrg: <?php echo json_encode(ma('edit_org')); ?>,
+                orgDncAction: <?php echo json_encode(ma('org_dnc_action')); ?>,
+                orgDncTitle: <?php echo json_encode(ma('org_dnc_title')); ?>,
+                orgDncBadge: <?php echo json_encode(ma('org_dnc_badge')); ?>,
+                contactDncBadge: <?php echo json_encode(ma('contact_dnc_badge')); ?>,
+                orgDncExplain: <?php echo json_encode(ma('org_dnc_explain')); ?>,
+                orgDncContacts: <?php echo json_encode(ma('org_dnc_contacts')); ?>,
+                orgDncDomains: <?php echo json_encode(ma('org_dnc_domains')); ?>,
+                orgDncDomainsNone: <?php echo json_encode(ma('org_dnc_domains_none')); ?>,
+                orgDncSkipped: <?php echo json_encode(ma('org_dnc_skipped')); ?>,
+                orgDncSkipShared: <?php echo json_encode(ma('org_dnc_skip_shared')); ?>,
+                orgDncSkipOther: <?php echo json_encode(ma('org_dnc_skip_other')); ?>,
+                orgDncSkipUnverified: <?php echo json_encode(ma('org_dnc_skip_unverified')); ?>,
+                orgDncPending: <?php echo json_encode(ma('org_dnc_pending')); ?>,
+                orgDncReason: <?php echo json_encode(ma('org_dnc_reason')); ?>,
+                orgDncReasonPh: <?php echo json_encode(ma('org_dnc_reason_ph')); ?>,
+                orgDncReasonRequired: <?php echo json_encode(ma('org_dnc_reason_required')); ?>,
+                orgDncDone: <?php echo json_encode(ma('org_dnc_done')); ?>,
+                orgDncStatus: <?php echo json_encode(ma('org_dnc_status')); ?>,
+                orgDncBlockedDomains: <?php echo json_encode(ma('org_dnc_blocked_domains')); ?>,
+                orgDncRemove: <?php echo json_encode(ma('org_dnc_remove')); ?>,
+                orgDncRemoveExplain: <?php echo json_encode(ma('org_dnc_remove_explain')); ?>,
+                orgDncRemoveNamePh: <?php echo json_encode(ma('org_dnc_remove_name_ph')); ?>,
+                orgDncRemoved: <?php echo json_encode(ma('org_dnc_removed')); ?>,
+                orgDncDomainBlock: <?php echo json_encode(ma('org_dnc_domain_block')); ?>,
                 edit: <?php echo json_encode(ma('edit')); ?>,
                 prospect: <?php echo json_encode(ma('prospect')); ?>,
                 campaignMembership: <?php echo json_encode(ma('campaign_membership')); ?>,

@@ -530,8 +530,7 @@ final class ProspectSheetImporter
     {
         if ($email === null) return;
         $suppressed = $this->suppression->isSuppressed($email);
-        $orgRef = SuppressionService::orgRefForEmail($email);
-        $orgSuppressed = !$suppressed && $orgRef !== null && $this->suppression->isOrgSuppressed($orgRef);
+        $orgSuppressed = !$suppressed && $this->suppression->isOrgBlocked($email);
         if ($suppressed || $orgSuppressed) {
             $this->pdo->prepare('UPDATE marketing_contacts SET dnc=1 WHERE id=? AND dnc=0')->execute([$contactId]);
             $reviewReasons[] = $suppressed ? 'suppressed_email' : 'suppressed_org';
@@ -544,10 +543,7 @@ final class ProspectSheetImporter
         if (trim((string)($f['_unsubscribed_at'] ?? '')) !== '') return true;
         if (preg_match('/unsubscrib|do not contact|do-not-contact|opted out/i', $f['status'])) return true;
         if ($email !== null && $this->suppression->isSuppressed($email)) return true;
-        if ($email !== null) {
-            $orgRef = SuppressionService::orgRefForEmail($email);
-            if ($orgRef !== null && $this->suppression->isOrgSuppressed($orgRef)) return true;
-        }
+        if ($email !== null && $this->suppression->isOrgBlocked($email)) return true;
         return false;
     }
 

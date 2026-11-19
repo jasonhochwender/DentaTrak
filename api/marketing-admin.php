@@ -211,6 +211,8 @@ function mo_prospect_item(array $p): array {
         'campaign' => $p['fields']['campaign'],
         'bucket' => $p['bucket'],
         'flags' => $p['flags'],
+        // '' | contact | organization | both
+        'dnc_scope' => $p['dnc_scope'] ?? '',
         'eligible' => $p['eligible'],
         'eligible_initial' => !empty($p['eligibility']['initial']['ok']),
         'initial_flags' => $p['eligibility']['initial']['flags'] ?? [],
@@ -623,11 +625,18 @@ if ($method === 'GET') {
                 $orgId = $p['fields']['org_id'] ?? null;
                 $org = null;
                 if ($orgId) {
-                    $og = $pdo->prepare('SELECT id,name,org_type,domain,location,website,parent_org_id,status,tags FROM marketing_orgs WHERE id=?');
+                    $og = $pdo->prepare('SELECT * FROM marketing_orgs WHERE id=?');
                     $og->execute([(int)$orgId]);
                     $org = $og->fetch(PDO::FETCH_ASSOC) ?: null;
+                    if ($org) {
+                        $org = array_intersect_key($org, array_flip(['id','name','org_type','domain','location','website',
+                            'parent_org_id','status','tags','dnc','dnc_at','dnc_by','dnc_reason']));
+                    }
                 }
-                mo_out(['success' => true, 'prospect' => $p, 'org' => $org,
+                // Organization-level block (suppressed domain or Do-Not-Contact
+                // organization), reported separately from contact-level state.
+                $orgBlock = $email !== '' ? (new SuppressionService($pdo))->orgBlockInfo($email) : null;
+                mo_out(['success' => true, 'prospect' => $p, 'org' => $org, 'org_block' => $orgBlock,
                     'events' => $events, 'campaigns' => $mc->fetchAll(PDO::FETCH_ASSOC),
                     'history' => $hist->fetchAll(PDO::FETCH_ASSOC), 'source' => 'crm']);
             }
@@ -706,6 +715,8 @@ if ($method === 'GET') {
             $ch = $pdo->prepare('SELECT id,name,org_type FROM marketing_orgs WHERE parent_org_id=? ORDER BY name');
             $ch->execute([$id]);
             mo_out(['success' => true, 'org' => $org, 'parent' => $parent,
+                // Do-Not-Contact state + what marking it would cover.
+                'dnc' => (new SuppressionService($pdo))->orgDncPlan($id),
                 'children' => $ch->fetchAll(PDO::FETCH_ASSOC),
                 'contacts' => array_map('mo_prospect_item', $crm->contactsForOrg($id)),
                 'source' => 'crm']);
@@ -1093,6 +1104,21 @@ switch ($action) {
         $camp = $c->fetch(PDO::FETCH_ASSOC);
         if (!$camp) mo_fail('not found', 404);
         if (!in_array($camp['status'], ['draft', 'ready'], true)) mo_fail('campaign not approvable');
+        // Suppression recheck before anything is approved: a recipient whose
+        // address or organization became Do Not Contact since it was added
+        // is excluded here (row and history kept), so it is never part of
+        // the approved content.
+        $rdy = $pdo->prepare("SELECT id, prospect_email FROM marketing_campaign_recipients WHERE campaign_id=? AND status='ready'");
+        $rdy->execute([$cid]);
+        $excluded = 0;
+        foreach ($rdy->fetchAll(PDO::FETCH_ASSOC) as $rr) {
+            $em = SuppressionService::normalizeEmail((string)$rr['prospect_email']);
+            $why = $svc->isSuppressed($em) ? 'suppressed' : ($svc->isOrgBlocked($em) ? 'org_do_not_contact' : null);
+            if ($why === null) continue;
+            $pdo->prepare("UPDATE marketing_campaign_recipients SET status='suppressed', skip_reason=? WHERE id=? AND status='ready'")
+                ->execute([$why, (int)$rr['id']]);
+            $excluded++;
+        }
         // Every non-suppressed recipient must have content; cap enforced
         $rs = $pdo->prepare("SELECT status, COUNT(*) n FROM marketing_campaign_recipients WHERE campaign_id=? GROUP BY status");
         $rs->execute([$cid]);
@@ -1500,6 +1526,38 @@ switch ($action) {
         catch (InvalidArgumentException $e) { mo_fail($e->getMessage()); }
         mo_audit($pdo, $userEmail, 'org_update', null, ['org_id' => $id, 'changed' => $r['changed']]);
         mo_out(['success' => true, 'warnings' => $r['warnings'], 'changed' => $r['changed']]);
+    }
+
+    case 'org_dnc_set': {
+        // Organization-level Do Not Contact: blocks marketing outreach to
+        // every current and future contact of the organization and its
+        // verified domain(s). Contacts and history are untouched.
+        mo_crm_admin($pdo, $userEmail);
+        $id = (int)($in['org_id'] ?? 0);
+        $reason = trim((string)($in['reason'] ?? ''));
+        if ($id <= 0) mo_fail('org_id required');
+        if ($reason === '') mo_fail('reason required');
+        try { $r = (new SuppressionService($pdo))->suppressOrganization($id, (string)$userEmail, $reason); }
+        catch (RuntimeException $e) { mo_fail($e->getMessage()); }
+        mo_audit($pdo, $userEmail, 'org_dnc_set', null, ['org_id' => $id, 'reason' => $reason,
+            'already_dnc' => $r['already_dnc'], 'domains' => $r['domains'], 'new_domains' => $r['new_domains'],
+            'contacts' => $r['contacts']]);
+        mo_out(['success' => true] + $r);
+    }
+
+    case 'org_dnc_clear': {
+        // Deliberate removal: requires the organization's exact name and a
+        // reason. Contact-level suppression is never lifted here.
+        mo_crm_admin($pdo, $userEmail);
+        $id = (int)($in['org_id'] ?? 0);
+        if ($id <= 0) mo_fail('org_id required');
+        try {
+            $r = (new SuppressionService($pdo))->unsuppressOrganization($id, (string)$userEmail,
+                (string)($in['confirm_name'] ?? ''), (string)($in['reason'] ?? ''));
+        } catch (RuntimeException $e) { mo_fail($e->getMessage()); }
+        mo_audit($pdo, $userEmail, 'org_dnc_clear', null, ['org_id' => $id, 'reason' => trim((string)($in['reason'] ?? '')),
+            'was_dnc' => $r['was_dnc'], 'domains_removed' => $r['domains_removed']]);
+        mo_out(['success' => true] + $r);
     }
 
     case 'bulk_update': {

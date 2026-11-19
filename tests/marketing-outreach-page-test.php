@@ -114,6 +114,22 @@ foreach (['data-bulk="review"', 'data-bulk="suppress"', 'data-bulk="suppress_rev
 $api = (string)file_get_contents(__DIR__ . '/../api/marketing-admin.php');
 check(strpos($api, "case 'reply_action':") !== false && strpos($api, "mo_audit(\$pdo, \$userEmail, 'reply_action'") !== false,
     'reply_action endpoint exists and is audited');
+// ---- 7. Organization-level Do Not Contact ----
+foreach (["case 'org_dnc_set':", "case 'org_dnc_clear':", "mo_audit(\$pdo, \$userEmail, 'org_dnc_set'", "mo_audit(\$pdo, \$userEmail, 'org_dnc_clear'",
+          "'org_do_not_contact'", "'dnc_scope'"] as $needle) {
+    check(strpos($api, $needle) !== false, "admin API has $needle");
+}
+check(preg_match("/case 'approve': \{[\s\S]{0,1500}isOrgBlocked/", $api) === 1, 'approval rechecks organization suppression');
+foreach (["apiPost('org_dnc_set'", "apiPost('org_dnc_clear'", 'confirm_name', 'function flagBadges', "id=\"moOrgDnc\"", "S('orgDncExplain')"] as $needle) {
+    check(strpos($crmJs, $needle) !== false, "CRM UI has $needle");
+}
+check(strpos($html, 'value="org_do_not_contact"') !== false, 'organization DNC flag filter option');
+foreach (glob(__DIR__ . '/../locales/*.json') as $lf) {
+    $raw = (string)file_get_contents($lf);
+    foreach (['org_dnc_action', 'org_dnc_badge', 'contact_dnc_badge', 'org_dnc_explain', 'org_dnc_remove_explain', 'flag_org_do_not_contact'] as $k) {
+        check(strpos($raw, '"' . $k . '"') !== false, basename($lf) . ": $k present");
+    }
+}
 echo "marketing-outreach-page-test: $passes passed, " . count($failures) . " failed\n";
 foreach ($failures as $f) echo "  FAIL: $f\n";
 exit($failures ? 1 : 0);

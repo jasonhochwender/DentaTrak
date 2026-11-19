@@ -134,6 +134,7 @@ final class SuppressionService
     {
         $orgRef = strtolower(trim($orgRef));
         if ($orgRef === '') throw new RuntimeException('org_ref required');
+        if (self::isSharedDomain($orgRef)) throw new RuntimeException('shared email provider cannot be suppressed as an organization');
         $s = $this->pdo->prepare('SELECT * FROM marketing_org_suppressions WHERE org_ref=?');
         $s->execute([$orgRef]);
         $existing = $s->fetch(PDO::FETCH_ASSOC);
@@ -150,6 +151,273 @@ final class SuppressionService
     {
         return isset($this->orgSuppressedSet()[strtolower(trim($orgRef))]);
     }
+
+    /* ---------------- organization-level Do Not Contact ---------------- */
+
+    /**
+     * Shared mailbox providers. A domain here never identifies an
+     * organization, so it can never be suppressed as one.
+     */
+    public const SHARED_DOMAINS = [
+        'gmail.com','googlemail.com','yahoo.com','ymail.com','rocketmail.com','hotmail.com','outlook.com',
+        'live.com','msn.com','aol.com','icloud.com','me.com','mac.com','comcast.net',
+        'att.net','verizon.net','sbcglobal.net','bellsouth.net','earthlink.net',
+        'charter.net','spectrum.net','cox.net','frontier.com','windstream.net','roadrunner.com',
+        'rr.com','netzero.net','juno.com','embarqmail.com','centurylink.net','optonline.net',
+        'mail.com','protonmail.com','proton.me','pm.me','gmx.com','gmx.net','zoho.com',
+        'yandex.com','inbox.com','lavabit.com','fastmail.com','hey.com','tutanota.com',
+    ];
+
+    public static function isSharedDomain(string $domain): bool
+    {
+        return in_array(self::cleanDomain($domain), self::SHARED_DOMAINS, true);
+    }
+
+    /** Bare lowercase host: strips scheme, path, port and a leading "www.". */
+    public static function cleanDomain(string $raw): string
+    {
+        $d = strtolower(trim($raw));
+        if ($d === '') return '';
+        if (strpos($d, '@') !== false) $d = substr($d, strrpos($d, '@') + 1);
+        if (strpos($d, '://') !== false) $d = (string)parse_url($d, PHP_URL_HOST);
+        $d = preg_replace('#[/:?\#].*$#', '', $d) ?? $d;
+        if (str_starts_with($d, 'www.')) $d = substr($d, 4);
+        return preg_match('/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/', $d) ? $d : '';
+    }
+
+    private ?array $orgDnc = null;
+
+    /**
+     * Do-Not-Contact organizations and the addresses of their contacts.
+     * Empty until the org-DNC migration has run.
+     * @return array{orgs: array<int,true>, emails: array<string,int>}
+     */
+    private function orgDnc(): array
+    {
+        if ($this->orgDnc === null) {
+            $this->orgDnc = ['orgs' => [], 'emails' => []];
+            try {
+                foreach ($this->pdo->query(
+                    "SELECT o.id, c.email_normalized FROM marketing_orgs o
+                     LEFT JOIN marketing_contacts c ON c.org_id = o.id WHERE o.dnc = 1"
+                )->fetchAll(PDO::FETCH_ASSOC) as $r) {
+                    $this->orgDnc['orgs'][(int)$r['id']] = true;
+                    $e = strtolower(trim((string)($r['email_normalized'] ?? '')));
+                    if ($e !== '') $this->orgDnc['emails'][$e] = (int)$r['id'];
+                }
+            } catch (Throwable $e) { /* column not migrated yet */ }
+        }
+        return $this->orgDnc;
+    }
+
+    public function isOrgDnc(int $orgId): bool
+    {
+        return isset($this->orgDnc()['orgs'][$orgId]);
+    }
+
+    /**
+     * Organization-level block for an address: its domain is suppressed,
+     * or it belongs to a contact of a Do-Not-Contact organization (this is
+     * what covers staff who use a shared provider such as gmail.com).
+     */
+    public function isOrgBlocked(string $email): bool
+    {
+        $email = self::normalizeEmail($email);
+        if ($email === '') return false;
+        $ref = self::orgRefForEmail($email);
+        return ($ref !== null && $this->isOrgSuppressed($ref)) || isset($this->orgDnc()['emails'][$email]);
+    }
+
+    /** Why an address is blocked at organization level, for display. */
+    public function orgBlockInfo(string $email): ?array
+    {
+        $email = self::normalizeEmail($email);
+        $ref = self::orgRefForEmail($email);
+        if ($ref !== null && $this->isOrgSuppressed($ref)) {
+            $s = $this->pdo->prepare('SELECT * FROM marketing_org_suppressions WHERE org_ref=?');
+            $s->execute([$ref]);
+            $row = $s->fetch(PDO::FETCH_ASSOC) ?: [];
+            return ['via' => 'domain', 'domain' => $ref, 'org_id' => isset($row['org_id']) ? (int)$row['org_id'] ?: null : null,
+                    'reason' => $row['reason'] ?? null, 'source' => $row['source'] ?? null, 'at' => $row['created_at'] ?? null];
+        }
+        $oid = $this->orgDnc()['emails'][$email] ?? null;
+        if ($oid === null) return null;
+        $s = $this->pdo->prepare('SELECT dnc_reason, dnc_at, dnc_by FROM marketing_orgs WHERE id=?');
+        $s->execute([$oid]);
+        $row = $s->fetch(PDO::FETCH_ASSOC) ?: [];
+        return ['via' => 'organization', 'domain' => null, 'org_id' => $oid, 'reason' => $row['dnc_reason'] ?? null,
+                'source' => 'admin_org_dnc', 'at' => $row['dnc_at'] ?? null];
+    }
+    /**
+     * What marking an organization Do Not Contact would cover. Read-only.
+     * A domain is suppressed only when it is recorded on the organization
+     * (domain or website), is not a shared provider, and is not also used
+     * by contacts of an unrelated organization; everything else is listed
+     * under skipped_domains and is covered per-contact instead.
+     */
+    public function orgDncPlan(int $orgId): ?array
+    {
+        $s = $this->pdo->prepare('SELECT * FROM marketing_orgs WHERE id=?');
+        $s->execute([$orgId]);
+        $org = $s->fetch(PDO::FETCH_ASSOC);
+        if (!$org) return null;
+        $c = $this->pdo->prepare('SELECT id, email_normalized, dnc FROM marketing_contacts WHERE org_id=?');
+        $c->execute([$orgId]);
+        $contacts = $c->fetchAll(PDO::FETCH_ASSOC);
+
+        $candidates = [];
+        foreach ([(string)($org['domain'] ?? ''), (string)($org['website'] ?? '')] as $raw) {
+            $d = self::cleanDomain($raw);
+            if ($d !== '') $candidates[$d] = true;
+        }
+        $domains = []; $skipped = [];
+        foreach (array_keys($candidates) as $d) {
+            if (self::isSharedDomain($d)) { $skipped[] = ['domain' => $d, 'reason' => 'shared_provider']; continue; }
+            // Same domain used by contacts of an unrelated organization
+            // (not this org, its parent, or its children): not ours alone.
+            $o = $this->pdo->prepare(
+                "SELECT COUNT(DISTINCT c.org_id) FROM marketing_contacts c
+                 JOIN marketing_orgs x ON x.id = c.org_id
+                 WHERE SUBSTRING_INDEX(c.email_normalized, '@', -1) = ?
+                   AND c.org_id <> ? AND COALESCE(x.parent_org_id, 0) <> ? AND x.id <> ?");
+            $o->execute([$d, $orgId, $orgId, (int)($org['parent_org_id'] ?? 0)]);
+            if ((int)$o->fetchColumn() > 0) { $skipped[] = ['domain' => $d, 'reason' => 'used_by_other_organization']; continue; }
+            $domains[] = $d;
+        }
+        // Contact address domains that are NOT verified for the org are
+        // reported so the admin can see they are covered per contact only.
+        foreach ($contacts as $ct) {
+            $d = self::orgRefForEmail((string)$ct['email_normalized']);
+            if ($d === null || $d === '' || in_array($d, $domains, true)) continue;
+            $known = array_column($skipped, 'domain');
+            if (!in_array($d, $known, true)) {
+                $skipped[] = ['domain' => $d, 'reason' => self::isSharedDomain($d) ? 'shared_provider' : 'not_verified_for_organization'];
+            }
+        }
+        $pending = 0;
+        try {
+            $emails = array_values(array_filter(array_map(fn($x) => (string)$x['email_normalized'], $contacts)));
+            $where = []; $args = [];
+            if ($emails) { $where[] = 'r.prospect_email IN (' . implode(',', array_fill(0, count($emails), '?')) . ')'; $args = $emails; }
+            foreach ($domains as $d) { $where[] = "SUBSTRING_INDEX(r.prospect_email, '@', -1) = ?"; $args[] = $d; }
+            if ($where) {
+                $p = $this->pdo->prepare(
+                    "SELECT COUNT(*) FROM marketing_campaign_recipients r
+                     WHERE r.status NOT IN ('sent','suppressed','skipped') AND (" . implode(' OR ', $where) . ')');
+                $p->execute($args);
+                $pending = (int)$p->fetchColumn();
+            }
+        } catch (Throwable $e) { /* campaign tables absent */ }
+        return [
+            'org' => ['id' => (int)$org['id'], 'name' => (string)$org['name'], 'dnc' => (int)($org['dnc'] ?? 0) === 1,
+                      'dnc_at' => $org['dnc_at'] ?? null, 'dnc_by' => $org['dnc_by'] ?? null, 'dnc_reason' => $org['dnc_reason'] ?? null],
+            'domains' => $domains, 'skipped_domains' => $skipped,
+            'contacts' => count($contacts), 'pending_recipients' => $pending,
+            'suppressed_domains' => $this->orgDomainRows($orgId),
+        ];
+    }
+
+    /** Domain suppressions recorded for this organization. */
+    public function orgDomainRows(int $orgId): array
+    {
+        try {
+            $s = $this->pdo->prepare('SELECT org_ref, source, reason, created_at, created_by FROM marketing_org_suppressions WHERE org_id=? ORDER BY org_ref');
+            $s->execute([$orgId]);
+            return $s->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Throwable $e) { return []; }
+    }
+
+    /**
+     * Mark an organization Do Not Contact: blocks every current and future
+     * contact of the organization and suppresses its verified domain(s).
+     * Contacts, notes, campaign history and contact-level status are left
+     * exactly as they are. Idempotent.
+     */
+    public function suppressOrganization(int $orgId, string $actor, string $reason, string $source = 'admin_org_dnc'): array
+    {
+        $plan = $this->orgDncPlan($orgId);
+        if ($plan === null) throw new RuntimeException('organization not found');
+        $reason = trim($reason);
+        if ($reason === '') throw new RuntimeException('reason required');
+        $actor = substr($actor, 0, 190);
+        $already = $plan['org']['dnc'];
+        $newDomains = [];
+        $this->pdo->beginTransaction();
+        try {
+            if (!$already) {
+                $this->pdo->prepare(
+                    'UPDATE marketing_orgs SET dnc=1, dnc_at=UTC_TIMESTAMP(), dnc_by=?, dnc_reason=?, updated_at=UTC_TIMESTAMP() WHERE id=? AND dnc=0'
+                )->execute([$actor, mb_substr($reason, 0, 255), $orgId]);
+            }
+            foreach ($plan['domains'] as $d) {
+                $r = $this->suppressOrg($d, $source, mb_substr($reason, 0, 200));
+                // A domain that was already suppressed (for example by an
+                // earlier unsubscribe) keeps its own origin: it is not
+                // linked here, so removing this organization's Do Not
+                // Contact later can never lift it.
+                if (!empty($r['already_suppressed'])) continue;
+                $newDomains[] = $d;
+                $this->pdo->prepare(
+                    'UPDATE marketing_org_suppressions SET org_id=?, created_by=? WHERE org_ref=? AND org_id IS NULL'
+                )->execute([$orgId, $actor, $d]);
+            }
+            if (!$already || $newDomains) {
+                $this->pdo->prepare(
+                    "INSERT INTO marketing_prospect_events (contact_id, org_id, event_type, details, actor, source)
+                     VALUES (NULL, ?, 'org_dnc_set', ?, ?, 'crm')"
+                )->execute([$orgId, json_encode(['reason' => $reason, 'domains' => $plan['domains'],
+                    'new_domains' => $newDomains, 'skipped_domains' => $plan['skipped_domains'],
+                    'contacts' => $plan['contacts'], 'source' => $source]), $actor]);
+            }
+            $this->pdo->commit();
+        } catch (Throwable $e) {
+            $this->pdo->rollBack();
+            $this->orgSuppressedSet = null;
+            throw $e;
+        }
+        $this->orgDnc = null;
+        return ['org_id' => $orgId, 'already_dnc' => $already, 'domains' => $plan['domains'], 'new_domains' => $newDomains,
+                'skipped_domains' => $plan['skipped_domains'], 'contacts' => $plan['contacts'],
+                'pending_recipients' => $plan['pending_recipients']];
+    }
+
+    /**
+     * Remove organization-level Do Not Contact. Deliberate: the caller must
+     * supply the organization's exact name and a reason. Lifts only the
+     * org flag and the domain rows that belong to this organization;
+     * contact-level suppression and do-not-contact flags are never touched.
+     */
+    public function unsuppressOrganization(int $orgId, string $actor, string $confirmName, string $reason): array
+    {
+        $s = $this->pdo->prepare('SELECT id, name, dnc, dnc_reason, dnc_at, dnc_by FROM marketing_orgs WHERE id=?');
+        $s->execute([$orgId]);
+        $org = $s->fetch(PDO::FETCH_ASSOC);
+        if (!$org) throw new RuntimeException('organization not found');
+        if (trim($reason) === '') throw new RuntimeException('reason required');
+        if (trim($confirmName) === '' || mb_strtolower(trim($confirmName)) !== mb_strtolower(trim((string)$org['name']))) {
+            throw new RuntimeException('confirmation does not match the organization name');
+        }
+        $domains = array_column($this->orgDomainRows($orgId), 'org_ref');
+        if ((int)$org['dnc'] !== 1 && !$domains) return ['org_id' => $orgId, 'was_dnc' => false, 'domains_removed' => []];
+        $this->pdo->beginTransaction();
+        try {
+            $this->pdo->prepare('UPDATE marketing_orgs SET dnc=0, dnc_at=NULL, dnc_by=NULL, dnc_reason=NULL, updated_at=UTC_TIMESTAMP() WHERE id=?')
+                ->execute([$orgId]);
+            $this->pdo->prepare('DELETE FROM marketing_org_suppressions WHERE org_id=?')->execute([$orgId]);
+            $this->pdo->prepare(
+                "INSERT INTO marketing_prospect_events (contact_id, org_id, event_type, details, actor, source)
+                 VALUES (NULL, ?, 'org_dnc_removed', ?, ?, 'crm')"
+            )->execute([$orgId, json_encode(['reason' => trim($reason), 'domains_removed' => $domains,
+                'previous' => ['reason' => $org['dnc_reason'], 'at' => $org['dnc_at'], 'by' => $org['dnc_by']]]), substr($actor, 0, 190)]);
+            $this->pdo->commit();
+        } catch (Throwable $e) {
+            $this->pdo->rollBack();
+            throw $e;
+        }
+        $this->orgDnc = null; $this->orgSuppressedSet = null;
+        return ['org_id' => $orgId, 'was_dnc' => (int)$org['dnc'] === 1, 'domains_removed' => $domains];
+    }
+
     /** Bounded batch eligibility check — only eligible:true may send. */
     public function eligibility(array $emails): array
     {
@@ -158,7 +426,7 @@ final class SuppressionService
             $n = self::normalizeEmail((string) $e);
             $valid = $n !== '' && filter_var($n, FILTER_VALIDATE_EMAIL);
             $orgRef = $valid ? self::orgRefForEmail($n) : null;
-            $eligible = $valid && !$this->isBlocked($n) && !($orgRef !== null && $this->isOrgSuppressed($orgRef));
+            $eligible = $valid && !$this->isBlocked($n) && !$this->isOrgBlocked($n);
             $out[] = ['email' => $n, 'eligible' => $eligible, 'reason' => $eligible ? '' : 'suppressed_or_invalid'];
         }
         return $out;

@@ -30,7 +30,6 @@ function mo_send_batch_size(): int {
  * send outside the current campaign.
  */
 function mo_elig_ctx(PDO $pdo, SuppressionService $svc, string $email, ?string $excludeRef = null): array {
-    $orgRef = SuppressionService::orgRefForEmail($email);
     $sql = "SELECT 1 FROM marketing_sends WHERE email_normalized=? AND status='sent'";
     $args = [$email];
     if ($excludeRef !== null) { $sql .= ' AND campaign_ref<>?'; $args[] = $excludeRef; }
@@ -38,7 +37,7 @@ function mo_elig_ctx(PDO $pdo, SuppressionService $svc, string $email, ?string $
     $st->execute($args);
     return [
         'suppressed' => $svc->isSuppressed($email),
-        'org_suppressed' => $orgRef !== null && $svc->isOrgSuppressed($orgRef),
+        'org_suppressed' => $svc->isOrgBlocked($email),
         // Expiring bounce hold (temporary failure / unresolved review):
         // blocks this send without permanently suppressing the address.
         'held' => $svc->isHeld($email),

@@ -161,7 +161,7 @@ if ($name==='check_eligibility') {
         $claim->execute([':id'=>$r['id']]);
         if ($claim->rowCount() !== 1) { $skipped++; continue; } // claimed elsewhere
         // Per-recipient suppression recheck immediately before send.
-        if ($svc->isSuppressed($r['email']) || ($o = SuppressionService::orgRefForEmail($r['email'])) && $svc->isOrgSuppressed($o)) {
+        if ($svc->isSuppressed($r['email']) || $svc->isOrgBlocked($r['email'])) {
             $pdo->prepare("UPDATE marketing_batch_recipients SET status='skipped',error='suppressed_recheck' WHERE id=:id")->execute([':id'=>$r['id']]);
             $skipped++; continue;
         }

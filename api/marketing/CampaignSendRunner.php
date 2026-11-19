@@ -174,8 +174,11 @@ final class CampaignSendRunner
             //    for THIS campaign is not "prior outreach" for that rule.
             $ctx = mo_elig_ctx($pdo, $svc, $email, $ref);
             if ($ctx['suppressed'] || $ctx['org_suppressed']) {
-                $pdo->prepare("UPDATE marketing_campaign_recipients SET status='suppressed', skip_reason='suppressed_recheck' WHERE id=?")->execute([$r['id']]);
-                $skipped++; $results[] = ['email' => $email, 'status' => 'suppressed'];
+                // Organization-level blocks are labeled as such so the
+                // recipient row shows why it was not sent.
+                $why = $ctx['suppressed'] ? 'suppressed_recheck' : 'org_do_not_contact';
+                $pdo->prepare("UPDATE marketing_campaign_recipients SET status='suppressed', skip_reason=? WHERE id=?")->execute([$why, $r['id']]);
+                $skipped++; $results[] = ['email' => $email, 'status' => 'suppressed', 'reason' => $why];
                 continue;
             }
             if (!empty($ctx['held'])) {

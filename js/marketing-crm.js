@@ -126,9 +126,7 @@
             var f = p.fields || {};
             var cid = f.contact_id || p.row;
             var checked = state.selected[cid] ? ' checked' : '';
-            var flags = (p.flags || []).map(function (fl) {
-                return '<span class="mo-flag ' + fl + '">' + esc(fl.replace(/_/g, ' ')) + '</span>';
-            }).join('');
+            var flags = flagBadges(p);
             if (f.needs_review) flags += '<span class="mo-flag missing_contact">' + esc(cfg.str.needsReview) + '</span>';
             var elig = '';
             if (!empty(p.eligible)) elig = '<span class="mo-pill eligible">' + esc(cfg.str.eligible) + '</span>';
@@ -243,9 +241,7 @@
             eligHtml = '<span class="mo-pill suppressed">' + esc(cfg.str.excluded) + '</span>' +
                 (reasons.length ? ' <span class="mo-sub">' + esc(reasons.join(', ')) + '</span>' : '');
         }
-        var flags = (p.flags || []).map(function (fl) {
-            return '<span class="mo-flag ' + fl + '">' + esc(fl.replace(/_/g, ' ')) + '</span>';
-        }).join(' ');
+        var flags = flagBadges(p);
         var review = '';
         if (f.needs_review) {
             review = '<div class="mo-warn">' + esc(cfg.str.needsReview) +
@@ -276,7 +272,20 @@
                 '<div class="mo-detail-item"><div class="k">' + esc(cfg.str.colDomain) + '</div><div class="v">' + esc(d.org.domain || '—') + '</div></div>' +
                 '<div class="mo-detail-item"><div class="k">' + esc(cfg.str.colLocation) + '</div><div class="v">' + esc(d.org.location || '—') + '</div></div>' +
                 '<div class="mo-detail-item"><div class="k">' + esc(cfg.str.colWebsite) + '</div><div class="v">' + esc(d.org.website || '—') + '</div></div>' +
-                '</div><button class="mo-btn secondary small" id="moEditOrg" data-org="' + d.org.id + '">' + esc(cfg.str.editOrg) + '</button>';
+                '</div>';
+            // Organization-level Do Not Contact: status, reason and action.
+            var ob = d.org_block;
+            if (+d.org.dnc === 1) {
+                orgHtml += '<div class="mo-warn"><span class="mo-flag do_not_contact org">' + esc(S('orgDncBadge')) + '</span> ' +
+                    esc(S('orgDncStatus').replace('{date}', String(d.org.dnc_at || '').slice(0, 10)).replace('{by}', d.org.dnc_by || '—')) +
+                    (d.org.dnc_reason ? '<div class="mo-sub">' + esc(S('orgDncReason')) + ': ' + esc(d.org.dnc_reason) + '</div>' : '') + '</div>';
+            } else if (ob && ob.via === 'domain') {
+                orgHtml += '<div class="mo-warn">' + esc(S('orgDncDomainBlock').replace('{domain}', ob.domain)) +
+                    (ob.reason ? '<div class="mo-sub">' + esc(S('orgDncReason')) + ': ' + esc(ob.reason) + '</div>' : '') + '</div>';
+            }
+            orgHtml += '<button class="mo-btn secondary small" id="moEditOrg" data-org="' + d.org.id + '">' + esc(cfg.str.editOrg) + '</button> ' +
+                '<button class="mo-btn secondary small" id="moOrgDnc" data-org="' + d.org.id + '">' +
+                esc(+d.org.dnc === 1 ? S('orgDncTitle') : S('orgDncAction')) + '</button>';
         }
         var campHtml = '';
         if (d.campaigns && d.campaigns.length) {
@@ -337,6 +346,8 @@
         };
         var eo = $('moEditOrg');
         if (eo) eo.onclick = function () { openOrgForm(parseInt(eo.dataset.org, 10)); };
+        var od = $('moOrgDnc');
+        if (od) od.onclick = function () { openOrgDnc(parseInt(od.dataset.org, 10), function () { openDrawer(f.contact_id); }); };
         $('moActAdd').onclick = function () {
             var type = $('moActType').value, text = $('moActText').value.trim();
             if (!text) { showErr(cfg.str.activityRequired); return; }
@@ -345,6 +356,83 @@
                 else showErr(r.error || cfg.str.loadFailed);
             });
         };
+    }
+
+    /* ---------------- do-not-contact scope ---------------- */
+    // Contact-level and organization-level Do Not Contact are separate
+    // decisions; the badges say which one applies.
+    function flagBadges(p) {
+        var scope = p.dnc_scope || '';
+        return (p.flags || []).map(function (fl) {
+            if (fl === 'org_do_not_contact') return '';
+            if (fl === 'do_not_contact') {
+                var out = '';
+                if (scope === 'organization' || scope === 'both')
+                    out += '<span class="mo-flag do_not_contact org">' + esc(S('orgDncBadge')) + '</span>';
+                if (scope !== 'organization')
+                    out += '<span class="mo-flag do_not_contact">' + esc(S('contactDncBadge')) + '</span>';
+                return out;
+            }
+            return '<span class="mo-flag ' + fl + '">' + esc(fl.replace(/_/g, ' ')) + '</span>';
+        }).join(' ');
+    }
+    function skipReason(r) {
+        return { shared_provider: S('orgDncSkipShared'), used_by_other_organization: S('orgDncSkipOther'),
+            not_verified_for_organization: S('orgDncSkipUnverified') }[r] || r;
+    }
+
+    /* ---------------- organization Do Not Contact ---------------- */
+    function openOrgDnc(orgId, after) {
+        apiGet('org', { id: orgId }).then(function (d) {
+            if (!d.success || !d.dnc) { showErr(d.error || S('loadFailed')); return; }
+            var plan = d.dnc, o = plan.org, body, actions;
+            var skipped = (plan.skipped_domains || []).map(function (x) { return x.domain + ' (' + skipReason(x.reason) + ')'; });
+            var skippedHtml = skipped.length ? '<p class="mo-sub">' + esc(S('orgDncSkipped').replace('{list}', skipped.join(', '))) + '</p>' : '';
+            if (!o.dnc) {
+                body = '<p>' + esc(S('orgDncExplain')) + '</p><ul>' +
+                    '<li>' + esc(S('orgDncContacts').replace('{n}', plan.contacts)) + '</li>' +
+                    '<li>' + esc(plan.domains.length ? S('orgDncDomains').replace('{list}', plan.domains.join(', ')) : S('orgDncDomainsNone')) + '</li>' +
+                    '<li>' + esc(S('orgDncPending').replace('{n}', plan.pending_recipients)) + '</li></ul>' + skippedHtml +
+                    field(S('orgDncReason'), '<textarea id="odReason" rows="2" placeholder="' + esc(S('orgDncReasonPh')) + '"></textarea>');
+                actions = '<button class="mo-btn" id="odSet">' + esc(S('orgDncAction')) + '</button>' +
+                    '<button class="mo-btn secondary" data-close-btn>' + esc(S('cancel')) + '</button>';
+            } else {
+                var doms = (plan.suppressed_domains || []).map(function (x) { return x.org_ref; });
+                body = '<p><span class="mo-flag do_not_contact org">' + esc(S('orgDncBadge')) + '</span></p>' +
+                    '<p>' + esc(S('orgDncStatus').replace('{date}', String(o.dnc_at || '').slice(0, 10)).replace('{by}', o.dnc_by || '—')) + '</p>' +
+                    '<p>' + esc(S('orgDncReason')) + ': ' + esc(o.dnc_reason || '—') + '</p>' +
+                    (doms.length ? '<p>' + esc(S('orgDncBlockedDomains').replace('{list}', doms.join(', '))) + '</p>' : '') + skippedHtml +
+                    '<hr><h4>' + esc(S('orgDncRemove')) + '</h4><p class="mo-sub">' + esc(S('orgDncRemoveExplain')) + '</p>' +
+                    field(S('orgDncRemoveNamePh'), '<input id="odName" autocomplete="off">') +
+                    field(S('orgDncReason'), '<textarea id="odReason" rows="2"></textarea>');
+                actions = '<button class="mo-btn secondary" id="odClear">' + esc(S('orgDncRemove')) + '</button>' +
+                    '<button class="mo-btn" data-close-btn>' + esc(S('cancel')) + '</button>';
+            }
+            openModal(modalShell(S('orgDncTitle') + ': ' + o.name, body, actions));
+            var done = function (msg) { showOk(msg); closeModal(); load(); refreshOrgs(); if (after) after(); };
+            var setBtn = $('odSet');
+            if (setBtn) setBtn.onclick = function () {
+                var reason = $('odReason').value.trim();
+                if (!reason) { showErr(S('orgDncReasonRequired')); return; }
+                setBtn.disabled = true;
+                apiPost('org_dnc_set', { org_id: orgId, reason: reason }).then(function (r) {
+                    setBtn.disabled = false;
+                    if (!r.success) { showErr(r.error || S('loadFailed')); return; }
+                    done(S('orgDncDone').replace('{n}', r.contacts));
+                }).catch(function () { setBtn.disabled = false; showErr(S('loadFailed')); });
+            };
+            var clearBtn = $('odClear');
+            if (clearBtn) clearBtn.onclick = function () {
+                var reason = $('odReason').value.trim();
+                if (!reason) { showErr(S('orgDncReasonRequired')); return; }
+                clearBtn.disabled = true;
+                apiPost('org_dnc_clear', { org_id: orgId, confirm_name: $('odName').value, reason: reason }).then(function (r) {
+                    clearBtn.disabled = false;
+                    if (!r.success) { showErr(r.error || S('loadFailed')); return; }
+                    done(S('orgDncRemoved'));
+                }).catch(function () { clearBtn.disabled = false; showErr(S('loadFailed')); });
+            };
+        }).catch(function () { showErr(S('loadFailed')); });
     }
 
     /* ---------------- prospect form (create/edit) ---------------- */
@@ -492,8 +580,14 @@
                 '</div><div id="ofWarnings"></div>';
             openModal(modalShell(isEdit ? cfg.str.editOrg : cfg.str.addOrg, body,
                 '<button class="mo-btn" id="ofSave">' + esc(cfg.str.save) + '</button>' +
+                (isEdit ? '<button class="mo-btn secondary" id="ofDnc">' + esc(+o.dnc === 1 ? S('orgDncTitle') : S('orgDncAction')) + '</button>' : '') +
                 '<button class="mo-btn secondary" data-close-btn>' + esc(cfg.str.cancel) + '</button>'));
             bindOrgPicker('ofParent', 'ofParentSearch');
+            if (isEdit && +o.dnc === 1) {
+                $('ofWarnings').innerHTML = '<div class="mo-warn"><span class="mo-flag do_not_contact org">' + esc(S('orgDncBadge')) + '</span> ' +
+                    esc(S('orgDncStatus').replace('{date}', String(o.dnc_at || '').slice(0, 10)).replace('{by}', o.dnc_by || '—')) + '</div>';
+            }
+            if ($('ofDnc')) $('ofDnc').onclick = function () { openOrgDnc(orgId); };
             // Seed the parent search with the current parent's name so the
             // selected value survives the first server-side reload.
             if (isEdit && d.parent && d.parent.name) {

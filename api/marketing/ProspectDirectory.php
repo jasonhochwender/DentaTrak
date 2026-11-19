@@ -155,19 +155,17 @@ final class ProspectDirectory
             if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 $flags[] = 'missing_contact';
             } else {
-                // Sheet-level DNC
-                if (strtolower($f['dnc']) !== '' || stripos($f['status'], 'do not contact') !== false) {
-                    $flags[] = 'do_not_contact';
-                }
-                // Authoritative suppression store (email + org domain)
-                if ($suppression->isSuppressed($email)) {
-                    $flags[] = 'do_not_contact';
-                } else {
-                    $orgRef = SuppressionService::orgRefForEmail($email);
-                    if ($orgRef !== null && $suppression->isOrgSuppressed($orgRef)) {
-                        $flags[] = 'do_not_contact';
-                    }
-                }
+                // Contact-level: sheet/CRM DNC or the address itself is in
+                // the authoritative suppression store.
+                $contactDnc = strtolower($f['dnc']) !== '' || stripos($f['status'], 'do not contact') !== false
+                    || $suppression->isSuppressed($email);
+                // Organization-level: suppressed domain, or the contact
+                // belongs to a Do-Not-Contact organization. Independent of
+                // the contact's own status.
+                $orgDnc = $suppression->isOrgBlocked($email);
+                if ($contactDnc || $orgDnc) $flags[] = 'do_not_contact';
+                if ($orgDnc) $flags[] = 'org_do_not_contact';
+                $r['dnc_scope'] = $contactDnc && $orgDnc ? 'both' : ($orgDnc ? 'organization' : ($contactDnc ? 'contact' : ''));
                 // Duplicate org: another row shares this email domain or
                 // parent organization and has already been contacted.
                 $dup = false;
@@ -204,14 +202,14 @@ final class ProspectDirectory
             $r['prior_outreach'] = $priorOutreach;
             $r['bucket'] = self::bucketFor($f, $fu, $priorOutreach);
             $r['flags'] = $flags;
+            $r['dnc_scope'] = $r['dnc_scope'] ?? '';
             $r['contact_name'] = $f['contact_name'] !== '' ? $f['contact_name']
                 : trim($f['contact_first'] . ' ' . $f['contact_last']);
             // Per-kind eligibility from the shared rules.
             $suppressed = $email !== '' && $suppression->isSuppressed($email);
-            $orgRef = $email !== '' ? SuppressionService::orgRefForEmail($email) : null;
             $ctx = [
                 'suppressed' => $suppressed,
-                'org_suppressed' => !$suppressed && $orgRef !== null && $suppression->isOrgSuppressed($orgRef),
+                'org_suppressed' => $email !== '' && $suppression->isOrgBlocked($email),
                 'held' => $email !== '' && $suppression->isHeld($email),
                 'ledger_sent' => isset($ledger[$email]),
                 'registered' => !empty($f['registered']),
@@ -226,6 +224,7 @@ final class ProspectDirectory
                 // permanent exclusions too.
                 $flags[] = 'do_not_contact';
                 $r['flags'] = $flags;
+                $r['dnc_scope'] = 'contact';
             }
             $r['eligible'] = !in_array('missing_contact', $flags, true)
                 && !in_array('do_not_contact', $flags, true);
