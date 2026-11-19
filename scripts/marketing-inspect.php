@@ -208,7 +208,11 @@ if (in_array('--pilot-check', $argv, true)) {
     $emails = array_map(static fn($r) => (string)$r['prospect_email'], $recips);
     $supp = new SuppressionService($pdo);
     $eligMap = [];
-    foreach ($supp->eligibility($emails) as $e) $eligMap[$e['email']] = $e;
+    // eligibility() evaluates at most 200 addresses per call - chunk so
+    // campaigns larger than that do not report false ineligible rows.
+    foreach (array_chunk($emails, 200) as $chunk) {
+        foreach ($supp->eligibility($chunk) as $e) $eligMap[$e['email']] = $e;
+    }
     require_once __DIR__ . '/../api/marketing/ProspectCrm.php';
     $crm = new ProspectCrm($pdo);
     $byEmail = $crm->findByEmails($emails);
