@@ -331,7 +331,7 @@ final class ProspectCrmAdmin
      * accepted ("Georgia" -> "GA"); anything else is dropped rather than
      * guessed.
      */
-    private static function usStateAbbrev(string $v): ?string
+    public static function usStateAbbrev(string $v): ?string
     {
         $abbr = ProspectCrm::normalizeUsState($v);
         if ($abbr === null) return null;
@@ -350,7 +350,7 @@ final class ProspectCrmAdmin
      * when there is no comma-separated tail or it is not a US state, so
      * bare city names are never guessed.
      */
-    private static function usStateFromLocation(string $loc): ?string
+    public static function usStateFromLocation(string $loc): ?string
     {
         $loc = trim($loc);
         $pos = strrpos($loc, ',');
