@@ -2437,7 +2437,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
             const practice = practices.find(p => p.id === practiceId);
             const user = currentPracticeUsers ? currentPracticeUsers.find(u => u.id === userId) : null;
             if (!user || !practice) {
-                alert('User or practice not found');
+                showAdminErrorToast('User or practice not found');
                 return;
             }
 
@@ -2508,14 +2508,25 @@ $userEmail = $_SESSION['user_email'] ?? '';
             // empty or still hold the previous template's defaults.
             const subjIsDefault = !subj.value.trim() || (prevDefaults && subj.value.trim() === prevDefaults.subject);
             const bodyIsDefault = !body.value.trim() || (prevDefaults && body.value.trim() === prevDefaults.body);
+            const chosen = sel.value;
             if (!(subjIsDefault && bodyIsDefault)) {
-                if (!confirm('Replace your edited subject and message with the new template?')) {
-                    sel.value = prevType || sel.value;
-                    return;
-                }
+                openEmailConfirm(
+                    'Replace edited content?',
+                    'Switching templates will replace your edited subject and message with the new template defaults. Continue?',
+                    'Replace',
+                    function () { applyEmailTemplate(chosen); },
+                    function () { sel.value = prevType || chosen; }
+                );
+                return;
             }
-            subj.value = ''; body.value = '';
-            sel.dataset.prevType = sel.value;
+            applyEmailTemplate(chosen);
+        }
+
+        function applyEmailTemplate(type) {
+            const sel = document.getElementById('emailType');
+            document.getElementById('emailSubject').value = '';
+            document.getElementById('emailBody').value = '';
+            sel.dataset.prevType = type;
             currentEmailState.needDefaults = true;
             refreshEmailPreview();
         }
@@ -2607,17 +2618,25 @@ $userEmail = $_SESSION['user_email'] ?? '';
             const body = (document.getElementById('emailBody')?.value || '').trim();
 
             if (type === 'custom' && (!subject || !body)) {
-                alert('Custom messages require both a subject and a message.');
+                showAdminErrorToast('Custom messages require both a subject and a message.');
                 return;
             }
 
             const user = currentEmailState.user || {};
             const toName = [user.first_name, user.last_name].filter(Boolean).join(' ') || user.email;
+            const typePair = ADMIN_EMAIL_TYPES.find(function (p) { return p[0] === type; });
+            const typeLabel = typePair ? typePair[1] : type;
             const previewSubject = subject || (currentEmailState.defaults[type] || {}).subject || '(template subject)';
-            if (!confirm('Send this email to ' + toName + ' <' + (user.email || '') + '>?\n\nSubject: ' + previewSubject)) {
-                return;
-            }
+            const confirmBody =
+                'Send this email to <strong>' + escapeHtml(toName) + '</strong> &lt;' + escapeHtml(user.email || '') + '&gt;?<br><br>' +
+                '<strong>Purpose:</strong> ' + escapeHtml(typeLabel) + '<br>' +
+                '<strong>Subject:</strong> ' + escapeHtml(previewSubject);
+            openEmailConfirm('Send email?', confirmBody, 'Send Email', function () {
+                dispatchAdminEmail(type, subject, body);
+            });
+        }
 
+        function dispatchAdminEmail(type, subject, body) {
             currentEmailState.sending = true;
             const btn = document.getElementById('confirmEmailBtn');
             if (btn) { btn.textContent = 'Sending...'; btn.disabled = true; }
@@ -2640,27 +2659,56 @@ $userEmail = $_SESSION['user_email'] ?? '';
                         showAdminToast(data.message || 'Email sent');
                         closeModal('emailModal');
                     } else {
-                        alert(data.message || 'Failed to send email');
+                        showAdminErrorToast(data.message || 'Failed to send email');
                     }
                 })
                 .catch(error => {
                     currentEmailState.sending = false;
                     if (btn) { btn.textContent = 'Send Email'; btn.disabled = false; }
-                    alert('Error: ' + error.message);
+                    showAdminErrorToast('Error: ' + error.message);
                 });
         }
 
-        function showAdminToast(message) {
+        function showAdminToast(message, type) {
             const existing = document.getElementById('adminToast');
             if (existing) existing.remove();
 
+            const isErr = type === 'error';
             const toast = document.createElement('div');
             toast.id = 'adminToast';
-            toast.style.cssText = 'position: fixed; bottom: 24px; right: 24px; background: #065f46; color: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 2000; font-size: 0.9rem;';
+            toast.setAttribute('role', 'status');
+            toast.style.cssText = 'position: fixed; bottom: 24px; right: 24px; color: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 2000; font-size: 0.9rem; background: ' + (isErr ? '#b91c1c' : '#065f46') + ';';
             toast.textContent = message;
             document.body.appendChild(toast);
 
-            setTimeout(() => toast.remove(), 3000);
+            setTimeout(() => toast.remove(), isErr ? 5000 : 3000);
+        }
+
+        function showAdminErrorToast(message) {
+            showAdminToast(message, 'error');
+        }
+
+        // Styled confirmation dialog used by the email workflow instead of
+        // native confirm(). bodyHtml must already be escaped by the caller.
+        let emailConfirmYesHandler = null;
+        let emailConfirmCancelHandler = null;
+
+        function openEmailConfirm(title, bodyHtml, yesLabel, onYes, onCancel) {
+            document.getElementById('emailConfirmTitle').textContent = title;
+            document.getElementById('emailConfirmBody').innerHTML = bodyHtml;
+            const yesBtn = document.getElementById('emailConfirmYes');
+            yesBtn.textContent = yesLabel || 'Confirm';
+            emailConfirmYesHandler = onYes || null;
+            emailConfirmCancelHandler = onCancel || null;
+            document.getElementById('emailConfirmModal').classList.add('active');
+        }
+
+        function closeEmailConfirm(confirmed) {
+            document.getElementById('emailConfirmModal').classList.remove('active');
+            const handler = confirmed ? emailConfirmYesHandler : emailConfirmCancelHandler;
+            emailConfirmYesHandler = null;
+            emailConfirmCancelHandler = null;
+            if (handler) handler();
         }
         
         let currentSettingsPracticeId = null;
@@ -3484,6 +3532,21 @@ $userEmail = $_SESSION['user_email'] ?? '';
             </div>
             <div id="emailContent">
                 <div class="loading">' + t('common.loading') + '</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Email Confirmation Modal (stacks above emailModal via DOM order) -->
+    <div class="modal" id="emailConfirmModal">
+        <div class="modal-content" style="max-width: 480px;" role="dialog" aria-modal="true" aria-labelledby="emailConfirmTitle">
+            <div class="modal-header">
+                <h3 id="emailConfirmTitle">Confirm</h3>
+                <button class="modal-close" onclick="closeEmailConfirm(false)" aria-label="Close">&times;</button>
+            </div>
+            <div id="emailConfirmBody" style="color: #1f2937; font-size: 0.95rem; line-height: 1.5;"></div>
+            <div class="modal-actions" style="margin-top: 20px;">
+                <button class="action-btn" onclick="closeEmailConfirm(false)">Cancel</button>
+                <button class="action-btn primary" id="emailConfirmYes">Confirm</button>
             </div>
         </div>
     </div>
