@@ -120,18 +120,23 @@ assertContains($page, '/id="moCampProgress"/', 'page must render the campaign pr
 assertContains($baseDir . '/api/marketing/McpCampaignTools.php', '/RECIPIENTS_PAGE_MAX/', 'MCP get_campaign must paginate recipients');
 assertContains($baseDir . '/api/marketing/McpCampaignTools.php', '/CAMPAIGN_MAX = 500/', 'MCP campaign capacity must match the raised cap');
 
-// ---- 5d. Campaign-scoped send authorization ----
-assertContains($api, "/case 'campaign_send_auth'/", 'API must expose per-campaign send authorization');
-assertContains($api, '/campaign_send_authorized/', 'authorization must be audit-logged');
-assertContains($api, '/campaign_send_unauthorized/', 'revocation must be audit-logged');
+// ---- 5d. Approval is the single send authorization ----
+// There is no separate Authorize Sending step: approving a campaign
+// authorizes its recipients (legacy send_authorized flag still honored),
+// and the allowlist lift applies only to approved-or-later campaigns.
+assertNotContains($api, "/case 'campaign_send_auth'/", 'separate send-authorization endpoint must be removed');
+assertContains($api, '/send_authorized=1, send_authorized_by=/', 'approval must record send authorization on the campaign');
 assertContains($baseDir . '/api/marketing/CampaignSendSupport.php', '/function mo_campaign_send_authorized/', 'runner must read authorization fresh per batch');
+assertContains($baseDir . '/api/marketing/CampaignSendSupport.php', "/'approved', 'partial', 'sending', 'completed'/", 'approved-or-later campaigns must count as send-authorized');
+assertContains($baseDir . '/api/marketing/CampaignSendSupport.php', '/send_authorized, status/', 'legacy send_authorized flag must still be honored');
 assertContains($baseDir . '/api/marketing/MarketingMailer.php', '/function deliveryCheck/', 'mailer must expose the campaign-aware delivery gate');
 assertContains($baseDir . '/api/marketing/MarketingMailer.php', "/'campaign_authorized'/", 'send must honor the server-side authorization flag');
 assertContains($baseDir . '/api/marketing/CampaignSendRunner.php', '/campaign_authorized/', 'runner must pass authorization to the mailer');
 assertContains($baseDir . '/migrations/2026_11_23_marketing_campaign_send_auth.php', '/send_authorized/', 'migration must add send_authorized');
-assertContains($baseDir . '/js/marketing-crm.js', '/campaign_send_auth/', 'CRM UI must expose the authorization control');
-assertContains($page, '/id="moCampAuthCrm"/', 'page must render the authorization button');
-assertContains($page, '/sendAuthBadge/', 'page must pass the authorized badge string');
+assertNotContains($baseDir . '/js/marketing-crm.js', '/campaign_send_auth/', 'CRM UI must not expose a separate authorization control');
+assertNotContains($page, '/id="moCampAuth/', 'page must not render an authorization button');
+assertContains($baseDir . '/js/marketing-crm.js', '/confirmSendCampaignInfo/', 'approve-and-send must confirm with campaign name and recipient count');
+assertContains($page, '/confirm_send_campaign_info/', 'page must pass the send-confirmation string');
 
 // ---- 5e. Background message generation ----
 assertContains($api, "/case 'campaign_generate_request'/", 'API must expose queued generation');

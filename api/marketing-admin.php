@@ -1199,9 +1199,17 @@ switch ($action) {
             ->execute([$userEmail, $hash, $cid]);
         $pdo->prepare("UPDATE marketing_campaign_recipients SET status='approved' WHERE campaign_id=? AND status='ready'")
             ->execute([$cid]);
+        // Approval is the single send authorization: record it on the
+        // campaign (legacy send_authorized columns) so the audit trail
+        // shows who authorized delivery. No separate authorize step.
+        try {
+            $pdo->prepare("UPDATE marketing_campaigns SET send_authorized=1, send_authorized_by=?, send_authorized_at=NOW() WHERE id=?")
+                ->execute([$userEmail, $cid]);
+        } catch (Throwable $e) { /* column absent on unmigrated installs */ }
         mo_audit($pdo, $userEmail, 'campaign_approve', $cid,
             ['recipients' => $sendable, 'new_threads' => $newThreads,
-             'allow_new_threads' => $newThreads > 0 ? !empty($in['allow_new_threads']) : null]);
+             'allow_new_threads' => $newThreads > 0 ? !empty($in['allow_new_threads']) : null,
+             'send_authorized' => true]);
         mo_out(['success' => true, 'approved' => $sendable, 'new_threads' => $newThreads]);
     }
 
@@ -1683,36 +1691,6 @@ switch ($action) {
         $st = $pdo->prepare('SELECT send_requested, send_paused, status FROM marketing_campaigns WHERE id=?');
         $st->execute([$cid]);
         mo_out(['success' => true, 'send' => $st->fetch(PDO::FETCH_ASSOC)]);
-    }
-
-    case 'campaign_send_auth': {
-        // Explicit per-campaign delivery authorization. Lifts ONLY the
-        // recipient allowlist for THIS campaign's sends; MARKETING_SENDING,
-        // approval, content hash, suppression and eligibility still gate.
-        // Independent of approval state - may be set on a draft so the
-        // campaign is ready once approved. Never enables other campaigns.
-        $cid = trim((string)($in['campaign_id'] ?? ''));
-        $on = !empty($in['authorized']);
-        if ($cid === '') mo_fail('campaign_id required');
-        $c = $pdo->prepare("SELECT id, status FROM marketing_campaigns WHERE id=?");
-        $c->execute([$cid]);
-        $camp = $c->fetch(PDO::FETCH_ASSOC);
-        if (!$camp) mo_fail('not found', 404);
-        try {
-            if ($on) {
-                $pdo->prepare("UPDATE marketing_campaigns SET send_authorized=1, send_authorized_by=?, send_authorized_at=NOW(), updated_at=NOW() WHERE id=?")
-                    ->execute([$userEmail, $cid]);
-                mo_audit($pdo, $userEmail, 'campaign_send_authorized', $cid,
-                    ['status' => $camp['status'], 'mode' => $sendingPolicy->mode()]);
-            } else {
-                $pdo->prepare("UPDATE marketing_campaigns SET send_authorized=0, send_authorized_by=NULL, send_authorized_at=NULL, updated_at=NOW() WHERE id=?")
-                    ->execute([$cid]);
-                mo_audit($pdo, $userEmail, 'campaign_send_unauthorized', $cid, ['status' => $camp['status']]);
-            }
-        } catch (Throwable $e) {
-            mo_fail('schema_not_migrated: run migrations/2026_11_23_marketing_campaign_send_auth.php', 503);
-        }
-        mo_out(['success' => true, 'send_authorized' => $on]);
     }
 
     case 'import_preview': {

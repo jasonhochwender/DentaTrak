@@ -1026,13 +1026,7 @@
             $('moCampMeta').textContent = c.kind + ' · ' + c.status +
                 (c.created_by ? ' · ' + c.created_by : '') +
                 (c.approved_by ? ' · ' + S('approvedBy') + ' ' + c.approved_by : '') +
-                (c.send_authorized ? ' · ' + S('sendAuthBadge') + (c.send_authorized_by ? ' (' + c.send_authorized_by + ')' : '') : '') +
                 (c.description ? ' — ' + c.description : '');
-            var authBtn = $('moCampAuthCrm');
-            if (authBtn) {
-                authBtn.textContent = c.send_authorized ? S('revokeSendAuth') : S('authorizeSending');
-                authBtn.title = c.send_authorized ? S('confirmRevokeSendAuth') : S('confirmAuthorizeSend');
-            }
             var warn = $('moCampApproveWarn');
             if (c.status === 'approved' || c.status === 'partial') {
                 warn.textContent = S('approveWarn'); warn.classList.remove('mo-hidden');
@@ -1102,15 +1096,9 @@
             $('moCampAddRecipCrm').classList.toggle('mo-hidden', !editable);
             $('moCampThreadsCrm').classList.toggle('mo-hidden',
                 !(c.kind === 'followup' && (c.status === 'draft' || c.status === 'ready')));
-            var authBtn = $('moCampAuthCrm');
-            if (authBtn) {
-                authBtn.textContent = c.send_authorized ? S('revokeSendAuth') : S('authorizeSending');
-                authBtn.title = c.send_authorized ? S('confirmRevokeSendAuth') : S('confirmAuthorizeSend');
-            }
             $('moCampMeta').textContent = c.kind + ' · ' + c.status +
                 (c.created_by ? ' · ' + c.created_by : '') +
                 (c.approved_by ? ' · ' + S('approvedBy') + ' ' + c.approved_by : '') +
-                (c.send_authorized ? ' · ' + S('sendAuthBadge') + (c.send_authorized_by ? ' (' + c.send_authorized_by + ')' : '') : '') +
                 (c.description ? ' — ' + c.description : '');
             renderProgress(c, d.recipient_counts || {}, d.recipient_total || 0);
             renderSendControls(c);
@@ -1609,7 +1597,9 @@
     }
     function sendCampaign() {
         var c = campState.current;
-        confirmModal(S('confirmSendCampaign'), function () {
+        var camp = campState.campaign || {};
+        var n = (campState.counts.approved || 0) + (campState.counts.uncertain || 0);
+        confirmCampaignSend(camp.name || '', n, function () {
             apiPost('send', { campaign_id: c }).then(function (d) {
                 if (!d.success) { showErr(d.error || S('loadFailed')); refreshCampaign(); return; }
                 afterSendResponse(c, d);
@@ -1631,12 +1621,32 @@
         $('genMissing').onclick = function () { closeModal(); requestGeneration('missing'); };
         $('genReplace').onclick = function () { closeModal(); requestGeneration('replace_unedited'); };
     }
+    // Confirmation before dispatching a campaign send: names the campaign
+    // and the number of eligible recipients so the admin knows exactly
+    // what will go out. Suppression/eligibility still re-check per send.
+    function confirmCampaignSend(name, n, onYes) {
+        openModal(modalShell(S('confirm'),
+            '<p>' + esc(S('confirmSendCampaignInfo')
+                .replace('{name}', name).replace('{n}', n)) + '</p>',
+            '<button class="mo-btn danger" id="cfYes">' + esc(S('yes')) + '</button>' +
+            '<button class="mo-btn secondary" data-close-btn>' + esc(S('cancel')) + '</button>'));
+        $('cfYes').onclick = function () { closeModal(); onYes(); };
+    }
+
     function campApprove() {
-        // Approve only - never sends. Sending is the separate Send button.
+        // Single approve-and-send action. With delivery enabled this
+        // approves AND dispatches after one explicit confirmation;
+        // with sending off it only approves (the campaign stays sendable
+        // later via the Send button).
         var c = campState.current;
+        var camp = campState.campaign || {};
+        var canSend = !!(campState.sending && campState.sending.enabled);
+        var btn = $('moCampApproveCrm');
         var doApprove = function (allowNew) {
+            if (btn) btn.disabled = true;
             apiPost('approve', { campaign_id: c, allow_new_threads: allowNew }).then(function (d) {
                 if (!d.success) {
+                    if (btn) btn.disabled = false;
                     var err = String(d.error || '');
                     if (err.indexOf('threads_pending:') === 0) {
                         // Large follow-up campaigns resolve threads in
@@ -1655,27 +1665,25 @@
                     refreshCampaign();
                     return;
                 }
-                showOk(S('approvedReady').replace('{n}', d.approved || 0));
-                refreshCampaign();
+                if (!canSend) {
+                    if (btn) btn.disabled = false;
+                    showOk(S('approvedReady').replace('{n}', d.approved || 0));
+                    refreshCampaign();
+                    return;
+                }
+                // Approved -> dispatch the send through the normal path.
+                apiPost('send', { campaign_id: c }).then(function (d2) {
+                    if (btn) btn.disabled = false;
+                    if (!d2.success) { showErr(d2.error || S('loadFailed')); refreshCampaign(); return; }
+                    afterSendResponse(c, d2);
+                });
             });
         };
-        confirmModal(S('confirmApproveOnly'), function () { doApprove(false); });
-    }
-
-    // Per-campaign send authorization: lifts ONLY the recipient allowlist
-    // for this campaign. Never sends anything by itself - approval and an
-    // explicit Send action are still required.
-    function campToggleSendAuth() {
-        var c = campState.campaign;
-        if (!c) return;
-        var on = !c.send_authorized;
-        confirmModal(on ? S('confirmAuthorizeSend') : S('confirmRevokeSendAuth'), function () {
-            apiPost('campaign_send_auth', { campaign_id: c.id, authorized: on }).then(function (d) {
-                if (!d.success) { showErr(d.error || S('loadFailed')); return; }
-                showOk(S('sendAuthDone'));
-                refreshCampaign();
-            });
-        });
+        if (canSend) {
+            confirmCampaignSend(camp.name || '', campState.counts.ready || 0, function () { doApprove(false); });
+        } else {
+            confirmModal(S('confirmApproveOnly'), function () { doApprove(false); });
+        }
     }
 
     // Chunked thread resolution: the endpoint processes a bounded batch
@@ -1865,7 +1873,6 @@
                 recipEdited = this.checked; recipPage = 1; if (campState.current) loadRecipients();
             });
             if ($('moCampSigCrm')) $('moCampSigCrm').onclick = openSignatureModal;
-            if ($('moCampAuthCrm')) $('moCampAuthCrm').onclick = campToggleSendAuth;
             if ($('moCampTplCrm')) $('moCampTplCrm').onchange = function () {
                 if (!campState.campaign) return;
                 apiPost('campaign_update', { campaign_id: campState.campaign.id, template_id: this.value || null })

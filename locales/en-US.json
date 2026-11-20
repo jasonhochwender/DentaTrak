@@ -7788,6 +7788,7 @@
         "regen_message": "Regenerate",
         "remove_recipient": "Remove",
         "confirm_send_campaign": "Send this approved campaign now? This delivers real email for every eligible recipient.",
+        "confirm_send_campaign_info": "Send campaign \"{name}\" now? {n} recipient(s) are eligible to receive it. This delivers real email; suppressed, unsubscribed, bounced, or otherwise ineligible addresses are still skipped automatically.",
         "send_summary": "Sent {s}, skipped {k}, failed {f}, uncertain {u}",
         "confirm_dialog_title": "Please confirm",
         "yes_btn": "Yes",

@@ -62,16 +62,23 @@ function mo_sendable_remaining(PDO $pdo, string $campaignId): int {
 }
 
 /**
- * Whether an administrator has explicitly authorized THIS campaign's
- * recipients to receive mail (lifts only the recipient allowlist for
- * this campaign's sends). Read fresh per batch so a revocation takes
- * effect on the next pass. Fails closed when the column is absent.
+ * Whether THIS campaign's recipients may be delivered to under the
+ * delivery policy (lifts only the recipient allowlist for this
+ * campaign's sends; MARKETING_SENDING, suppression and eligibility
+ * still gate). Campaign approval IS the send authorization: any
+ * campaign in an approved-or-later state is authorized. The legacy
+ * send_authorized column is still honored so rows authorized before
+ * this change keep working. Read fresh per batch so a status change
+ * takes effect on the next pass. Fails closed on errors.
  */
 function mo_campaign_send_authorized(PDO $pdo, string $campaignId): bool {
     try {
-        $st = $pdo->prepare('SELECT send_authorized FROM marketing_campaigns WHERE id=?');
+        $st = $pdo->prepare('SELECT send_authorized, status FROM marketing_campaigns WHERE id=?');
         $st->execute([$campaignId]);
-        return (bool)$st->fetchColumn();
+        $row = $st->fetch(PDO::FETCH_ASSOC);
+        if (!$row) return false;
+        if (!empty($row['send_authorized'])) return true;
+        return in_array((string)$row['status'], ['approved', 'partial', 'sending', 'completed'], true);
     } catch (Throwable $e) {
         return false;
     }

@@ -416,7 +416,6 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
                 <button class="mo-btn secondary mo-hidden" id="moCampThreads"><?php echo h(ma('recheck_threads')); ?></button>
                 <button class="mo-btn secondary mo-hidden" id="moCampReconcile"><?php echo h(ma('reconcile_uncertain')); ?></button>
                 <button class="mo-btn secondary mo-hidden" id="moCampSheetSync"><?php echo h(ma('retry_sheet_sync')); ?></button>
-                <button class="mo-btn secondary" id="moCampAuth"></button>
                 <span class="mo-step-note" id="moCampStep"></span>
             </div>
             <?php if ($crmReads): ?>
@@ -432,7 +431,6 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
                 <button class="mo-btn secondary mo-hidden" id="moCampThreadsCrm"><?php echo h(ma('recheck_threads')); ?></button>
                 <button class="mo-btn secondary mo-hidden" id="moCampReconcileCrm"><?php echo h(ma('reconcile_uncertain')); ?></button>
                 <button class="mo-btn secondary" id="moCampSigCrm"><?php echo h(ma('sender_signature')); ?></button>
-                <button class="mo-btn secondary" id="moCampAuthCrm"></button>
                 <button class="mo-btn secondary mo-hidden" id="moCampPauseCrm"><?php echo h(ma('pause_sending')); ?></button>
                 <button class="mo-btn secondary mo-hidden" id="moCampResumeCrm"><?php echo h(ma('resume_sending')); ?></button>
                 <button class="mo-btn danger mo-hidden" id="moCampStopCrm"><?php echo h(ma('stop_sending')); ?></button>
@@ -600,6 +598,7 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
         approvedReady: <?php echo json_encode(ma('approved_ready')); ?>,
         confirmApproveOnly: <?php echo json_encode(ma('confirm_approve_only')); ?>,
         confirmSendTest: <?php echo json_encode(ma('confirm_send_test')); ?>,
+        confirmSendCampaignInfo: <?php echo json_encode(ma('confirm_send_campaign_info')); ?>,
         sendResult: <?php echo json_encode(ma('send_result')); ?>,
         sendResultExtra: <?php echo json_encode(ma('send_result_extra')); ?>,
         pageOf: <?php echo json_encode(ma('page_of')); ?>,
@@ -772,12 +771,7 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
             colStatus: <?php echo json_encode(ma('reply_col_status')); ?>,
             colActions: <?php echo json_encode(ma('reply_col_actions')); ?>
         },
-        sendAuthBadge: <?php echo json_encode(ma('send_authorized_badge')); ?>,
-        authorizeSending: <?php echo json_encode(ma('authorize_sending')); ?>,
-        revokeSendAuth: <?php echo json_encode(ma('revoke_send_auth')); ?>,
-        confirmAuthorizeSend: <?php echo json_encode(ma('confirm_authorize_send')); ?>,
-        confirmRevokeSendAuth: <?php echo json_encode(ma('confirm_revoke_send_auth')); ?>,
-        sendAuthDone: <?php echo json_encode(ma('send_auth_done')); ?>,
+        confirmSendCampaignInfo: <?php echo json_encode(ma('confirm_send_campaign_info')); ?>,
         genRunning: <?php echo json_encode(ma('gen_running')); ?>,
         genProgress: <?php echo json_encode(ma('gen_progress')); ?>,
         genFailedN: <?php echo json_encode(ma('gen_failed_n')); ?>,
@@ -1637,13 +1631,9 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
             document.getElementById('moCampTitle').textContent = c.name;
             document.getElementById('moCampMeta').textContent =
                 c.kind + ' · ' + c.status + (c.created_by ? ' · ' + c.created_by : '') +
-                (c.approved_by ? ' · approved by ' + c.approved_by : '') +
-                (c.send_authorized ? ' · ' + STR.sendAuthBadge + (c.send_authorized_by ? ' (' + c.send_authorized_by + ')' : '') : '');
-            var authBtn = document.getElementById('moCampAuth');
-            if (authBtn) {
-                authBtn.textContent = c.send_authorized ? STR.revokeSendAuth : STR.authorizeSending;
-                authBtn.title = c.send_authorized ? STR.confirmRevokeSendAuth : STR.confirmAuthorizeSend;
-            }
+                (c.approved_by ? ' · approved by ' + c.approved_by : '');
+            state.currentCampaignName = c.name;
+            state.currentEligible = (counts.ready || 0);
             var warn = document.getElementById('moCampApproveWarn');
             if (c.status === 'approved' || c.status === 'partial') {
                 warn.textContent = <?php echo json_encode(ma('approve_warn')); ?>;
@@ -1911,10 +1901,14 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
     });
     document.getElementById('moCampApprove').addEventListener('click', function () {
         var btn = this;
-        // Sending is a separate control: with it off, this only approves.
+        // Single approve-and-send action: with delivery enabled this
+        // approves and dispatches after one explicit confirmation.
         var canSend = !!(state.sending && state.sending.enabled);
-        var live = canSend && state.sending.mode === 'unrestricted';
-        if (!window.confirm(!canSend ? STR.confirmApproveOnly : (live ? STR.confirmSend : STR.confirmSendTest))) return;
+        var msg = canSend
+            ? STR.confirmSendCampaignInfo.replace('{name}', state.currentCampaignName || '')
+                .replace('{n}', state.currentEligible || 0)
+            : STR.confirmApproveOnly;
+        if (!window.confirm(msg)) return;
         btn.disabled = true; btn.textContent = STR.working;
         apiPost('approve', { campaign_id: state.currentCampaign }).then(function (d) {
             if (!d.success) { btn.disabled = false; showErr(d.error || STR.loadFailed); openCampaign(state.currentCampaign); return; }
@@ -1960,22 +1954,6 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
             openCampaign(state.currentCampaign);
         });
     });
-    document.getElementById('moCampAuth').addEventListener('click', function () {
-        var btn = this;
-        apiGet('campaign', { id: state.currentCampaign }).then(function (d) {
-            if (!d.success || !d.campaign) { showErr(d.error || STR.loadFailed); return; }
-            var on = !d.campaign.send_authorized;
-            if (!window.confirm(on ? STR.confirmAuthorizeSend : STR.confirmRevokeSendAuth)) return;
-            btn.disabled = true;
-            apiPost('campaign_send_auth', { campaign_id: state.currentCampaign, authorized: on }).then(function (r) {
-                btn.disabled = false;
-                if (!r.success) { showErr(r.error || STR.loadFailed); return; }
-                showOk(STR.sendAuthDone);
-                openCampaign(state.currentCampaign);
-            });
-        });
-    });
-
     // ---------- follow-ups ----------
     function loadFollowups(bucket) {
         apiGet('followups', { bucket: bucket }).then(function (d) {
@@ -2334,6 +2312,7 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
                 confirmApproveOnly: <?php echo json_encode(ma('confirm_approve_only')); ?>,
                 approvedReady: <?php echo json_encode(ma('approved_ready')); ?>,
                 confirmSendCampaign: <?php echo json_encode(ma('confirm_send_campaign')); ?>,
+                confirmSendCampaignInfo: <?php echo json_encode(ma('confirm_send_campaign_info')); ?>,
                 sendSummary: <?php echo json_encode(ma('send_summary')); ?>,
                 reconcileResult: <?php echo json_encode(ma('reconcile_result')); ?>,
                 generatedOk: <?php echo json_encode(ma('generated_ok')); ?>,
@@ -2392,12 +2371,7 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
                 sendFailedAll: <?php echo json_encode(ma('send_failed_all')); ?>,
                 sendPausedNote: <?php echo json_encode(ma('send_paused_note')); ?>,
                 confirmStopSend: <?php echo json_encode(ma('confirm_stop_send')); ?>,
-                sendAuthBadge: <?php echo json_encode(ma('send_authorized_badge')); ?>,
-                authorizeSending: <?php echo json_encode(ma('authorize_sending')); ?>,
-                revokeSendAuth: <?php echo json_encode(ma('revoke_send_auth')); ?>,
-                confirmAuthorizeSend: <?php echo json_encode(ma('confirm_authorize_send')); ?>,
-                confirmRevokeSendAuth: <?php echo json_encode(ma('confirm_revoke_send_auth')); ?>,
-                sendAuthDone: <?php echo json_encode(ma('send_auth_done')); ?>,
+                confirmSendCampaignInfo: <?php echo json_encode(ma('confirm_send_campaign_info')); ?>,
                 generateEmails: <?php echo json_encode(ma('generate_emails')); ?>,
                 genRunning: <?php echo json_encode(ma('gen_running')); ?>,
                 genProgress: <?php echo json_encode(ma('gen_progress')); ?>,
