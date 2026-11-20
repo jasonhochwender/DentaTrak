@@ -220,6 +220,34 @@ $fuAwait = $crmFresh->followups('awaiting_response');
 $awaitEmails = array_map(static fn($p) => strtolower((string)($p['fields']['email'] ?? '')), $fuAwait);
 ok('cleared follow-up is awaiting_response', in_array('fupast@crmtest4.example.com', $awaitEmails, true));
 
+/* ---------------- contact creation records explicit US state ---------------- */
+// extra_fields.State drives state-filtered search; an explicitly
+// recorded state must not be lost, while ambiguous city names and
+// invalid values must never produce one.
+$extraOf = function (int $cid) use ($pdo) {
+    $v = $pdo->query("SELECT extra_fields FROM marketing_contacts WHERE id=" . $cid)->fetchColumn();
+    $a = json_decode((string)$v, true);
+    return is_array($a) ? $a : [];
+};
+$stExplicit = $admin->createContact(['org_id' => $orgId, 'full_name' => 'CRMTEST4 StExplicit',
+    'email' => 'stexpl@crmtest4.example.com', 'state' => 'georgia']);
+ok('explicit state name recorded as abbreviation', ($extraOf((int)$stExplicit['id'])['State'] ?? '') === 'GA');
+$stOrgLoc = $admin->createOrg(['name' => 'CRMTEST4 State Org', 'location' => 'Macon, GA']);
+$stFromLoc = $admin->createContact(['org_id' => (int)$stOrgLoc['id'], 'full_name' => 'CRMTEST4 StLoc',
+    'email' => 'stloc@crmtest4.example.com']);
+ok('org location ", ST" tail recorded', ($extraOf((int)$stFromLoc['id'])['State'] ?? '') === 'GA');
+$stNoLoc = $admin->createOrg(['name' => 'CRMTEST4 NoState Org', 'location' => 'Statesboro']);
+$stBare = $admin->createContact(['org_id' => (int)$stNoLoc['id'], 'full_name' => 'CRMTEST4 StBare',
+    'email' => 'stbare@crmtest4.example.com']);
+ok('bare city name yields no state', !isset($extraOf((int)$stBare['id'])['State']));
+$stBad = $admin->createContact(['org_id' => $orgId, 'full_name' => 'CRMTEST4 StBad',
+    'email' => 'stbad@crmtest4.example.com', 'state' => 'XX']);
+ok('unrecognized state value dropped', !isset($extraOf((int)$stBad['id'])['State']));
+$stWin = $admin->createContact(['org_id' => $orgId, 'full_name' => 'CRMTEST4 StWin',
+    'email' => 'stwin@crmtest4.example.com', 'state' => 'GA']);
+$sR = $crmFresh->search(['state' => 'GA', 'q' => 'stwin@crmtest4.example.com', 'per' => 10]);
+ok('state-filtered search finds new contact', $sR['total'] >= 1);
+
 /* ---------------- CSV unmapped + aliases ---------------- */
 $csv = "Email,Org,Demo Status,Trial Status,Outcome,Mystery Col\nalice2@crmtest4.example.com,CRMTEST4 Dental Group,yes,no,interested,x\n";
 $admin->previewImport($csv);

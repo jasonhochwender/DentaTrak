@@ -290,7 +290,7 @@ final class McpCrmTools
         foreach (['org_id','new_org','first_name','last_name','full_name','contact_name',
                   'email','title','phone','status','priority','fit','owner_email','source',
                   'tags','notes','contact_notes','followup_date','demo_status','trial_status',
-                  'outcome','objection_reason','outreach_method'] as $k) {
+                  'outcome','objection_reason','outreach_method','state'] as $k) {
             if (array_key_exists($k, $a)) $contact[$k] = $a[$k];
         }
         if (isset($a['contact_name']) && !isset($a['full_name'])) $contact['full_name'] = $a['contact_name'];

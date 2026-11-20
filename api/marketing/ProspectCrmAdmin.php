@@ -318,7 +318,44 @@ final class ProspectCrmAdmin
         $f['org_id']       = isset($d['org_id']) && (int)$d['org_id'] > 0 ? (int)$d['org_id'] : null;
         $f['_new_org']     = is_array($d['new_org'] ?? null) ? $d['new_org'] : null;
         $f['_dnc_input']   = !empty($d['dnc']);
+        // Explicit US state (name or abbreviation). Recorded into
+        // extra_fields.State on create so state-filtered searches work;
+        // never inferred from ambiguous city/location text.
+        $f['state']        = $this->cleanString($d['state'] ?? '', 40);
         return $f;
+    }
+
+    /**
+     * Canonical US state/DC abbreviation for an explicit state value, or
+     * null when the input is empty or not a real US state. Full names are
+     * accepted ("Georgia" -> "GA"); anything else is dropped rather than
+     * guessed.
+     */
+    private static function usStateAbbrev(string $v): ?string
+    {
+        $abbr = ProspectCrm::normalizeUsState($v);
+        if ($abbr === null) return null;
+        static $known = [
+            'AL','AK','AZ','AR','CA','CO','CT','DE','DC','FL','GA','HI','ID','IL','IN','IA',
+            'KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM',
+            'NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA',
+            'WV','WI','WY',
+        ];
+        return in_array($abbr, $known, true) ? $abbr : null;
+    }
+
+    /**
+     * State recorded as the trailing segment of a location string
+     * ("Savannah, GA" -> "GA", "Atlanta, Georgia" -> "GA"). Returns null
+     * when there is no comma-separated tail or it is not a US state, so
+     * bare city names are never guessed.
+     */
+    private static function usStateFromLocation(string $loc): ?string
+    {
+        $loc = trim($loc);
+        $pos = strrpos($loc, ',');
+        if ($pos === false) return null;
+        return self::usStateAbbrev(trim(substr($loc, $pos + 1)));
     }
 
     /** Warnings for duplicate org/contact/email - never blocks, never merges. */
@@ -380,6 +417,20 @@ final class ProspectCrmAdmin
         $f = $this->contactFieldsFromInput($d);
         $warnings = $this->contactWarnings($f);
         $orgId = $this->resolveOrgId($f);
+        // Record an explicitly known US state into extra_fields.State so
+        // state-filtered searches include the contact. Explicit 'state'
+        // input wins; otherwise only a trailing ", ST" in the org's
+        // recorded location is used - city names alone never imply a state.
+        $state = self::usStateAbbrev($f['state']);
+        if ($state === null) {
+            $loc = is_array($f['_new_org'])
+                ? (string)($f['_new_org']['location'] ?? '')
+                : (string)($orgId !== null ? ($this->orgRow($orgId)['location'] ?? '') : '');
+            $state = self::usStateFromLocation($loc);
+        }
+        $extraJson = $state !== null
+            ? json_encode(['State' => $state], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+            : null;
         $dnc = ($f['_dnc_input'] || $this->statusSetsDnc($f['status'])) ? 1 : 0;
         $reasons = $this->reviewReasonsFor(array_merge($f, ['org_id' => $orgId]));
         // Shared-email warning also flags review until a human confirms.
@@ -393,8 +444,8 @@ final class ProspectCrmAdmin
              (org_id, first_name, last_name, full_name, email, email_normalized, title, phone,
               status, priority, fit, owner_email, source, tags, notes, contact_notes,
               followup_date, first_contact_date, last_contact_date, dnc, outreach_method,
-              demo_status, trial_status, outcome, objection_reason, needs_review, review_reason, sheet_row, version)
-             VALUES (' . implode(',', array_fill(0, 27, '?')) . ',NULL,1)'
+              demo_status, trial_status, outcome, objection_reason, needs_review, review_reason, extra_fields, sheet_row, version)
+             VALUES (' . implode(',', array_fill(0, 28, '?')) . ',NULL,1)'
         )->execute([
             $orgId, $f['first_name'] ?: null, $f['last_name'] ?: null,
             $f['full_name'] !== '' ? $f['full_name'] : null,
@@ -414,6 +465,7 @@ final class ProspectCrmAdmin
             in_array($f['outcome'], ['unset', ''], true) ? null : $f['outcome'],
             in_array($f['objection_reason'], ['unset', ''], true) ? null : $f['objection_reason'],
             $reasons === [] ? 0 : 1, $reasons === [] ? null : implode(',', $reasons),
+            $extraJson,
         ]);
         $id = (int)$this->pdo->lastInsertId();
         $this->event($id, $orgId, 'contact_created', ['warnings' => array_column($warnings, 'code')]);
