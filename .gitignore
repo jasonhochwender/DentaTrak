@@ -304,3 +304,4 @@ NUL
 !/tests/brand-assets-test.php
 !/tests/announcements-test.php
 !/tests/marketing-org-dnc-test.php
+!/tests/admin-emails-test.php

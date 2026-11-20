@@ -32,6 +32,7 @@ require_once __DIR__ . '/admin-practice-scope.php';
 require_once __DIR__ . '/integrations/IntegrationManager.php';
 require_once __DIR__ . '/integrations/IntegrationEvents.php';
 require_once __DIR__ . '/email-sender.php';
+require_once __DIR__ . '/admin-emails.php';
 
 header('Content-Type: application/json');
 ob_start();
@@ -108,277 +109,6 @@ if (!$canAccess) {
     http_response_code(403);
     echo json_encode(['success' => false, 'message' => 'Access denied. Super user privileges required.']);
     exit;
-}
-
-/**
- * Record an admin email action to the audit log. The admin_email_log table must
- * already exist (created by migrations/2026_09_01_admin_email_log.php).
- */
-function logAdminEmail($adminUserId, $adminEmail, $recipientUserId, $recipientEmail, $practiceId, $emailType, $subject, $success, $provider = null, $error = null) {
-    global $pdo;
-
-    if (!$pdo) {
-        return false;
-    }
-
-    try {
-        $stmt = $pdo->prepare("
-            INSERT INTO admin_email_log (admin_user_id, admin_email, recipient_user_id, recipient_email, practice_id, email_type, email_subject, success, provider, error_message)
-            VALUES (:admin_user_id, :admin_email, :recipient_user_id, :recipient_email, :practice_id, :email_type, :email_subject, :success, :provider, :error_message)
-        ");
-        $stmt->execute([
-            ':admin_user_id' => $adminUserId,
-            ':admin_email' => $adminEmail,
-            ':recipient_user_id' => $recipientUserId,
-            ':recipient_email' => $recipientEmail,
-            ':practice_id' => $practiceId,
-            ':email_type' => $emailType,
-            ':email_subject' => $subject,
-            ':success' => $success ? 1 : 0,
-            ':provider' => $provider,
-            ':error_message' => $error,
-        ]);
-        return true;
-    } catch (PDOException $e) {
-        error_log('[admin-practices] Error logging admin email: ' . $e->getMessage());
-        return false;
-    }
-}
-
-/**
- * Compose and send an admin-triggered practice-user email.
- *
- * @return array { success: bool, message: string, provider: ?string, error: ?string }
- */
-function sendAdminPracticeEmail(PDO $pdo, int $adminUserId, string $adminEmail, int $practiceId, int $recipientUserId, string $emailType, string $customSubject = '', string $customMessage = ''): array {
-    global $appConfig;
-
-    // Verify the recipient actually belongs to the selected practice
-    $stmt = $pdo->prepare("
-        SELECT u.id, u.email, u.first_name, u.last_name, p.practice_name
-        FROM practice_users pu
-        JOIN users u ON u.id = pu.user_id
-        JOIN practices p ON p.id = pu.practice_id
-        WHERE pu.practice_id = :practice_id AND u.id = :user_id
-        LIMIT 1
-    ");
-    $stmt->execute(['practice_id' => $practiceId, 'user_id' => $recipientUserId]);
-    $recipient = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    if (!$recipient) {
-        return ['success' => false, 'message' => 'Recipient not found or does not belong to this practice.', 'provider' => null, 'error' => null];
-    }
-
-    $toName = trim(($recipient['first_name'] ?? '') . ' ' . ($recipient['last_name'] ?? ''));
-    $toEmail = $recipient['email'];
-    $practiceName = $recipient['practice_name'] ?? 'Your Practice';
-    $firstName = $recipient['first_name'] ?? '';
-    $supportEmail = $appConfig['support_email'] ?? 'support@dentatrak.com';
-    $fromName = $appConfig['email_from_name'] ?? 'DentaTrak';
-    $baseUrl = rtrim($appConfig['app_base_url'] ?? 'https://dentatrak.com', '/');
-    $loginUrl = $baseUrl . '/login.php';
-    $userGuideUrl = $appConfig['user_guide_url'] ?? ($baseUrl . '/resources/user-guide');
-
-    $subject = '';
-    $html = '';
-    $text = '';
-
-    if ($emailType === 'getting_started') {
-        $subject = 'Getting started with DentaTrak';
-        $greeting = $firstName ? "Hi {$firstName}," : "Hi there,";
-
-        $html = <<<HTML
-<!DOCTYPE html>
-<html>
-<body>
-  <p>{$greeting}</p>
-  <p>You have access to <strong>DentaTrak</strong> for <strong>{$practiceName}</strong>.</p>
-  <p>DentaTrak helps dental practices track cases across the office, labs, and referrals without losing them in spreadsheets or PMS systems.</p>
-  <p><a href="{$loginUrl}">Sign in to DentaTrak</a></p>
-  <p>Get started with the <a href="{$userGuideUrl}">DentaTrak User Guide</a>.</p>
-  <p>If you have any questions, reach out to us at <a href="mailto:{$supportEmail}">{$supportEmail}</a>.</p>
-  <p>Thanks,<br>{$fromName} Team</p>
-</body>
-</html>
-HTML;
-
-        $text = <<<TEXT
-{$greeting}
-
-You have access to DentaTrak for "{$practiceName}".
-
-DentaTrak helps dental practices track cases across the office, labs, and referrals without losing them in spreadsheets or PMS systems.
-
-Sign in: {$loginUrl}
-
-Get started with the User Guide: {$userGuideUrl}
-
-If you have any questions, reach out to us at {$supportEmail}.
-
-Thanks,
-{$fromName} Team
-TEXT;
-    } elseif ($emailType === 'user_guide') {
-        $subject = 'DentaTrak User Guide';
-        $greeting = $firstName ? "Hi {$firstName}," : "Hi there,";
-
-        $html = <<<HTML
-<!DOCTYPE html>
-<html>
-<body>
-  <p>{$greeting}</p>
-  <p>Here is a link to the <a href="{$userGuideUrl}">DentaTrak User Guide</a> for <strong>{$practiceName}</strong>.</p>
-  <p>The guide covers the most common DentaTrak workflows and is a good place to start if you are new to the platform.</p>
-  <p><a href="{$loginUrl}">Sign in to DentaTrak</a></p>
-  <p>If you have any questions, reach out to us at <a href="mailto:{$supportEmail}">{$supportEmail}</a>.</p>
-  <p>Thanks,<br>{$fromName} Team</p>
-</body>
-</html>
-HTML;
-
-        $text = <<<TEXT
-{$greeting}
-
-Here is a link to the DentaTrak User Guide for "{$practiceName}":
-
-{$userGuideUrl}
-
-The guide covers the most common DentaTrak workflows and is a good place to start if you are new to the platform.
-
-Sign in: {$loginUrl}
-
-If you have any questions, reach out to us at {$supportEmail}.
-
-Thanks,
-{$fromName} Team
-TEXT;
-    } elseif ($emailType === 'trial_reminder') {
-        // Resolve the effective subscription/trial for this practice's owner
-        $ownerUserId = getSubscriptionOwnerUserId($pdo, $practiceId);
-        if (!$ownerUserId) {
-            return ['success' => false, 'message' => 'Could not determine subscription owner for this practice.', 'provider' => null, 'error' => null];
-        }
-
-        $sub = getSubscriptionForOwner($pdo, $ownerUserId);
-        if (empty($sub) || ($sub['status'] ?? '') !== 'trialing' || empty($sub['trial_ends_at'])) {
-            return ['success' => false, 'message' => 'This practice is not currently in a trial.', 'provider' => null, 'error' => null];
-        }
-
-        $storedPlan = $sub['plan'] ?? null;
-        $planDisplay = !empty($storedPlan) ? getPlanDisplayName($storedPlan) : '—';
-
-        try {
-            $end = new DateTimeImmutable($sub['trial_ends_at'], new DateTimeZone('UTC'));
-            $now = new DateTimeImmutable('now', new DateTimeZone('UTC'));
-            $days = (int)$now->diff($end)->format('%r%a');
-
-            if ($days > 1) {
-                $remainingText = "{$days} days remaining";
-            } elseif ($days === 1) {
-                $remainingText = "1 day remaining";
-            } elseif ($days === 0) {
-                $remainingText = "ends today";
-            } else {
-                $remainingText = "has expired";
-            }
-
-            $trialEndDate = $end->format('M j, Y');
-        } catch (Throwable $e) {
-            return ['success' => false, 'message' => 'Could not parse trial end date.', 'provider' => null, 'error' => $e->getMessage()];
-        }
-
-        $subject = 'Your DentaTrak trial is ending soon';
-        $greeting = $firstName ? "Hi {$firstName}," : "Hi there,";
-
-        $html = <<<HTML
-<!DOCTYPE html>
-<html>
-<body>
-  <p>{$greeting}</p>
-  <p>This is a friendly reminder that the DentaTrak trial for <strong>{$practiceName}</strong> ({$planDisplay} plan) {$remainingText}.</p>
-  <p><strong>Trial end date:</strong> {$trialEndDate}</p>
-  <p><a href="{$loginUrl}">Sign in to DentaTrak</a></p>
-  <p>If you have any questions, reach out to us at <a href="mailto:{$supportEmail}">{$supportEmail}</a>.</p>
-  <p>Thanks,<br>{$fromName} Team</p>
-</body>
-</html>
-HTML;
-
-        $text = <<<TEXT
-{$greeting}
-
-This is a friendly reminder that the DentaTrak trial for "{$practiceName}" ({$planDisplay} plan) {$remainingText}.
-
-Trial end date: {$trialEndDate}
-
-Sign in: {$loginUrl}
-
-If you have any questions, reach out to us at {$supportEmail}.
-
-Thanks,
-{$fromName} Team
-TEXT;
-    } elseif ($emailType === 'custom') {
-        $subject = trim($customSubject);
-        $message = trim($customMessage);
-        if ($subject === '' || $message === '') {
-            return ['success' => false, 'message' => 'Custom email subject and message are required.', 'provider' => null, 'error' => null];
-        }
-
-        $greeting = $firstName ? "Hi {$firstName}," : "Hi there,";
-        $safeMessage = htmlspecialchars($message, ENT_QUOTES, 'UTF-8');
-        $safeMessageHtml = nl2br($safeMessage, false);
-
-        $html = <<<HTML
-<!DOCTYPE html>
-<html>
-<body>
-  <p>{$greeting}</p>
-  <p>{$safeMessageHtml}</p>
-  <p>If you have any questions, reach out to us at <a href="mailto:{$supportEmail}">{$supportEmail}</a>.</p>
-  <p>Thanks,<br>{$fromName} Team</p>
-</body>
-</html>
-HTML;
-
-        $text = <<<TEXT
-{$greeting}
-
-{$message}
-
-If you have any questions, reach out to us at {$supportEmail}.
-
-Thanks,
-{$fromName} Team
-TEXT;
-    } else {
-        return ['success' => false, 'message' => 'Invalid email type.', 'provider' => null, 'error' => null];
-    }
-
-    $result = sendAppEmail($toEmail, $subject, $html, $text, $supportEmail);
-
-    $success = !empty($result['success']);
-    $provider = $result['provider'] ?? null;
-    $error = $result['error'] ?? null;
-
-    logAdminEmail(
-        $adminUserId,
-        $adminEmail,
-        $recipientUserId,
-        $toEmail,
-        $practiceId,
-        $emailType,
-        $subject,
-        $success,
-        $provider,
-        $error
-    );
-
-    if ($success) {
-        return ['success' => true, 'message' => 'Email sent to ' . $toEmail, 'provider' => $provider, 'error' => null];
-    }
-
-    return ['success' => false, 'message' => 'Failed to send email. ' . ($error ?: 'Unknown error'), 'provider' => $provider, 'error' => $error];
 }
 
 $method = $_SERVER['REQUEST_METHOD'];
@@ -1438,14 +1168,16 @@ function handlePostRequest($action) {
                 return;
             }
 
-            if (!in_array($emailType, ['getting_started', 'user_guide', 'trial_reminder', 'custom'], true)) {
+            if (!in_array($emailType, adminPracticeEmailTypes(), true)) {
                 http_response_code(400);
                 echo json_encode(['success' => false, 'message' => 'Invalid email type']);
                 return;
             }
 
-            $customSubject = $input['custom_subject'] ?? '';
-            $customMessage = $input['custom_message'] ?? '';
+            // Edited subject/body win over the template defaults for every
+            // type; custom_* keys remain for backward compatibility.
+            $subjectOverride = trim((string)($input['subject'] ?? $input['custom_subject'] ?? ''));
+            $bodyOverride = trim((string)($input['body'] ?? $input['custom_message'] ?? ''));
 
             $result = sendAdminPracticeEmail(
                 $pdo,
@@ -1454,8 +1186,8 @@ function handlePostRequest($action) {
                 (int)$practiceId,
                 (int)$recipientUserId,
                 $emailType,
-                $customSubject,
-                $customMessage
+                $subjectOverride,
+                $bodyOverride
             );
 
             if ($result['success']) {
@@ -1465,6 +1197,46 @@ function handlePostRequest($action) {
                 http_response_code(422);
                 echo json_encode(['success' => false, 'message' => $result['message']]);
             }
+            break;
+
+        case 'email_preview':
+            // Read-only compose preview: returns exactly what send_email
+            // would deliver (subject + plain-text body) plus appropriateness
+            // warnings and the recipient's most recent admin email. Sends
+            // nothing and writes no log rows.
+            $practiceId = $input['practice_id'] ?? null;
+            $recipientUserId = $input['user_id'] ?? null;
+            $emailType = $input['email_type'] ?? '';
+            if (!$practiceId || !is_numeric($practiceId) || !$recipientUserId || !is_numeric($recipientUserId)) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Practice ID and user ID are required']);
+                return;
+            }
+            if (!in_array($emailType, adminPracticeEmailTypes(), true)) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Invalid email type']);
+                return;
+            }
+            $subjectOverride = trim((string)($input['subject'] ?? ''));
+            $bodyOverride = trim((string)($input['body'] ?? ''));
+            $c = composeAdminPracticeEmail($pdo, (int)$practiceId, (int)$recipientUserId, $emailType, $subjectOverride, $bodyOverride);
+            $ctxInfo = adminEmailContext($pdo, (int)$practiceId, (int)$recipientUserId, $emailType);
+            if (empty($c['success'])) {
+                http_response_code(422);
+                echo json_encode(['success' => false, 'message' => $c['message'] ?? 'Could not compose email.',
+                    'warnings' => $ctxInfo['warnings'], 'last_email' => $ctxInfo['last_email']]);
+                return;
+            }
+            echo json_encode([
+                'success' => true,
+                'subject' => $c['subject'],
+                'text' => $c['text'],
+                'template_subject' => $c['template_subject'],
+                'template_body' => $c['template_body'],
+                'warnings' => $ctxInfo['warnings'],
+                'case_count' => $ctxInfo['case_count'],
+                'last_email' => $ctxInfo['last_email'],
+            ]);
             break;
 
         case 'extend_trial':

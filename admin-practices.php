@@ -2416,7 +2416,18 @@ $userEmail = $_SESSION['user_email'] ?? '';
         }
 
         let currentPracticeUsers = [];
-        let currentEmailState = { practiceId: null, userId: null, user: null, sending: false };
+        let currentEmailState = { practiceId: null, userId: null, user: null, sending: false, defaults: {}, previewTimer: null, needDefaults: false };
+
+        const ADMIN_EMAIL_TYPES = [
+            ['getting_started', 'Getting Started: create and track their first case'],
+            ['work_with_lab', 'Work With Your Lab: lab coordination and case updates'],
+            ['explore_insights', 'Explore Practice Insights: volume, turnaround, performance'],
+            ['connect_tools', 'Connect Your Existing Tools: scanners and PMS integrations'],
+            ['whats_new', 'See What\'s New: recent Practice Insights and export improvements'],
+            ['feedback', 'We\'d Love Your Feedback: what is missing or could be better'],
+            ['trial_reminder', 'Trial Reminder: remaining trial period'],
+            ['custom', 'Custom Message: compose from scratch']
+        ];
 
         function openEmailModal(event, practiceId, userId) {
             if (event) {
@@ -2430,14 +2441,20 @@ $userEmail = $_SESSION['user_email'] ?? '';
                 return;
             }
 
-            currentEmailState = { practiceId, userId, user, sending: false };
+            currentEmailState = { practiceId, userId, user, sending: false, defaults: {}, previewTimer: null, needDefaults: true };
             const sub = practice.subscription || {};
-            const isTrialing = sub.status === 'trialing';
 
             const name = [user.first_name, user.last_name].filter(Boolean).join(' ') || user.email;
-            const trialOption = isTrialing
-                ? '<option value="trial_reminder">Trial Reminder</option>'
-                : '';
+            const trialText = sub.status === 'trialing'
+                ? 'Trialing' + (sub.trial_ends_at ? ' - ends ' + formatDate(sub.trial_ends_at) : '')
+                : (sub.status || 'No active trial');
+            const lastLoginText = user.last_login ? formatDate(user.last_login) : 'Never';
+            const caseCount = practice.case_count != null ? practice.case_count : '—';
+
+            let typeOptions = '';
+            ADMIN_EMAIL_TYPES.forEach(function(pair) {
+                typeOptions += '<option value="' + pair[0] + '">' + escapeHtml(pair[1]) + '</option>';
+            });
 
             const html =
                 '<div class="form-group">' +
@@ -2446,28 +2463,28 @@ $userEmail = $_SESSION['user_email'] ?? '';
                 '</div>' +
                 '<div class="form-group">' +
                     '<label>Practice</label>' +
-                    '<p style="margin: 0; color: #1f2937;">' + escapeHtml(practice.practice_name || practice.legal_name || 'Unnamed') + '</p>' +
+                    '<p style="margin: 0; color: #1f2937;">' + escapeHtml(practice.practice_name || practice.legal_name || 'Unnamed') +
+                    ' &nbsp;•&nbsp; Cases: ' + escapeHtml(String(caseCount)) +
+                    ' &nbsp;•&nbsp; Last login: ' + escapeHtml(lastLoginText) +
+                    ' &nbsp;•&nbsp; ' + escapeHtml(trialText) + '</p>' +
                 '</div>' +
                 '<div class="form-group">' +
                     '<label for="emailType">Email Type</label>' +
-                    '<select id="emailType" class="form-control" onchange="updateEmailPreview()" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">' +
-                        '<option value="getting_started">Getting Started</option>' +
-                        '<option value="user_guide">User Guide</option>' +
-                        trialOption +
-                        '<option value="custom">Custom Support Message</option>' +
+                    '<select id="emailType" class="form-control" onchange="onEmailTypeChange()" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">' +
+                        typeOptions +
                     '</select>' +
                 '</div>' +
-                '<div id="customFields" style="display: none;">' +
-                    '<div class="form-group">' +
-                        '<label for="customEmailSubject">Subject</label>' +
-                        '<input type="text" id="customEmailSubject" class="form-control" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;" placeholder="e.g. A quick follow-up">' +
-                    '</div>' +
-                    '<div class="form-group">' +
-                        '<label for="customEmailMessage">Message</label>' +
-                        '<textarea id="customEmailMessage" rows="5" class="form-control" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;" placeholder="Plain text only"></textarea>' +
-                    '</div>' +
+                '<div class="form-group">' +
+                    '<label for="emailSubject">Subject</label>' +
+                    '<input type="text" id="emailSubject" class="form-control" maxlength="255" placeholder="Template default - edit to customize" oninput="onEmailFieldsInput()" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">' +
                 '</div>' +
-                '<div class="form-group" id="emailPreviewGroup">' +
+                '<div class="form-group">' +
+                    '<label for="emailBody">Message</label>' +
+                    '<textarea id="emailBody" rows="8" class="form-control" placeholder="Template default - edit to customize" oninput="onEmailFieldsInput()" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;"></textarea>' +
+                '</div>' +
+                '<div id="emailContextInfo" style="font-size: 0.85rem; color: #6b7280; margin-bottom: 8px;"></div>' +
+                '<div id="emailWarnings" style="display: none; background: #fffbeb; border: 1px solid #fde68a; color: #92400e; padding: 10px 12px; border-radius: 8px; font-size: 0.85rem; margin-bottom: 8px;"></div>' +
+                '<div class="form-group">' +
                     '<label>Preview</label>' +
                     '<div id="emailPreview" style="background: #f9fafb; padding: 12px; border-radius: 8px; font-size: 0.9rem; color: #374151; border: 1px solid #e5e7eb; white-space: pre-line;">' + t('common.loading') + '</div>' +
                 '</div>' +
@@ -2478,76 +2495,146 @@ $userEmail = $_SESSION['user_email'] ?? '';
 
             document.getElementById('emailContent').innerHTML = html;
             document.getElementById('emailModal').classList.add('active');
-            updateEmailPreview();
+            refreshEmailPreview();
         }
 
-        function updateEmailPreview() {
-            const type = document.getElementById('emailType').value;
-            const customFields = document.getElementById('customFields');
-            const preview = document.getElementById('emailPreview');
-
-            if (!customFields || !preview) return;
-
-            customFields.style.display = (type === 'custom') ? 'block' : 'none';
-
-            const user = currentEmailState.user || {};
-            const practice = practices.find(p => p.id === currentEmailState.practiceId) || {};
-            const firstName = user.first_name || '';
-            const practiceName = practice.practice_name || practice.legal_name || 'Your Practice';
-            const sub = practice.subscription || {};
-
-            let text = '';
-            if (type === 'getting_started') {
-                text = 'Hi ' + (firstName || 'there') + ',\n\n';
-                text += 'You have access to DentaTrak for ' + practiceName + '.\n\n';
-                text += 'DentaTrak helps dental practices track cases across the office, labs, and referrals.\n\n';
-                text += 'Subject: Getting started with DentaTrak';
-            } else if (type === 'user_guide') {
-                text = 'Hi ' + (firstName || 'there') + ',\n\n';
-                text += 'Here is a link to the DentaTrak User Guide for ' + practiceName + '.\n\n';
-                text += 'Subject: DentaTrak User Guide';
-            } else if (type === 'trial_reminder') {
-                text = 'Hi ' + (firstName || 'there') + ',\n\n';
-                text += 'Reminder: the DentaTrak trial for ' + practiceName + ' (' + (sub.plan_display || '—') + ') is ending soon.\n';
-                text += 'Trial end: ' + (sub.trial_ends_at ? formatDate(sub.trial_ends_at) : '—') + ' (' + (sub.trial_display || '') + ').\n\n';
-                text += 'Subject: Your DentaTrak trial is ending soon';
-            } else if (type === 'custom') {
-                const subject = document.getElementById('customEmailSubject').value.trim() || '(no subject yet)';
-                const message = document.getElementById('customEmailMessage').value.trim() || '(no message yet)';
-                text = 'Hi ' + (firstName || 'there') + ',\n\n';
-                text += escapeHtml(message) + '\n\n';
-                text += 'Subject: ' + escapeHtml(subject);
+        function onEmailTypeChange() {
+            const sel = document.getElementById('emailType');
+            const prevType = sel.dataset.prevType || '';
+            const prevDefaults = currentEmailState.defaults[prevType] || null;
+            const subj = document.getElementById('emailSubject');
+            const body = document.getElementById('emailBody');
+            // Edited values are protected: only auto-clear fields that are
+            // empty or still hold the previous template's defaults.
+            const subjIsDefault = !subj.value.trim() || (prevDefaults && subj.value.trim() === prevDefaults.subject);
+            const bodyIsDefault = !body.value.trim() || (prevDefaults && body.value.trim() === prevDefaults.body);
+            if (!(subjIsDefault && bodyIsDefault)) {
+                if (!confirm('Replace your edited subject and message with the new template?')) {
+                    sel.value = prevType || sel.value;
+                    return;
+                }
             }
+            subj.value = ''; body.value = '';
+            sel.dataset.prevType = sel.value;
+            currentEmailState.needDefaults = true;
+            refreshEmailPreview();
+        }
 
-            preview.textContent = text;
+        function onEmailFieldsInput() {
+            if (currentEmailState.previewTimer) clearTimeout(currentEmailState.previewTimer);
+            currentEmailState.previewTimer = setTimeout(refreshEmailPreview, 350);
+        }
+
+        function refreshEmailPreview() {
+            const type = document.getElementById('emailType').value;
+            const sel = document.getElementById('emailType');
+            if (!sel.dataset.prevType) sel.dataset.prevType = type;
+            const subj = (document.getElementById('emailSubject').value || '').trim();
+            const body = (document.getElementById('emailBody').value || '').trim();
+            const payload = {
+                practice_id: currentEmailState.practiceId,
+                user_id: currentEmailState.userId,
+                email_type: type
+            };
+            // Empty fields mean "use the template default" - the server
+            // resolves them, so the preview always matches what sends.
+            if (subj) payload.subject = subj;
+            if (body) payload.body = body;
+
+            postJson('api/admin-practices.php?action=email_preview', payload)
+                .then(response => response.json().then(data => ({ response, data })))
+                .then(({ response, data }) => {
+                    const preview = document.getElementById('emailPreview');
+                    const warnBox = document.getElementById('emailWarnings');
+                    const ctxBox = document.getElementById('emailContextInfo');
+                    if (!preview) return;
+                    if (!response.ok || !data.success) {
+                        preview.textContent = data.message || 'Could not compose preview';
+                        if (warnBox && data.warnings && data.warnings.length) {
+                            warnBox.innerHTML = data.warnings.map(w => '⚠ ' + escapeHtml(w)).join('<br>');
+                            warnBox.style.display = 'block';
+                        } else if (warnBox) {
+                            warnBox.style.display = 'none';
+                        }
+                        return;
+                    }
+                    currentEmailState.defaults[type] = {
+                        subject: data.template_subject || '',
+                        body: data.template_body || ''
+                    };
+                    // On open/template switch, fill empty fields with the
+                    // template text so the admin sees and edits the real
+                    // proposed content. Afterwards, edited fields are left
+                    // alone (including intentionally cleared ones).
+                    if (currentEmailState.needDefaults) {
+                        currentEmailState.needDefaults = false;
+                        const defS = data.template_subject || '';
+                        const defB = data.template_body || '';
+                        const subjEl = document.getElementById('emailSubject');
+                        const bodyEl = document.getElementById('emailBody');
+                        if (subjEl && !subjEl.value.trim()) subjEl.value = defS;
+                        if (bodyEl && !bodyEl.value.trim()) bodyEl.value = defB;
+                    }
+                    preview.textContent = 'Subject: ' + data.subject + '\n\n' + data.text;
+
+                    if (warnBox) {
+                        const warns = data.warnings || [];
+                        if (warns.length) {
+                            warnBox.innerHTML = warns.map(w => '⚠ ' + escapeHtml(w)).join('<br>');
+                            warnBox.style.display = 'block';
+                        } else {
+                            warnBox.style.display = 'none';
+                        }
+                    }
+                    if (ctxBox) {
+                        const le = data.last_email;
+                        ctxBox.textContent = le
+                            ? 'Last admin email: ' + (le.email_type || 'email') + ' on ' + String(le.sent_at || '').substring(0, 10) + (le.success ? ' (delivered)' : ' (failed)')
+                            : 'No previous admin emails to this recipient.';
+                    }
+                })
+                .catch(() => {
+                    const preview = document.getElementById('emailPreview');
+                    if (preview) preview.textContent = 'Preview unavailable';
+                });
         }
 
         function sendAdminEmail() {
             if (currentEmailState.sending) return;
 
             const type = document.getElementById('emailType').value;
-            const customSubject = document.getElementById('customEmailSubject')?.value.trim() || '';
-            const customMessage = document.getElementById('customEmailMessage')?.value.trim() || '';
+            const subject = (document.getElementById('emailSubject')?.value || '').trim();
+            const body = (document.getElementById('emailBody')?.value || '').trim();
+
+            if (type === 'custom' && (!subject || !body)) {
+                alert('Custom messages require both a subject and a message.');
+                return;
+            }
+
+            const user = currentEmailState.user || {};
+            const toName = [user.first_name, user.last_name].filter(Boolean).join(' ') || user.email;
+            const previewSubject = subject || (currentEmailState.defaults[type] || {}).subject || '(template subject)';
+            if (!confirm('Send this email to ' + toName + ' <' + (user.email || '') + '>?\n\nSubject: ' + previewSubject)) {
+                return;
+            }
 
             currentEmailState.sending = true;
             const btn = document.getElementById('confirmEmailBtn');
-            if (btn) btn.textContent = 'Sending...';
+            if (btn) { btn.textContent = 'Sending...'; btn.disabled = true; }
 
             const payload = {
                 practice_id: currentEmailState.practiceId,
                 user_id: currentEmailState.userId,
                 email_type: type
             };
-            if (type === 'custom') {
-                payload.custom_subject = customSubject;
-                payload.custom_message = customMessage;
-            }
+            if (subject) payload.subject = subject;
+            if (body) payload.body = body;
 
             postJson('api/admin-practices.php?action=send_email', payload)
                 .then(response => response.json().then(data => ({ response, data })))
                 .then(({ response, data }) => {
                     currentEmailState.sending = false;
-                    if (btn) btn.textContent = 'Send Email';
+                    if (btn) { btn.textContent = 'Send Email'; btn.disabled = false; }
 
                     if (response.ok && data.success) {
                         showAdminToast(data.message || 'Email sent');
@@ -2558,7 +2645,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
                 })
                 .catch(error => {
                     currentEmailState.sending = false;
-                    if (btn) btn.textContent = 'Send Email';
+                    if (btn) { btn.textContent = 'Send Email'; btn.disabled = false; }
                     alert('Error: ' + error.message);
                 });
         }
