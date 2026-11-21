@@ -1,6 +1,22 @@
 # Custom 404 Error Page
 ErrorDocument 404 /404.php
 
+# Block non-public files and directories before any other rewrite runs.
+# These paths are never legitimately served over HTTP: Composer autoloading
+# and PHP includes read them from the filesystem, so blocking HTTP access
+# does not affect application execution. 404 (not 403) avoids confirming
+# that a probed path exists.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  # Internal directories: dependencies, docs, backups, runtime data, dev files.
+  RewriteRule (^|/)(vendor|node_modules|backups|docs|documentation|exports|exports-v2|logs|sessions|migrations|scripts|tests|test-results|testResults|screenshots|partials)(/|$) - [R=404,L]
+  # Dotfiles and dot-directories (.env, .git, .githooks, .windsurf, etc.).
+  # .well-known/ is exempt: it carries OAuth discovery metadata.
+  RewriteRule (^|/)\.(?!well-known/) - [R=404,L]
+  # Sensitive filenames and dev-artifact extensions anywhere in the tree.
+  RewriteRule (^|/)(composer\.(json|lock)|php\.ini|cloudbuild\.yaml|deploy\.cmd|package(-lock)?\.json|yarn\.lock|.*\.(md|sql|log|sh|py|ini|bak|swp|swo|orig|save|old|dist|example))$ - [R=404,L]
+</IfModule>
+
 # Clean URLs - rewrite /page to /page.php (production only)
 <IfModule mod_rewrite.c>
   RewriteEngine On
