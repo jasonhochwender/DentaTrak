@@ -40,6 +40,7 @@ require_once __DIR__ . '/hipaa-compliance.php';
 require_once __DIR__ . '/ask-dentatrak-tools.php';
 require_once __DIR__ . '/ask-dentatrak-help.php';
 require_once __DIR__ . '/ask-dentatrak-telemetry.php';
+require_once __DIR__ . '/rate-limit.php';
 
 header('Content-Type: application/json');
 
@@ -65,6 +66,42 @@ if (!isFeatureEnabled('SHOW_AI_CHAT')) {
     http_response_code(403);
     echo json_encode(['success' => false, 'error' => t('ask_dentatrak.errors.unavailable', $appNameParam)]);
     exit;
+}
+
+// Rate limit BEFORE any AI provider call. Buckets key on the user only -
+// switching practices cannot reset them, and the DB-backed counters are
+// atomic across Cloud Run instances. Limits are env-overridable.
+$askUserId = (int)($_SESSION['db_user_id'] ?? 0);
+$askPdo = $pdo ?? ($GLOBALS['pdo'] ?? null);
+if ($askUserId > 0 && $askPdo instanceof PDO) {
+    $perHour = (int)(getEnvVar('ASK_RATE_LIMIT_PER_HOUR') ?: 30);
+    $perDay = (int)(getEnvVar('ASK_RATE_LIMIT_PER_DAY') ?: 200);
+    $perPracticeHour = (int)(getEnvVar('ASK_RATE_LIMIT_PRACTICE_PER_HOUR') ?: 500);
+    $retryAfter = null;
+    try {
+        foreach ([
+            ["ask:u{$askUserId}:h", $perHour, 3600],
+            ["ask:u{$askUserId}:d", $perDay, 86400],
+            ["ask:p{$currentPracticeId}:h", $perPracticeHour, 3600],
+        ] as [$bucket, $limit, $window]) {
+            $wait = rateLimitConsume($askPdo, $bucket, $limit, $window);
+            if ($wait !== null) { $retryAfter = max($retryAfter ?? 0, $wait); }
+        }
+    } catch (Throwable $rlErr) {
+        // Limiter failure must not take down the assistant; log and allow.
+        error_log('[ask-dentatrak] rate limiter error: ' . $rlErr->getMessage());
+        $retryAfter = null;
+    }
+    if ($retryAfter !== null) {
+        if (function_exists('logUserActivity')) {
+            logUserActivity($askUserId, 'ask_dentatrak_rate_limited', 'Ask DentaTrak rate limit reached');
+        }
+        http_response_code(429);
+        header('Retry-After: ' . $retryAfter);
+        header('Content-Type: application/json');
+        echo json_encode(['success' => false, 'error' => t('ask_dentatrak.errors.rate_limited'), 'retry_after' => $retryAfter]);
+        exit;
+    }
 }
 
 $aiProvider = $appConfig['ai_provider'] ?? 'gemini';

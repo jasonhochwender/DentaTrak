@@ -2326,6 +2326,7 @@
             "ai_model_unavailable": "Recommendations are temporarily unavailable because the recommendations service could not be reached.",
             "ai_config": "Recommendations service configuration error. Please contact support.",
             "ai_unavailable": "The recommendations service is currently unavailable. Please try again later.",
+            "ai_refresh_limited": "You've reached the limit for manual refreshes. Please try again in about an hour.",
             "ai_billing": "DentaTrak's AI assistant is temporarily unavailable. Please try again later; if this continues, contact support.",
             "unable_later": "Unable to generate recommendations at this time. Please try again later."
         },
@@ -3831,7 +3832,8 @@
             "unavailable": "Ask {appName} isn't available for your practice.",
             "empty_query": "Please enter a question.",
             "no_answer": "I couldn't find an answer to that. Try asking how to use a feature, or about the cases you can access.",
-            "generic": "Sorry, something went wrong. Please try again."
+            "generic": "Sorry, something went wrong. Please try again.",
+            "rate_limited": "You've reached the hourly limit for questions. Please try again in a little while."
         },
         "feedback": {
             "helpful": "Helpful",

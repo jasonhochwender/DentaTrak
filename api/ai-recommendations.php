@@ -19,6 +19,7 @@ require_once __DIR__ . '/subscription-access.php';
 require_once __DIR__ . '/workflow-stages.php';
 require_once __DIR__ . '/ai-client.php';
 require_once __DIR__ . '/ai-recommendation-store.php';
+require_once __DIR__ . '/rate-limit.php';
 
 header('Content-Type: application/json');
 
@@ -163,6 +164,24 @@ try {
     // AI failure. This prevents repeated dashboard opens from burning API
     // quota while still re-evaluating when practice data materially changes.
     $forceRefresh = (($_GET['refresh'] ?? '') === '1');
+    // Forced refreshes bypass the generation cache, so they carry their own
+    // per-user hourly cap (DB-backed, atomic across instances) to prevent
+    // quota burn. Normal cached reads are unaffected.
+    if ($forceRefresh && $userId > 0) {
+        $refreshLimit = (int)(getEnvVar('AI_REC_REFRESH_PER_HOUR') ?: 5);
+        try {
+            $wait = rateLimitConsume($pdo, "airec:u{$userId}:h", $refreshLimit, 3600);
+        } catch (Throwable $rlErr) {
+            error_log('[ai-recommendations] rate limiter error: ' . $rlErr->getMessage());
+            $wait = null;
+        }
+        if ($wait !== null) {
+            http_response_code(429);
+            header('Retry-After: ' . $wait);
+            echo json_encode(['success' => false, 'error' => t('insights.errors.ai_refresh_limited'), 'retry_after' => $wait]);
+            exit;
+        }
+    }
     $latest = aiRecLatestGeneration($pdo, (int)$practiceId, $locale);
     $latestAge = $latest ? (time() - strtotime($latest['generated_at'])) : PHP_INT_MAX;
 
