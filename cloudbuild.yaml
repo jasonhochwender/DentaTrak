@@ -123,6 +123,27 @@ steps:
         '--quiet'
       ]
 
+  # ---------- Shift traffic to the new production revision ----------
+  # The service carries accumulated staged-* traffic tags, and
+  # `gcloud run deploy` preserves explicit revision-pinned traffic splits,
+  # so deploys were creating revisions that never received traffic.
+  # Pin 100% to the latest ready revision explicitly; tags are preserved.
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      [
+        'run',
+        'services',
+        'update-traffic',
+        'dtk-app-prod',
+        '--to-latest',
+        '--region',
+        'us-east1',
+        '--project',
+        'dtk-prod-core',
+        '--quiet'
+      ]
+
   # ---------- Ensure integration event worker schedule (idempotent) ----------
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: bash

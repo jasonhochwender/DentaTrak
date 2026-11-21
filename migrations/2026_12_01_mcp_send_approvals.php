@@ -33,12 +33,21 @@ $ddl = [
      expires_at DATETIME NOT NULL,
      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
      INDEX idx_batch (batch_id),
-     INDEX idx_status_expiry (status, expires_at))",
+     INDEX idx_status_expiry (status, expires_at))
+     DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
   "CREATE TABLE IF NOT EXISTS rate_limit_counters (
      bucket VARCHAR(160) NOT NULL,
      window_id BIGINT UNSIGNED NOT NULL,
      hits INT UNSIGNED NOT NULL DEFAULT 0,
-     PRIMARY KEY (bucket, window_id)) ENGINE=InnoDB",
+     PRIMARY KEY (bucket, window_id)) ENGINE=InnoDB
+     DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 ];
 foreach ($ddl as $sql) { $pdo->exec($sql); }
+// Collation must match marketing_batches/mcp_* (utf8mb4_unicode_ci) or
+// JOINs/comparisons between the tables fail with error 1267. Idempotent.
+foreach (['marketing_send_approvals', 'rate_limit_counters'] as $t) {
+    try {
+        $pdo->exec("ALTER TABLE $t CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+    } catch (Throwable $e) { /* already correct or unsupported */ }
+}
 echo "mcp send approvals + rate limit counters ready\n";
