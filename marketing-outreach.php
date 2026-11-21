@@ -82,6 +82,9 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
         .mo-pill.draft { background: #f3f4f6; color: #6b7280; }
         .mo-pill.uncertain, .mo-pill.sheet-failed, .mo-pill.thread-new { background: #fef3c7; color: #92400e; }
         .mo-pill.thread-resolved, .mo-pill.sheet-synced { background: #d1fae5; color: #065f46; }
+        .mo-pill.pending { background: #fef3c7; color: #92400e; }
+        .mo-pill.consumed { background: #d1fae5; color: #065f46; }
+        .mo-pill.denied, .mo-pill.expired { background: #e5e7eb; color: #4b5563; }
         .mo-sending { padding: 10px 14px; border-radius: 6px; font-size: 0.85rem; margin-bottom: 14px; border: 1px solid #d1d5db; background: #f9fafb; color: #374151; }
         .mo-sending.allowlist { border-color: #fde68a; background: #fffbeb; color: #92400e; }
         .mo-msg-note { font-size: 0.75rem; color: #6b7280; margin: 4px 0; }
