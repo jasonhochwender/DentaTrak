@@ -23,11 +23,82 @@ steps:
         'us-east1-docker.pkg.dev/dtk-prod-core/app-repo/dtk-app-prod:$COMMIT_SHA'
       ]
 
-  # ---------- Deploy to Cloud Run (staged, no traffic) ----------
-  # The traffic tag is unique per commit so concurrent builds of different
-  # commits cannot verify one revision and promote another through a shared
-  # tag. (Tag+service name must stay <= 46 chars, so SHORT_SHA, not BUILD_ID.
-  # Same-commit reruns share the tag, which is safe: identical image.)
+  # ---------- Deploy to candidate Cloud Run service (staging, 100% traffic) ----------
+  # dtk-app-candidate is a dedicated staging service (ingress restricted to
+  # the load balancer, MARKETING_SENDING=false, DS_CORE_CONNECT=false,
+  # MEDIT_CONNECT=false). It is verified end-to-end through
+  # https://staging.dentatrak.com, which exercises the real production path:
+  # external ALB -> Cloud Armor -> serverless NEG -> Cloud Run.
+  # Its env/config is managed separately from prod; `gcloud run deploy`
+  # preserves the candidate's existing env vars on each deploy.
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      [
+        'run',
+        'deploy',
+        'dtk-app-candidate',
+        '--image',
+        'us-east1-docker.pkg.dev/dtk-prod-core/app-repo/dtk-app-prod:$COMMIT_SHA',
+        '--region',
+        'us-east1',
+        '--platform',
+        'managed',
+        '--service-account',
+        '1029275239454-compute@developer.gserviceaccount.com',
+        '--vpc-connector',
+        'dtk-vpc-prod',
+        '--add-cloudsql-instances',
+        'dtk-prod-core:us-east1:dtk-sql-prod',
+        '--quiet'
+      ]
+
+  # ---------- Verify candidate through the protected load balancer ----------
+  # Fails the build (production untouched) unless the candidate reports a
+  # patched PHP runtime and serves requests normally via staging.dentatrak.com.
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: bash
+    args:
+      [
+        'scripts/verify-staged.sh',
+        'https://staging.dentatrak.com'
+      ]
+    secretEnv: ['STAGING_GATE_KEY']
+
+  # ---------- Authenticated smoke: login -> main.php -> permissions -> logout ----------
+  # A 500 on the post-login page once shipped because the static checks
+  # above only covered unauthenticated requests. This exercises the real
+  # session + shared permission checks on the candidate revision through
+  # the same edge path production will use.
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: bash
+    args:
+      [
+        'scripts/staged-auth-smoke.sh',
+        'https://staging.dentatrak.com'
+      ]
+    secretEnv: ['SMOKE_TEST_EMAIL', 'SMOKE_TEST_PASSWORD', 'STAGING_GATE_KEY']
+
+  # ---------- Provision export infrastructure BEFORE promotion ----------
+  # The export worker job, its override-capable IAM role, the sweep
+  # scheduler, and the GCS lifecycle rule must all verify successfully
+  # while the candidate revision still has zero traffic. Every step in
+  # the script is fatal on failure, so a provisioning problem aborts
+  # the build here and the release is never partially promoted.
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: bash
+    args:
+      [
+        'scripts/provision-export-worker.sh'
+      ]
+
+  # ---------- Promote: deploy the verified image to production ----------
+  # The candidate service already runs this exact image at 100% traffic and
+  # passed verify-staged + authenticated smoke through the protected edge.
+  # Deploying the same image tag to dtk-app-prod creates the production
+  # revision with prod's own env/config; `gcloud run deploy` preserves
+  # existing env vars. Rollback: `gcloud run services update-traffic
+  # dtk-app-prod --to-revisions=<previous-revision>=100`.
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
@@ -49,56 +120,7 @@ steps:
         'dtk-prod-core:us-east1:dtk-sql-prod',
         '--update-env-vars',
         'EXPORT_RUN_JOB=dtk-export-worker',
-        '--no-traffic',
-        '--tag',
-        'staged-${SHORT_SHA}',
         '--quiet'
-      ]
-
-  # ---------- Verify staged revision before any production traffic ----------
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: bash
-    args:
-      [
-        'scripts/verify-staged.sh',
-        'https://staged-${SHORT_SHA}---dtk-app-prod-6y7s3km7ra-ue.a.run.app'
-      ]
-
-  # ---------- Authenticated smoke: login -> main.php -> permissions -> logout ----------
-  # A 500 on the post-login page once shipped because the static checks
-  # above only covered unauthenticated requests. This exercises the real
-  # session + shared permission checks on the exact candidate revision.
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: bash
-    args:
-      [
-        'scripts/staged-auth-smoke.sh',
-        'https://staged-${SHORT_SHA}---dtk-app-prod-6y7s3km7ra-ue.a.run.app'
-      ]
-    secretEnv: ['SMOKE_TEST_EMAIL', 'SMOKE_TEST_PASSWORD']
-
-  # ---------- Provision export infrastructure BEFORE promotion ----------
-  # The export worker job, its override-capable IAM role, the sweep
-  # scheduler, and the GCS lifecycle rule must all verify successfully
-  # while the candidate revision still has zero traffic. Every step in
-  # the script is fatal on failure, so a provisioning problem aborts
-  # the build here and the release is never partially promoted.
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: bash
-    args:
-      [
-        'scripts/provision-export-worker.sh'
-      ]
-
-  # ---------- Promote: route 100% traffic to the verified revision ----------
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: bash
-    args:
-      [
-        'scripts/promote-staged.sh',
-        'dtk-app-prod',
-        'us-east1',
-        'staged-${SHORT_SHA}'
       ]
 
   # ---------- Ensure integration event worker schedule (idempotent) ----------
@@ -143,6 +165,8 @@ availableSecrets:
       env: SMOKE_TEST_EMAIL
     - versionName: projects/dtk-prod-core/secrets/SMOKE_TEST_PASSWORD/versions/latest
       env: SMOKE_TEST_PASSWORD
+    - versionName: projects/dtk-prod-core/secrets/dtk-staging-gate-key/versions/latest
+      env: STAGING_GATE_KEY
 
 images:
   - us-east1-docker.pkg.dev/dtk-prod-core/app-repo/dtk-app-prod:$COMMIT_SHA

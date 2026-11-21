@@ -14,6 +14,13 @@ set -euo pipefail
 
 BASE="${1:?usage: staged-auth-smoke.sh <revision-url>}"
 
+# Staging gate: when STAGING_GATE_KEY is set (candidate service behind the
+# restricted Cloud Armor policy), every request must carry the gate header.
+GATE_ARGS=()
+if [ -n "${STAGING_GATE_KEY:-}" ]; then
+  GATE_ARGS=(-H "X-Dt-Staging-Key: ${STAGING_GATE_KEY}")
+fi
+
 fail() { echo "AUTH-SMOKE FAIL: $1"; exit 1; }
 
 if [ -z "${SMOKE_TEST_EMAIL:-}" ] || [ -z "${SMOKE_TEST_PASSWORD:-}" ]; then
@@ -32,7 +39,7 @@ JAR="$(mktemp)" && HDRS="$(mktemp)"
 # account is not left with dangling sessions.
 cleanup() {
   if [ -s "$JAR" ]; then
-    curl -sS --max-time 15 -b "$JAR" -o /dev/null "$BASE/api/logout.php" >/dev/null 2>&1 || true
+    curl -sS --max-time 15 "${GATE_ARGS[@]}" -b "$JAR" -o /dev/null "$BASE/api/logout.php" >/dev/null 2>&1 || true
   fi
   rm -f "$JAR" "$HDRS"
 }
@@ -41,7 +48,7 @@ trap cleanup EXIT
 retry_curl() {
   local args=("$@") out="" i
   for i in 1 2 3 4 5; do
-    out="$(curl -sS --max-time 30 "${args[@]}" 2>/dev/null)" && { printf '%s' "$out"; return 0; }
+    out="$(curl -sS --max-time 30 "${GATE_ARGS[@]}" "${args[@]}" 2>/dev/null)" && { printf '%s' "$out"; return 0; }
     sleep 10
   done
   return 1
@@ -93,7 +100,7 @@ echo "shared permission check OK (inbox access granted as expected)"
 
 # 4) Logout, then protected pages must re-require authentication.
 retry_curl -b "$JAR" -c "$JAR" -o /dev/null "$BASE/api/logout.php" >/dev/null || fail "logout request failed"
-CODE="$(curl -sS --max-time 30 -b "$JAR" -o "$HDRS" -w '%{http_code}' "$BASE/main.php" 2>/dev/null || echo 000)"
+CODE="$(curl -sS --max-time 30 "${GATE_ARGS[@]}" -b "$JAR" -o "$HDRS" -w '%{http_code}' "$BASE/main.php" 2>/dev/null || echo 000)"
 POST_BODY="$(cat "$HDRS" 2>/dev/null || true)"
 if [ "$CODE" = "200" ]; then
   [[ "$POST_BODY" == *'name="password"'* ]] \

@@ -43,6 +43,24 @@ loadEnv(__DIR__ . '/../.env');
 function sendAppEmail(string $toEmail, string $subject, string $htmlBody, ?string $textBody = null, ?string $replyToEmail = null): array {
     global $appConfig;
 
+    // Staging/edge environments (e.g. dtk-app-candidate) set
+    // EMAIL_OUTBOUND_DISABLED=true so no real email can leave the service.
+    // Every outbound path funnels through this function; returning an
+    // honest failure keeps flows from silently "sending". Inert unless the
+    // env var is explicitly 'true' - production never sets it.
+    $outboundDisabled = getenv('EMAIL_OUTBOUND_DISABLED');
+    if ($outboundDisabled === false) {
+        $outboundDisabled = $_ENV['EMAIL_OUTBOUND_DISABLED'] ?? '';
+    }
+    if ($outboundDisabled === 'true') {
+        error_log('EMAIL_OUTBOUND_DISABLED: suppressed outbound email');
+        return [
+            'success' => false,
+            'provider' => 'outbound_disabled',
+            'error' => 'Outbound email is disabled in this environment',
+        ];
+    }
+
     // Test mode: record the email to disk instead of sending (never used in production)
     if (
         !empty($appConfig['test_record_emails'])

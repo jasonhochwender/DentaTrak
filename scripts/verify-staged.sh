@@ -9,11 +9,19 @@ set -euo pipefail
 
 BASE="${1:?usage: verify-staged.sh <revision-url>}"
 
+# Staging gate: when STAGING_GATE_KEY is set (candidate service behind the
+# restricted Cloud Armor policy), every request must carry the gate header.
+# Empty/unset means the target has no gate (e.g. legacy run.app URLs).
+GATE_ARGS=()
+if [ -n "${STAGING_GATE_KEY:-}" ]; then
+  GATE_ARGS=(-H "X-Dt-Staging-Key: ${STAGING_GATE_KEY}")
+fi
+
 retry_curl() {
   # Scale-to-zero revisions can take ~30s to cold-start; retry briefly.
   local args=("$@") out="" i
   for i in 1 2 3 4 5; do
-    out="$(curl -sS --max-time 30 "${args[@]}" 2>/dev/null)" && { printf '%s' "$out"; return 0; }
+    out="$(curl -sS --max-time 30 "${GATE_ARGS[@]}" "${args[@]}" 2>/dev/null)" && { printf '%s' "$out"; return 0; }
     sleep 10
   done
   return 1
