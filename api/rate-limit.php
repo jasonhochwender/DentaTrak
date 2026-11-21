@@ -6,19 +6,12 @@
  * cannot be bypassed by concurrent requests or practice switching.
  * Increment is atomic via INSERT ... ON DUPLICATE KEY UPDATE feeding
  * LAST_INSERT_ID(); the returned hit count is unique per request.
+ *
+ * The rate_limit_counters table is created by deployment migration
+ * migrations/2026_12_01_mcp_send_approvals.php - never at request time.
+ * If the table is absent the query throws; callers catch and fail open
+ * (availability over strictness for a throttle, never a security gate).
  */
-
-function rateLimitEnsureTable(PDO $pdo): void {
-    static $done = false;
-    if ($done) return;
-    $pdo->exec("CREATE TABLE IF NOT EXISTS rate_limit_counters (
-        bucket VARCHAR(160) NOT NULL,
-        window_id BIGINT UNSIGNED NOT NULL,
-        hits INT UNSIGNED NOT NULL DEFAULT 0,
-        PRIMARY KEY (bucket, window_id)
-    ) ENGINE=InnoDB");
-    $done = true;
-}
 
 /**
  * Consume one hit for $bucket inside the current fixed window.
@@ -26,7 +19,6 @@ function rateLimitEnsureTable(PDO $pdo): void {
  * or null when the request is allowed.
  */
 function rateLimitConsume(PDO $pdo, string $bucket, int $limit, int $windowSeconds): ?int {
-    rateLimitEnsureTable($pdo);
     $windowId = intdiv(time(), $windowSeconds);
 
     // Canonical atomic counter: LAST_INSERT_ID() returns the post-increment

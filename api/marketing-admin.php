@@ -8,11 +8,12 @@
  *
  * Reads (GET ?action=...):
  *   overview | prospects | prospect | followups | campaigns | campaign |
- *   templates | history | audit
+ *   batch_approvals | batch_approval | templates | history | audit
  *
  * Mutations (POST ?action=..., X-CSRF-Token required):
  *   create_campaign | generate | campaign_generate_request |
  *   save_message | approve | send |
+ *   approve_batch_send | deny_batch_send |
  *   resolve_threads | reconcile | resolve_uncertain | retry_sheet_sync |
  *   template_save | template_delete
  *
@@ -60,6 +61,7 @@ require_once __DIR__ . '/marketing/SheetSyncException.php';
 require_once __DIR__ . '/marketing/CampaignSendSupport.php';
 require_once __DIR__ . '/marketing/CampaignSendRunner.php';
 require_once __DIR__ . '/marketing/CampaignGenerator.php';
+require_once __DIR__ . '/marketing/McpSendApproval.php';
 setSecurityHeaders();
 header('Content-Type: application/json');
 
@@ -115,8 +117,9 @@ try {
     $pdo->query('SELECT idempotency_key, attempts FROM marketing_sends LIMIT 0');
     $pdo->query('SELECT gen_requested, gen_scope FROM marketing_campaigns LIMIT 0');
     $pdo->query('SELECT gen_attempts, gen_error FROM marketing_campaign_recipients LIMIT 0');
+    $pdo->query('SELECT id, status, expires_at FROM marketing_send_approvals LIMIT 0');
 } catch (Throwable $e) {
-    mo_fail('schema_not_migrated: run migrations/2026_11_03_marketing_admin.php, 2026_11_12_marketing_send_hardening.php, 2026_11_22_marketing_large_campaigns.php, 2026_11_23_marketing_campaign_send_auth.php and 2026_11_24_marketing_campaign_generation.php', 503);
+    mo_fail('schema_not_migrated: run migrations/2026_11_03_marketing_admin.php, 2026_11_12_marketing_send_hardening.php, 2026_11_22_marketing_large_campaigns.php, 2026_11_23_marketing_campaign_send_auth.php, 2026_11_24_marketing_campaign_generation.php and 2026_12_01_mcp_send_approvals.php', 503);
 }
 
 /**
@@ -826,6 +829,24 @@ if ($method === 'GET') {
             mo_out(['success' => true, 'recipients' => $st->fetchAll(PDO::FETCH_ASSOC),
                 'page' => $page, 'per' => $per, 'total' => $total, 'pages' => $pages]);
         }
+        case 'batch_approvals': {
+            // MCP send_batch human-approval queue (pending first).
+            mo_out(['success' => true, 'approvals' => McpSendApproval::listForAdmin($pdo)]);
+        }
+        case 'batch_approval': {
+            $id = (string)($_GET['id'] ?? '');
+            $d = McpSendApproval::detailForAdmin($pdo, $id);
+            if (!$d) mo_fail('not found', 404);
+            // Sender context for the review UI: the connected Gmail
+            // account. Best-effort - a profile failure never blocks review.
+            $sender = null;
+            try {
+                $mailer = new MarketingMailer($pdo, $baseUrl);
+                $prof = $mailer->gmailGet('/profile');
+                $sender = $prof['status'] === 200 ? ($prof['data']['emailAddress'] ?? null) : null;
+            } catch (Throwable $e) { $sender = null; }
+            mo_out(['success' => true, 'approval' => $d, 'sender' => $sender]);
+        }
         case 'templates': {
             $rows = $pdo->query("SELECT id,name,kind,subject_tpl,body_tpl,is_default,created_by,updated_at FROM marketing_templates ORDER BY kind, is_default DESC, name")->fetchAll(PDO::FETCH_ASSOC);
             mo_out(['success' => true, 'templates' => $rows]);
@@ -1211,6 +1232,29 @@ switch ($action) {
              'allow_new_threads' => $newThreads > 0 ? !empty($in['allow_new_threads']) : null,
              'send_authorized' => true]);
         mo_out(['success' => true, 'approved' => $sendable, 'new_threads' => $newThreads]);
+    }
+
+    case 'approve_batch_send': {
+        // Human approval for an MCP send_batch request. This endpoint is
+        // the ONLY path that can flip an approval to 'approved' - it
+        // requires the interactive admin session + CSRF enforced above,
+        // which an MCP bearer token cannot provide.
+        $aid = trim((string)($in['approval_id'] ?? ''));
+        if ($aid === '' || !preg_match('/^[0-9a-f-]{36}$/i', $aid)) mo_fail('approval_id required', 400);
+        $r = McpSendApproval::approve($pdo, $aid, (int)($_SESSION['db_user_id'] ?? 0), $userEmail);
+        if (empty($r['ok'])) mo_fail((string)($r['error'] ?? 'approve failed'), 409);
+        mo_audit($pdo, $userEmail, 'mcp_batch_send_approve', (string)($r['batch_id'] ?? $aid),
+            ['approval_id' => $aid]);
+        mo_out(['success' => true]);
+    }
+
+    case 'deny_batch_send': {
+        $aid = trim((string)($in['approval_id'] ?? ''));
+        if ($aid === '' || !preg_match('/^[0-9a-f-]{36}$/i', $aid)) mo_fail('approval_id required', 400);
+        $r = McpSendApproval::deny($pdo, $aid, $userEmail);
+        if (empty($r['ok'])) mo_fail((string)($r['error'] ?? 'deny failed'), 409);
+        mo_audit($pdo, $userEmail, 'mcp_batch_send_deny', $aid, []);
+        mo_out(['success' => true]);
     }
 
     case 'send': {

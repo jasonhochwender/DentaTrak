@@ -40,8 +40,8 @@ $TOOLS = [
     'inputSchema'=>['type'=>'object','properties'=>['emails'=>['type'=>'array','items'=>['type'=>'string']]],'required'=>['emails']]],
   'prepare_batch' => ['description'=>'Preview a batch: eligibility map + binds recipients/subject/body. Sends nothing.',
     'inputSchema'=>['type'=>'object','properties'=>['campaign'=>['type'=>'string'],'subject'=>['type'=>'string'],'html'=>['type'=>'string'],'emails'=>['type'=>'array','items'=>['type'=>'string']]],'required'=>['campaign','subject','html','emails']]],
-  'send_batch' => ['description'=>'Send a previously prepared batch (explicit approve required)',
-    'inputSchema'=>['type'=>'object','properties'=>['batch_id'=>['type'=>'string'],'approve'=>['type'=>'boolean']],'required'=>['batch_id','approve']]],
+  'send_batch' => ['description'=>'Request or execute a send of a previously prepared batch. approve=true alone NEVER sends - it creates a pending approval that a DentaTrak administrator must approve in Marketing Outreach. To execute, call again with approve=true and the returned approval_id before it expires. Approval is single-use and bound to the exact batch content; any edit invalidates it.',
+    'inputSchema'=>['type'=>'object','properties'=>['batch_id'=>['type'=>'string'],'approve'=>['type'=>'boolean'],'approval_id'=>['type'=>'string']],'required'=>['batch_id','approve']]],
   'get_batch' => ['description'=>'Batch + per-recipient results (status, gmail_message_id, errors)',
     'inputSchema'=>['type'=>'object','properties'=>['batch_id'=>['type'=>'string']],'required'=>['batch_id']]],
   // --- Prospect CRM (MySQL) -----------------------------------------
@@ -143,13 +143,45 @@ if ($name==='check_eligibility') {
     if ($batch['status']==='sent') $fail('already sent');
     $expected = hash('sha256', json_encode([$pdo->query("SELECT email FROM marketing_batch_recipients WHERE batch_id='".$batch['id']."' ORDER BY email")->fetchAll(PDO::FETCH_COLUMN),$batch['subject'],$batch['html'],$batch['campaign']]));
     if (!hash_equals($batch['content_hash'], $expected)) $fail('batch content changed since approval - prepare a new batch');
+    // Delivery preconditions are checked BEFORE the approval is consumed
+    // so a config/sheet outage cannot burn a human approval.
     $token = getEnvVar('OUTREACH_API_TOKEN');
     if (!$token) $fail('outreach token unavailable - fail closed');
     // Authoritative Prospects-sheet pre-checks. Fail closed when the
     // sheet cannot be read - never send on an unchecked list.
     require_once __DIR__ . '/../marketing/ProspectSheetSync.php';
     require_once __DIR__ . '/../marketing/McpSheetSync.php';
+    require_once __DIR__ . '/../marketing/McpSendApproval.php';
     try { $sheet = new McpSheetSync(); } catch (Throwable $e) { $fail('sheet unreachable - fail closed'); }
+
+    $approvalId = trim((string)($a['approval_id'] ?? ''));
+    if ($approvalId === '') {
+        // Phase 1: a tool argument can never approve a send. Record a
+        // pending request; only an interactive admin session + CSRF in
+        // Marketing Outreach can flip it to 'approved'.
+        try {
+            $req = McpSendApproval::request($pdo, $batch, $expected, $userId, (string)$tokenRow['email']);
+        } catch (Throwable $e) {
+            error_log('[mcp] send approval request failed: ' . $e->getMessage());
+            $fail('approval store unavailable - fail closed');
+        }
+        $ok(['content'=>[['type'=>'text','text'=>json_encode([
+            'status' => 'pending_human_approval',
+            'approval_id' => $req['approval_id'],
+            'expires_at' => $req['expires_at'],
+            'sent' => false,
+            'next' => 'Ask a DentaTrak administrator to review and approve this batch in Marketing Outreach > Campaigns. Then call send_batch again with approve=true and approval_id before it expires. Approval is single-use and bound to the exact content - edits require a new approval.'
+        ])]]]);
+    }
+    // Phase 2: consume the human approval atomically, then deliver through
+    // the unchanged guarded path (per-recipient suppression recheck, sheet
+    // pre-check, atomic claim, send-ledger reconciliation below).
+    try { $cons = McpSendApproval::consume($pdo, $approvalId, (string)$batch['id'], $expected); }
+    catch (Throwable $e) {
+        error_log('[mcp] send approval consume failed: ' . $e->getMessage());
+        $fail('approval store unavailable - fail closed');
+    }
+    if (empty($cons['ok'])) $fail('send not approved: ' . ($cons['error'] ?? 'invalid approval'));
     $sent=0;$skipped=0;$errors=[];
     // Claims: 'uncertain' excluded - it must reconcile the send ledger
     // (below) before another attempt is ever allowed.

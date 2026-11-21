@@ -398,6 +398,12 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
 
 <!-- ============ CAMPAIGNS ============ -->
 <section id="moTab-campaigns" class="mo-pane mo-hidden">
+    <div class="pa-card" id="moBatchApprovalCard" style="margin-bottom:16px;">
+        <h2><?php echo h(ma('batch_appr_title')); ?></h2>
+        <p class="mo-step-note"><?php echo h(ma('batch_appr_note')); ?></p>
+        <div id="moBatchApprovalList"></div>
+        <div id="moBatchApprovalDetail" class="mo-hidden"></div>
+    </div>
     <div class="mo-toolbar">
         <button class="mo-btn" id="moNewCampaign"><?php echo h(ma('new_campaign')); ?></button>
         <span class="mo-step-note"><?php echo h(ma('campaign_limit_note')); ?></span>
@@ -786,7 +792,33 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
         confirmGenerateMissing: <?php echo json_encode(ma('confirm_generate_missing')); ?>,
         confirmGenerateReplace: <?php echo json_encode(ma('confirm_generate_replace')); ?>,
         prevRecipient: <?php echo json_encode(ma('prev_recipient')); ?>,
-        nextRecipient: <?php echo json_encode(ma('next_recipient')); ?>
+        nextRecipient: <?php echo json_encode(ma('next_recipient')); ?>,
+        batchAppr: {
+            empty: <?php echo json_encode(ma('batch_appr_empty')); ?>,
+            recent: <?php echo json_encode(ma('batch_appr_recent')); ?>,
+            review: <?php echo json_encode(ma('batch_appr_review')); ?>,
+            approve: <?php echo json_encode(ma('batch_appr_approve')); ?>,
+            deny: <?php echo json_encode(ma('batch_appr_deny')); ?>,
+            close: <?php echo json_encode(ma('batch_appr_close')); ?>,
+            expires: <?php echo json_encode(ma('batch_appr_expires')); ?>,
+            requestedBy: <?php echo json_encode(ma('batch_appr_requested_by')); ?>,
+            sender: <?php echo json_encode(ma('batch_appr_sender')); ?>,
+            recipients: <?php echo json_encode(ma('batch_appr_recipients')); ?>,
+            subject: <?php echo json_encode(ma('batch_appr_subject')); ?>,
+            preview: <?php echo json_encode(ma('batch_appr_preview')); ?>,
+            hashOk: <?php echo json_encode(ma('batch_appr_hash_ok')); ?>,
+            hashBad: <?php echo json_encode(ma('batch_appr_hash_bad')); ?>,
+            approvedOk: <?php echo json_encode(ma('batch_appr_approved_ok')); ?>,
+            deniedOk: <?php echo json_encode(ma('batch_appr_denied_ok')); ?>,
+            loadFailed: <?php echo json_encode(ma('batch_appr_load_failed')); ?>,
+            status: {
+                pending: <?php echo json_encode(ma('batch_appr_status_pending')); ?>,
+                approved: <?php echo json_encode(ma('batch_appr_status_approved')); ?>,
+                consumed: <?php echo json_encode(ma('batch_appr_status_consumed')); ?>,
+                denied: <?php echo json_encode(ma('batch_appr_status_denied')); ?>,
+                expired: <?php echo json_encode(ma('batch_appr_status_expired')); ?>
+            }
+        }
     };
     var state = { prospectPage: 1, currentCampaign: null, templates: [] };
     function $(id) { return document.getElementById(id); }
@@ -870,7 +902,7 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
         clearMsgs();
         if (name === 'overview') loadOverview();
         else if (name === 'prospects') { if (CRM_READS && window.MOCrm) MOCrm.load(); else loadProspects(); }
-        else if (name === 'campaigns') { if (CRM_READS && window.MOCrm) MOCrm.loadCampaigns(); else loadCampaigns(); }
+        else if (name === 'campaigns') { loadBatchApprovals(); if (CRM_READS && window.MOCrm) MOCrm.loadCampaigns(); else loadCampaigns(); }
         else if (name === 'followups') loadFollowups('');
         else if (name === 'replies') loadReplies();
         else if (name === 'templates') loadTemplates();
@@ -1594,6 +1626,105 @@ $crmReads = isFeatureEnabled('MARKETING_CRM_READS');
             });
         }).catch(function () { showErr(STR.loadFailed); });
     }
+
+    // ---------- agent (MCP) send approvals ----------
+    // Two-phase human gate: the assistant can only request a send; a
+    // person approves here with an interactive session + CSRF.
+    function batchApprEffectiveStatus(a) {
+        if (a.status === 'pending' && a.expires_at && new Date(String(a.expires_at).replace(' ', 'T') + 'Z') <= new Date()) return 'expired';
+        return a.status;
+    }
+    function loadBatchApprovals() {
+        var host = document.getElementById('moBatchApprovalList');
+        if (!host) return;
+        apiGet('batch_approvals').then(function (d) {
+            if (!d.success) { host.innerHTML = '<div class="mo-step-note">' + esc(STR.batchAppr.loadFailed) + '</div>'; return; }
+            var list = (d.approvals || []).filter(function (a) { return batchApprEffectiveStatus(a) === 'pending'; });
+            var recent = (d.approvals || []).filter(function (a) { return batchApprEffectiveStatus(a) !== 'pending'; }).slice(0, 5);
+            var html = '';
+            if (!list.length) html += '<div class="mo-step-note">' + esc(STR.batchAppr.empty) + '</div>';
+            list.forEach(function (a) { html += batchApprRow(a); });
+            if (recent.length) {
+                html += '<details style="margin-top:8px;"><summary class="mo-step-note" style="cursor:pointer;">' + esc(STR.batchAppr.recent) + '</summary>';
+                recent.forEach(function (a) { html += batchApprRow(a); });
+                html += '</details>';
+            }
+            host.innerHTML = html;
+            host.querySelectorAll('[data-appr-review]').forEach(function (b) {
+                b.addEventListener('click', function () { openBatchApproval(b.dataset.apprReview); });
+            });
+            host.querySelectorAll('[data-appr-deny]').forEach(function (b) {
+                b.addEventListener('click', function () {
+                    apiPost('deny_batch_send', { approval_id: b.dataset.apprDeny }).then(function (d2) {
+                        if (!d2.success) { showErr(d2.error || STR.loadFailed); return; }
+                        showOk(STR.batchAppr.deniedOk); loadBatchApprovals();
+                    });
+                });
+            });
+        }).catch(function () { host.innerHTML = '<div class="mo-step-note">' + esc(STR.batchAppr.loadFailed) + '</div>'; });
+    }
+    function batchApprRow(a) {
+        var st = batchApprEffectiveStatus(a);
+        var label = (STR.batchAppr.status && STR.batchAppr.status[st]) || st;
+        return '<div class="mo-attn-row" style="cursor:default;">' +
+            '<span class="k"><strong>' + esc(a.campaign || a.batch_id) + '</strong> · ' +
+            esc(a.recipient_count) + ' recipients (' + esc(a.eligible_count) + ' eligible) · ' +
+            esc(a.requested_by_email || '') + ' · ' + esc(STR.batchAppr.expires) + ' ' + esc(fmtDT(a.expires_at)) +
+            ' <span class="mo-pill ' + esc(st) + '">' + esc(label) + '</span></span>' +
+            '<span>' +
+            (st === 'pending' ? '<button type="button" class="mo-btn secondary small" data-appr-review="' + esc(a.id) + '">' + esc(STR.batchAppr.review) + '</button> ' +
+                '<button type="button" class="mo-btn secondary small" data-appr-deny="' + esc(a.id) + '">' + esc(STR.batchAppr.deny) + '</button>' : '') +
+            '</span></div>';
+    }
+    function openBatchApproval(id) {
+        var det = document.getElementById('moBatchApprovalDetail');
+        apiGet('batch_approval', { id: id }).then(function (d) {
+            if (!d.success) { showErr(d.error || STR.loadFailed); return; }
+            var a = d.approval;
+            var st = batchApprEffectiveStatus(a);
+            var recips = (a.recipients || []).map(function (r) {
+                return '<tr><td>' + esc(r.email) + '</td><td>' + (r.eligible ? 'yes' : esc(r.eligible_reason || 'no')) + '</td><td>' + esc(r.status) + '</td></tr>';
+            }).join('');
+            var canDecide = st === 'pending' && a.content_hash_match;
+            det.innerHTML =
+                '<div class="pa-card" style="margin-top:10px;">' +
+                '<h3 style="margin-top:0;">' + esc(a.campaign || '') + '</h3>' +
+                '<p class="mo-step-note">' + esc(STR.batchAppr.requestedBy) + ': ' + esc(a.requested_by_email || '') +
+                ' · ' + esc(STR.batchAppr.sender) + ': ' + esc(d.sender || '—') +
+                ' · ' + esc(STR.batchAppr.expires) + ' ' + esc(fmtDT(a.expires_at)) + '</p>' +
+                '<p class="mo-step-note">' + esc(a.content_hash_match ? STR.batchAppr.hashOk : STR.batchAppr.hashBad) + '</p>' +
+                '<p><strong>' + esc(STR.batchAppr.subject) + ':</strong> ' + esc(a.subject || '') + '</p>' +
+                '<p><strong>' + esc(STR.batchAppr.recipients) + ':</strong> ' + esc(a.recipient_count) + ' (' + esc(a.eligible_count) + ' eligible)</p>' +
+                '<table class="mo-table"><thead><tr><th>Email</th><th>Eligible</th><th>Status</th></tr></thead><tbody>' + recips + '</tbody></table>' +
+                '<p><strong>' + esc(STR.batchAppr.preview) + '</strong></p>' +
+                '<iframe sandbox style="width:100%;height:320px;border:1px solid #e5e7eb;border-radius:6px;background:#fff;" srcdoc="' + esc(a.html || '') + '"></iframe>' +
+                '<div class="mo-toolbar" style="margin-top:10px;">' +
+                (canDecide
+                    ? '<button type="button" class="mo-btn" data-appr-approve="' + esc(a.id) + '">' + esc(STR.batchAppr.approve) + '</button> ' +
+                      '<button type="button" class="mo-btn secondary" data-appr-deny="' + esc(a.id) + '">' + esc(STR.batchAppr.deny) + '</button>'
+                    : '<span class="mo-step-note">' + esc(label(st)) + '</span>') +
+                '<button type="button" class="mo-btn secondary" id="moBatchApprClose">' + esc(STR.batchAppr.close) + '</button>' +
+                '</div></div>';
+            det.classList.remove('mo-hidden');
+            var ap = det.querySelector('[data-appr-approve]');
+            if (ap) ap.addEventListener('click', function () {
+                apiPost('approve_batch_send', { approval_id: ap.dataset.apprApprove }).then(function (d2) {
+                    if (!d2.success) { showErr(d2.error || STR.loadFailed); return; }
+                    showOk(STR.batchAppr.approvedOk); det.classList.add('mo-hidden'); loadBatchApprovals();
+                });
+            });
+            det.querySelectorAll('[data-appr-deny]').forEach(function (b) {
+                b.addEventListener('click', function () {
+                    apiPost('deny_batch_send', { approval_id: b.dataset.apprDeny }).then(function (d2) {
+                        if (!d2.success) { showErr(d2.error || STR.loadFailed); return; }
+                        showOk(STR.batchAppr.deniedOk); det.classList.add('mo-hidden'); loadBatchApprovals();
+                    });
+                });
+            });
+            $('moBatchApprClose').addEventListener('click', function () { det.classList.add('mo-hidden'); });
+        }).catch(function () { showErr(STR.loadFailed); });
+    }
+    function label(st) { return (STR.batchAppr.status && STR.batchAppr.status[st]) || st; }
     document.getElementById('moNewCampaign').addEventListener('click', function () {
         if (CRM_READS && window.MOCrm) { MOCrm.newCampaignWizard(); return; }
         var emails = prompt(<?php echo json_encode(ma('recipient_emails_prompt')); ?>);
