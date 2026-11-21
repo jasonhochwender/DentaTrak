@@ -33,6 +33,7 @@ $issue = function (int $userId, string $clientId, ?string $familyId = null) use 
     exit;
 };
 
+$grant = (string)($_POST['grant_type'] ?? '');
 if ($grant === 'authorization_code') {
     $code = (string)($_POST['code'] ?? '');
     $verifier = (string)($_POST['code_verifier'] ?? '');
