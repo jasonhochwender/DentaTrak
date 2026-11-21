@@ -14,7 +14,7 @@ ErrorDocument 404 /404.php
   # .well-known/ is exempt: it carries OAuth discovery metadata.
   RewriteRule (^|/)\.(?!well-known/) - [R=404,L]
   # Sensitive filenames and dev-artifact extensions anywhere in the tree.
-  RewriteRule (^|/)(composer\.(json|lock)|php\.ini|cloudbuild\.yaml|deploy\.cmd|package(-lock)?\.json|yarn\.lock|.*\.(md|sql|log|sh|py|ini|bak|swp|swo|orig|save|old|dist|example))$ - [R=404,L]
+  RewriteRule (^|/)(composer\.(json|lock)|php\.ini|cloudbuild\.yaml|deploy\.cmd|deploy-exclude\.txt|Dockerfile|Makefile|Vagrantfile|Procfile|Jenkinsfile|package(-lock)?\.json|yarn\.lock|.*\.(md|sql|log|sh|py|ini|bak|swp|swo|orig|save|old|dist|example))$ - [R=404,L]
 </IfModule>
 
 # Clean URLs - rewrite /page to /page.php (production only)
