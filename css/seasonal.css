@@ -1,0 +1,65 @@
+/* ============================================
+   SEASONAL LOGIN DECORATIONS
+   Gentle floating/rotating artwork behind the
+   auth card. Pure CSS; honors reduced-motion.
+   ============================================ */
+
+.login-bg-seasonal {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.seasonal-deco {
+  position: absolute;
+  height: auto;
+  transform: translate(-50%, -50%);
+  opacity: var(--op, 0.7);
+  animation: seasonal-float var(--dur, 24s) ease-in-out var(--del, 0s) infinite;
+  will-change: transform;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+@keyframes seasonal-float {
+  0%, 100% {
+    transform: translate(-50%, -50%) translate(0, 0) rotate(0deg);
+  }
+  25% {
+    transform: translate(-50%, -50%) translate(14px, -18px) rotate(calc(var(--rot, 6deg) * 0.6));
+  }
+  50% {
+    transform: translate(-50%, -50%) translate(-12px, 14px) rotate(calc(var(--rot, 6deg) * -0.5));
+  }
+  75% {
+    transform: translate(-50%, -50%) translate(10px, 8px) rotate(calc(var(--rot, 6deg) * 0.4));
+  }
+}
+
+/* Keep decorations small on narrow screens and fully clear of the card */
+@media (max-width: 900px) {
+  .seasonal-deco {
+    width: min(140px, 24vw) !important;
+    opacity: calc(var(--op, 0.7) * 0.75) !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .seasonal-deco {
+    width: min(110px, 30vw) !important;
+    opacity: calc(var(--op, 0.7) * 0.6) !important;
+  }
+  /* tuck decorations toward the edges so they never crowd the card */
+  .login-bg-seasonal .seasonal-deco:nth-child(odd) {
+    margin-left: -4vw;
+  }
+}
+
+/* Static decorations when the user prefers reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .seasonal-deco {
+    animation: none;
+  }
+}

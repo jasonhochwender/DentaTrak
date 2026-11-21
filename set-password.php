@@ -10,6 +10,7 @@ require_once __DIR__ . '/api/appConfig.php';
 require_once __DIR__ . '/api/unified-identity.php';
 require_once __DIR__ . '/api/security-headers.php';
 require_once __DIR__ . '/api/asset-url.php';
+require_once __DIR__ . '/partials/auth-background.php';
 
 setSecurityHeaders();
 
@@ -47,15 +48,12 @@ $loginUrl = rtrim($appConfig['baseUrl'] ?? '', '/') . '/login.php';
 
     <link rel="stylesheet" href="<?= appAssetUrl('css/app.css') ?>">
     <link rel="stylesheet" href="<?= appAssetUrl('css/login.css') ?>">
+  <link rel="stylesheet" href="<?= appAssetUrl('css/seasonal.css') ?>">
     <script>window.__i18n = <?php echo getTranslationsJsonForJs(); ?>;</script>
     <script src="<?= appAssetUrl('js/i18n.js') ?>"></script>
 </head>
 <body class="login-body">
-    <div class="login-bg-shapes">
-        <div class="shape shape-1"></div>
-        <div class="shape shape-2"></div>
-        <div class="shape shape-3"></div>
-    </div>
+  <?php renderAuthBackground($pdo); ?>
     
     <div class="login-wrapper" style="justify-content: center;">
         <div class="login-container" style="max-width: 480px;">

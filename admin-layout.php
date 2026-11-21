@@ -27,6 +27,7 @@ if (!function_exists('paAdminSections')) {
             'ai' => ['dev-ask-usage.php', 'admin_nav.ai_analytics'],
             'announcements' => ['admin-announcements.php', 'admin_nav.announcements'],
             'test' => ['test-diagnostics.php', 'admin_nav.test_diag'],
+            'themes' => ['admin-themes.php', 'admin_nav.themes'],
         ];
         // Marketing Outreach stays hidden until the feature flag is enabled.
         if (function_exists('isFeatureEnabled') && isFeatureEnabled('MARKETING_OUTREACH')) {

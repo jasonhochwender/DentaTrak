@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 200">
+  <!-- horn body mirrored: opening to upper left -->
+  <path d="M210 160 C 220 110, 190 60, 130 40 C 90 28, 45 40, 25 75 C 12 100, 20 140, 55 160 C 100 185, 170 190, 210 160 Z" fill="#c98d4e"/>
+  <path d="M210 160 C 220 110, 190 60, 130 40 C 90 28, 45 40, 25 75 C 12 100, 20 140, 55 160 C 100 185, 170 190, 210 160 Z" fill="none" stroke="#a06a35" stroke-width="4"/>
+  <!-- wicker weave -->
+  <g stroke="#a06a35" stroke-width="3" fill="none" opacity="0.6">
+    <path d="M185 130 C 170 100, 140 75, 100 60"/>
+    <path d="M192 148 C 170 120, 135 95, 90 78"/>
+    <path d="M180 112 C 160 88, 130 68, 95 55"/>
+    <path d="M165 165 C 145 140, 115 118, 80 100"/>
+    <path d="M135 178 C 115 155, 85 135, 55 118"/>
+  </g>
+  <!-- rim opening (upper left) -->
+  <ellipse cx="35" cy="72" rx="34" ry="22" fill="#7a4e22" transform="rotate(25 35 72)"/>
+  <ellipse cx="35" cy="72" rx="26" ry="15" fill="#4e2f10" transform="rotate(25 35 72)"/>
+  <!-- overflowing produce -->
+  <!-- mini pumpkin -->
+  <g>
+    <ellipse cx="18" cy="52" rx="19" ry="15" fill="#fb923c"/>
+    <path d="M11 41 q 2 -7 7 -7 q 5 0 7 7" fill="#65a30d"/>
+    <path d="M14 39 q -3 13 0 26 M22 39 q 3 13 0 26" stroke="#c2410c" stroke-width="2" fill="none"/>
+  </g>
+  <!-- corn cob -->
+  <g transform="rotate(-25 80 28)">
+    <rect x="72" y="6" width="15" height="44" rx="7" fill="#fde047"/>
+    <path d="M74 12 h11 M74 20 h11 M74 28 h11 M74 36 h11" stroke="#d97706" stroke-width="2"/>
+    <path d="M79 50 q 0 10 -4 15 M83 50 q 2 10 6 13" stroke="#65a30d" stroke-width="4" fill="none" stroke-linecap="round"/>
+  </g>
+  <!-- pear -->
+  <path d="M105 44 C 98 34, 100 24, 108 20 C 116 24, 118 34, 111 44 C 118 50, 116 60, 108 62 C 100 60, 98 50, 105 44 Z" fill="#84cc16"/>
+  <path d="M108 20 q 0 -8 6 -10" stroke="#65a30d" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <!-- acorn -->
+  <g>
+    <path d="M130 44 a 10 10 0 0 1 20 0 l -2 12 h -16 Z" fill="#92400e"/>
+    <ellipse cx="140" cy="52" rx="9" ry="10" fill="#b45309"/>
+    <path d="M132 42 q 8 -6 16 0" stroke="#451a03" stroke-width="3" fill="none"/>
+  </g>
+  <!-- cranberries -->
+  <g fill="#dc2626">
+    <circle cx="60" cy="58" r="6"/><circle cx="70" cy="52" r="6"/><circle cx="66" cy="64" r="6"/>
+  </g>
+  <path d="M66 46 q 2 -6 8 -8" stroke="#65a30d" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <!-- leaf -->
+  <path d="M150 40 q 14 -8 20 4 q -12 10 -20 -4 Z" fill="#16a34a"/>
+  <path d="M150 40 q 10 0 16 4" stroke="#15803d" stroke-width="2" fill="none"/>
+</svg>

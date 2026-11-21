@@ -15,6 +15,7 @@ require_once __DIR__ . '/api/security-headers.php';
 setSecurityHeaders();
 
 require_once __DIR__ . '/api/unified-identity.php';
+require_once __DIR__ . '/partials/auth-background.php';
 
 // ============================================
 // REMEMBERED EMAIL (prefill only - never authenticates)
@@ -76,6 +77,7 @@ $sessionRevoked = isset($_GET['revoked']) && $_GET['revoked'] == '1';
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="<?= appAssetUrl('css/app.css') ?>">
   <link rel="stylesheet" href="<?= appAssetUrl('css/login.css') ?>">
+  <link rel="stylesheet" href="<?= appAssetUrl('css/seasonal.css') ?>">
   
   <!-- Internationalization bootstrap -->
   <script>
@@ -135,14 +137,8 @@ $sessionRevoked = isset($_GET['revoked']) && $_GET['revoked'] == '1';
   $hipaaUrl = $baseUrl . ($publicUrls['page_hipaa_security'] ?? 'hipaa-security.php');
 ?>
 <body class="login-body <?php echo $envClass; ?>">
-  <!-- Animated background elements -->
-  <div class="login-bg-shapes">
-    <div class="shape shape-1"></div>
-    <div class="shape shape-2"></div>
-    <div class="shape shape-3"></div>
-    <div class="shape shape-4"></div>
-    <div class="shape shape-5"></div>
-  </div>
+  <!-- Animated background elements (seasonal theme or classic shapes) -->
+  <?php renderAuthBackground($pdo); ?>
   
   <div class="login-wrapper">
     <!-- Left side - Branding & Features -->
