@@ -28,24 +28,28 @@ function seasonalThemeCatalog(): array {
         'thanksgiving' => [
             'name' => 'Thanksgiving',
             'decorations' => [
-                // Large anchor illustrations at the corners and edges
-                ['asset' => 'turkey1.png',   'x' => 4,  'y' => 10, 's' => 200, 'dur' => 26, 'del' => -4,  'rot' => 5,  'op' => 0.8],
-                ['asset' => 'turkey2.png',   'x' => 91, 'y' => 14, 's' => 185, 'dur' => 30, 'del' => -11, 'rot' => -4, 'op' => 0.78],
-                ['asset' => 'turkey3.png',   'x' => 86, 'y' => 66, 's' => 170, 'dur' => 24, 'del' => -18, 'rot' => 6,  'op' => 0.75],
-                ['asset' => 'turkey4.png',   'x' => 9,  'y' => 82, 's' => 160, 'dur' => 28, 'del' => -7,  'rot' => -6, 'op' => 0.75],
-                ['asset' => 'pumpkin1.png',  'x' => 20, 'y' => 68, 's' => 200, 'dur' => 32, 'del' => -9,  'rot' => 4,  'op' => 0.85],
-                ['asset' => 'pie1.png',      'x' => 64, 'y' => 5,  's' => 170, 'dur' => 28, 'del' => -15, 'rot' => -4, 'op' => 0.8],
-                ['asset' => 'pumpkin2.png',  'x' => 42, 'y' => 90, 's' => 95,  'dur' => 30, 'del' => -13, 'rot' => 5,  'op' => 0.7],
-                // Small leaf accents scattered through the negative space
-                ['asset' => 'leaf1.png',     'x' => 27, 'y' => 18, 's' => 55,  'dur' => 18, 'del' => -2,  'rot' => 20, 'op' => 0.7],
-                ['asset' => 'leaf2.png',     'x' => 33, 'y' => 32, 's' => 48,  'dur' => 21, 'del' => -9,  'rot' => -18,'op' => 0.65],
-                ['asset' => 'leaf3.png',     'x' => 74, 'y' => 48, 's' => 58,  'dur' => 19, 'del' => -13, 'rot' => 15, 'op' => 0.6],
-                ['asset' => 'leaf4.png',     'x' => 63, 'y' => 86, 's' => 62,  'dur' => 22, 'del' => -6,  'rot' => -22,'op' => 0.65],
-                ['asset' => 'leaf5.png',     'x' => 56, 'y' => 92, 's' => 46,  'dur' => 17, 'del' => -16, 'rot' => 25, 'op' => 0.6],
-                ['asset' => 'leaf6.png',     'x' => 87, 'y' => 36, 's' => 50,  'dur' => 20, 'del' => -5,  'rot' => -15,'op' => 0.6],
-                ['asset' => 'leaf7.png',     'x' => 14, 'y' => 44, 's' => 45,  'dur' => 23, 'del' => -12, 'rot' => 18, 'op' => 0.6],
-                ['asset' => 'leaf8.png',     'x' => 50, 'y' => 9,  's' => 55,  'dur' => 19, 'del' => -8,  'rot' => -20,'op' => 0.65],
-                ['asset' => 'leaf3.png',     'x' => 40, 'y' => 80, 's' => 50,  'dur' => 24, 'del' => -3,  'rot' => 12, 'op' => 0.6],
+                // Hero anchors: four distinct turkeys + harvest pieces at the edges
+                ['asset' => 'turkey1.png',   'x' => 4,  'y' => 9,  's' => 200, 'dur' => 26, 'del' => -4,  'rot' => 5,  'op' => 0.8],
+                ['asset' => 'turkey2.png',   'x' => 93, 'y' => 26, 's' => 180, 'dur' => 30, 'del' => -11, 'rot' => -4, 'op' => 0.78],
+                ['asset' => 'turkey3.png',   'x' => 88, 'y' => 68, 's' => 165, 'dur' => 24, 'del' => -18, 'rot' => 6,  'op' => 0.75],
+                ['asset' => 'turkey4.png',   'x' => 8,  'y' => 84, 's' => 150, 'dur' => 28, 'del' => -7,  'rot' => -6, 'op' => 0.75],
+                ['asset' => 'pumpkin1.png',  'x' => 16, 'y' => 56, 's' => 195, 'dur' => 32, 'del' => -9,  'rot' => 4,  'op' => 0.85],
+                ['asset' => 'pie1.png',      'x' => 63, 'y' => 5,  's' => 170, 'dur' => 28, 'del' => -15, 'rot' => -4, 'op' => 0.8],
+                ['asset' => 'pumpkin3.png',  'x' => 57, 'y' => 87, 's' => 125, 'dur' => 30, 'del' => -13, 'rot' => 5,  'op' => 0.8],
+                ['asset' => 'pumpkin4.png',  'x' => 73, 'y' => 90, 's' => 105, 'dur' => 27, 'del' => -6,  'rot' => -5, 'op' => 0.75],
+                ['asset' => 'pumpkin2.png',  'x' => 38, 'y' => 92, 's' => 80,  'dur' => 29, 'del' => -16, 'rot' => 8,  'op' => 0.7],
+                // Larger leaf accents near the top and sides
+                ['asset' => 'leaf4.png',     'x' => 35, 'y' => 14, 's' => 72,  'dur' => 22, 'del' => -5,  'rot' => -20,'op' => 0.65],
+                ['asset' => 'leaf8.png',     'x' => 51, 'y' => 9,  's' => 60,  'dur' => 19, 'del' => -8,  'rot' => 18, 'op' => 0.65],
+                // Small leaf fillers scattered through the negative space
+                ['asset' => 'leaf1.png',     'x' => 26, 'y' => 24, 's' => 52,  'dur' => 18, 'del' => -2,  'rot' => 20, 'op' => 0.7],
+                ['asset' => 'leaf7.png',     'x' => 13, 'y' => 34, 's' => 45,  'dur' => 23, 'del' => -12, 'rot' => 18, 'op' => 0.6],
+                ['asset' => 'leaf2.png',     'x' => 31, 'y' => 44, 's' => 47,  'dur' => 21, 'del' => -9,  'rot' => -18,'op' => 0.65],
+                ['asset' => 'leaf3.png',     'x' => 72, 'y' => 40, 's' => 55,  'dur' => 19, 'del' => -13, 'rot' => 15, 'op' => 0.6],
+                ['asset' => 'leaf6.png',     'x' => 93, 'y' => 50, 's' => 45,  'dur' => 20, 'del' => -5,  'rot' => -15,'op' => 0.6],
+                ['asset' => 'leaf5.png',     'x' => 29, 'y' => 73, 's' => 48,  'dur' => 17, 'del' => -16, 'rot' => 25, 'op' => 0.6],
+                ['asset' => 'leaf3.png',     'x' => 62, 'y' => 82, 's' => 50,  'dur' => 24, 'del' => -3,  'rot' => 12, 'op' => 0.6],
+                ['asset' => 'leaf1.png',     'x' => 84, 'y' => 85, 's' => 45,  'dur' => 21, 'del' => -10, 'rot' => -22,'op' => 0.6],
             ],
         ],
         'christmas' => [
