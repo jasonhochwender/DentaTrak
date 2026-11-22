@@ -39,8 +39,15 @@ function renderAuthBackground(PDO $pdo): void {
     }
 
     $cfg = seasonalLoadConfig($pdo);
-    $catalog = seasonalThemeCatalog();
-    $decos = $catalog[$theme['theme_id']]['decorations'] ?? [];
+    // Only render slots that are enabled and whose artwork resolves
+    // (built-in file present or admin-uploaded override); anything else
+    // is skipped and an empty result falls back to the classic circles.
+    $decos = array_values(array_filter((array)($theme['theme']['decorations'] ?? []), function ($d) use ($cfg, $theme) {
+        if (!is_array($d)) return false;
+        if (isset($d['enabled']) && empty($d['enabled'])) return false;
+        if (empty($d['asset'])) return false;
+        return seasonalAssetExists($cfg, $theme['theme_id'], (string)$d['asset']);
+    }));
     if (!$decos) {
         // Theme resolved but has no artwork - fall back to classic.
         echo '<div class="login-bg-shapes">'

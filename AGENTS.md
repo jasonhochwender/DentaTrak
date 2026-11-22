@@ -112,3 +112,10 @@
 - IAM: app SA needs custom role `dtkExportJobRunner` (`run.jobs.run` + `run.jobs.runWithOverrides`) on the job - `roles/run.invoker` cannot pass the `EXPORT_ID` container override. Scheduler runs the same SA with empty overrides; its service agent needs `iam.serviceAccountTokenCreator` on the SA (fatal if ungrantable).
 - Controlled rollout runbook: `docs/data-export-v2-production-test-plan.md`. Do NOT enable for customers without explicit approval.
 - Verification: `php tests/data-export-v2-test.php`, `php tests/data-export-v2-infra-test.php`, `php tests/data-export-v2-archive-test.php` (local dev DB on 3308).
+
+# Seasonal login decorations
+
+- `api/seasonal-themes.php` is the single source of truth: built-in theme catalog (`seasonalThemeCatalog()`), DB config in `platform_settings.sk='seasonal_themes'`, America/New_York scheduling with fixed + Easter-computus date rules, `?seasonal_preview=<theme_id>` on auth pages, and graceful fallback to the classic circles.
+- Decorations are admin-managed without deploys: `theme_decorations` (per built-in theme, `null`/absent = use catalog layout) and `custom_themes` (admin-created themes) live in the same config row; `seasonalSanitizeDecorations()` clamps x/y/s/dur/del/rot/op and validates asset filenames; `seasonalAssetExists()` skips missing artwork so a bad asset can never break the login page.
+- Admin UI is Dev Tools > Seasonal Themes (`admin-themes.php` + `api/seasonal-admin.php`, superuser/dev + CSRF + audit). Per-decoration position/size/animation editing, per-slot artwork upload (SVG script-injection rejected, 512KB cap, served scriptless via `api/seasonal-asset.php` or GCS `seasonal/` prefix), custom theme CRUD, holiday CRUD, auto/manual mode.
+- Artwork lives in `images/seasonal/<theme>/` as transparent PNGs (plus the original turkey SVGs). `appAssetUrl()` versions URLs; admin uploads always go through the override streamer.

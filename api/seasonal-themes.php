@@ -33,82 +33,89 @@ function seasonalThemeCatalog(): array {
                 ['asset' => 'turkey3.svg',  'x' => 82, 'y' => 68, 's' => 150, 'dur' => 24, 'del' => -18, 'rot' => 7,  'op' => 0.7],
                 ['asset' => 'pumpkin1.png', 'x' => 10, 'y' => 74, 's' => 210, 'dur' => 32, 'del' => -7,  'rot' => 4,  'op' => 0.85],
                 ['asset' => 'pie1.png',     'x' => 68, 'y' => 6,  's' => 180, 'dur' => 28, 'del' => -15, 'rot' => -4, 'op' => 0.8],
-                ['asset' => 'leaf1.svg',    'x' => 22, 'y' => 30, 's' => 60,  'dur' => 18, 'del' => -2,  'rot' => 20, 'op' => 0.7],
-                ['asset' => 'leaf2.svg',    'x' => 60, 'y' => 82, 's' => 55,  'dur' => 21, 'del' => -9,  'rot' => -18,'op' => 0.65],
-                ['asset' => 'leaf3.svg',    'x' => 45, 'y' => 8,  's' => 50,  'dur' => 19, 'del' => -13, 'rot' => 15, 'op' => 0.6],
-                ['asset' => 'leaf4.svg',    'x' => 93, 'y' => 45, 's' => 58,  'dur' => 22, 'del' => -6,  'rot' => -22,'op' => 0.65],
-                ['asset' => 'leaf5.svg',    'x' => 15, 'y' => 55, 's' => 48,  'dur' => 17, 'del' => -16, 'rot' => 25, 'op' => 0.6],
+                ['asset' => 'leaf1.png',    'x' => 22, 'y' => 30, 's' => 60,  'dur' => 18, 'del' => -2,  'rot' => 20, 'op' => 0.7],
+                ['asset' => 'leaf2.png',    'x' => 60, 'y' => 82, 's' => 55,  'dur' => 21, 'del' => -9,  'rot' => -18,'op' => 0.65],
+                ['asset' => 'leaf3.png',    'x' => 45, 'y' => 8,  's' => 50,  'dur' => 19, 'del' => -13, 'rot' => 15, 'op' => 0.6],
+                ['asset' => 'leaf4.png',    'x' => 93, 'y' => 45, 's' => 58,  'dur' => 22, 'del' => -6,  'rot' => -22,'op' => 0.65],
+                ['asset' => 'leaf5.png',    'x' => 15, 'y' => 55, 's' => 48,  'dur' => 17, 'del' => -16, 'rot' => 25, 'op' => 0.6],
             ],
         ],
         'christmas' => [
             'name' => 'Christmas',
             'decorations' => [
-                ['asset' => 'snowflake1.svg', 'x' => 5,  'y' => 15, 's' => 90,  'dur' => 20, 'del' => -3,  'rot' => 30, 'op' => 0.8],
-                ['asset' => 'snowflake2.svg', 'x' => 90, 'y' => 22, 's' => 110, 'dur' => 24, 'del' => -8,  'rot' => -25,'op' => 0.75],
-                ['asset' => 'snowflake3.svg', 'x' => 78, 'y' => 75, 's' => 80,  'dur' => 19, 'del' => -14, 'rot' => 20, 'op' => 0.7],
-                ['asset' => 'ornament1.svg',  'x' => 12, 'y' => 78, 's' => 85,  'dur' => 22, 'del' => -6,  'rot' => 8,  'op' => 0.8],
-                ['asset' => 'ornament2.svg',  'x' => 55, 'y' => 5,  's' => 75,  'dur' => 26, 'del' => -11, 'rot' => -6, 'op' => 0.75],
-                ['asset' => 'branch1.svg',    'x' => 35, 'y' => 90, 's' => 190, 'dur' => 30, 'del' => -5,  'rot' => 3,  'op' => 0.7],
-                ['asset' => 'branch2.svg',    'x' => 92, 'y' => 55, 's' => 150, 'dur' => 28, 'del' => -17, 'rot' => -3, 'op' => 0.65],
+                ['asset' => 'tree1.png',      'x' => 35, 'y' => 90, 's' => 170, 'dur' => 30, 'del' => -5,  'rot' => 3,  'op' => 0.7],
+                ['asset' => 'branch1.png',    'x' => 93, 'y' => 50, 's' => 140, 'dur' => 28, 'del' => -17, 'rot' => -3, 'op' => 0.65],
+                ['asset' => 'ornament1.png',  'x' => 10, 'y' => 75, 's' => 85,  'dur' => 22, 'del' => -6,  'rot' => 8,  'op' => 0.8],
+                ['asset' => 'ornament2.png',  'x' => 55, 'y' => 6,  's' => 75,  'dur' => 26, 'del' => -11, 'rot' => -6, 'op' => 0.75],
+                ['asset' => 'snowflake1.png', 'x' => 5,  'y' => 15, 's' => 90,  'dur' => 20, 'del' => -3,  'rot' => 30, 'op' => 0.8],
+                ['asset' => 'snowflake2.png', 'x' => 90, 'y' => 22, 's' => 110, 'dur' => 24, 'del' => -8,  'rot' => -25,'op' => 0.75],
+                ['asset' => 'snowflake3.png', 'x' => 78, 'y' => 75, 's' => 80,  'dur' => 19, 'del' => -14, 'rot' => 20, 'op' => 0.7],
+                ['asset' => 'present1.png',   'x' => 88, 'y' => 68, 's' => 95,  'dur' => 23, 'del' => -9,  'rot' => -5, 'op' => 0.8],
+                ['asset' => 'candy1.png',     'x' => 25, 'y' => 10, 's' => 55,  'dur' => 18, 'del' => -12, 'rot' => 18, 'op' => 0.7],
+                ['asset' => 'present2.png',   'x' => 48, 'y' => 88, 's' => 85,  'dur' => 25, 'del' => -7,  'rot' => 6,  'op' => 0.75],
             ],
         ],
         'new_year' => [
             'name' => 'New Year',
             'decorations' => [
-                ['asset' => 'star1.svg',    'x' => 8,  'y' => 18, 's' => 95,  'dur' => 18, 'del' => -2,  'rot' => 15, 'op' => 0.85],
-                ['asset' => 'star2.svg',    'x' => 85, 'y' => 15, 's' => 80,  'dur' => 21, 'del' => -7,  'rot' => -12,'op' => 0.8],
-                ['asset' => 'star3.svg',    'x' => 70, 'y' => 70, 's' => 110, 'dur' => 23, 'del' => -12, 'rot' => 10, 'op' => 0.75],
-                ['asset' => 'confetti1.svg','x' => 25, 'y' => 8,  's' => 55,  'dur' => 16, 'del' => -5,  'rot' => 30, 'op' => 0.7],
-                ['asset' => 'confetti2.svg','x' => 50, 'y' => 85, 's' => 60,  'dur' => 17, 'del' => -9,  'rot' => -25,'op' => 0.7],
-                ['asset' => 'confetti3.svg','x' => 92, 'y' => 50, 's' => 50,  'dur' => 15, 'del' => -14, 'rot' => 20, 'op' => 0.65],
-                ['asset' => 'firework1.svg','x' => 15, 'y' => 60, 's' => 100, 'dur' => 25, 'del' => -4,  'rot' => 8,  'op' => 0.7],
-                ['asset' => 'firework2.svg','x' => 60, 'y' => 30, 's' => 90,  'dur' => 27, 'del' => -10, 'rot' => -8, 'op' => 0.65],
+                ['asset' => 'star1.png',      'x' => 8,  'y' => 18, 's' => 95,  'dur' => 18, 'del' => -2,  'rot' => 15, 'op' => 0.85],
+                ['asset' => 'star2.png',      'x' => 85, 'y' => 15, 's' => 80,  'dur' => 21, 'del' => -7,  'rot' => -12,'op' => 0.8],
+                ['asset' => 'star3.png',      'x' => 70, 'y' => 70, 's' => 110, 'dur' => 23, 'del' => -12, 'rot' => 10, 'op' => 0.75],
+                ['asset' => 'confetti1.png',  'x' => 25, 'y' => 8,  's' => 55,  'dur' => 16, 'del' => -5,  'rot' => 30, 'op' => 0.7],
+                ['asset' => 'confetti2.png',  'x' => 50, 'y' => 85, 's' => 60,  'dur' => 17, 'del' => -9,  'rot' => -25,'op' => 0.7],
+                ['asset' => 'confetti3.png',  'x' => 92, 'y' => 50, 's' => 50,  'dur' => 15, 'del' => -14, 'rot' => 20, 'op' => 0.65],
+                ['asset' => 'firework1.png',  'x' => 15, 'y' => 60, 's' => 100, 'dur' => 25, 'del' => -4,  'rot' => 8,  'op' => 0.7],
+                ['asset' => 'balloon1.png',   'x' => 60, 'y' => 30, 's' => 90,  'dur' => 27, 'del' => -10, 'rot' => -8, 'op' => 0.65],
+                ['asset' => 'partyhat1.png',  'x' => 40, 'y' => 92, 's' => 85,  'dur' => 24, 'del' => -16, 'rot' => 12, 'op' => 0.75],
             ],
         ],
         'valentines' => [
             'name' => "Valentine's Day",
             'decorations' => [
-                ['asset' => 'heart1.svg', 'x' => 7,  'y' => 20, 's' => 85,  'dur' => 18, 'del' => -3,  'rot' => 10, 'op' => 0.8],
-                ['asset' => 'heart2.svg', 'x' => 88, 'y' => 25, 's' => 70,  'dur' => 22, 'del' => -8,  'rot' => -8, 'op' => 0.75],
-                ['asset' => 'heart3.svg', 'x' => 75, 'y' => 72, 's' => 95,  'dur' => 20, 'del' => -13, 'rot' => 12, 'op' => 0.8],
-                ['asset' => 'heart4.svg', 'x' => 20, 'y' => 75, 's' => 60,  'dur' => 24, 'del' => -6,  'rot' => -10,'op' => 0.7],
-                ['asset' => 'heart5.svg', 'x' => 50, 'y' => 10, 's' => 55,  'dur' => 19, 'del' => -15, 'rot' => 15, 'op' => 0.65],
-                ['asset' => 'heart6.svg', 'x' => 93, 'y' => 60, 's' => 75,  'dur' => 21, 'del' => -11, 'rot' => -14,'op' => 0.7],
+                ['asset' => 'heart1.png',    'x' => 7,  'y' => 20, 's' => 85,  'dur' => 18, 'del' => -3,  'rot' => 10, 'op' => 0.8],
+                ['asset' => 'heart2.png',    'x' => 88, 'y' => 25, 's' => 70,  'dur' => 22, 'del' => -8,  'rot' => -8, 'op' => 0.75],
+                ['asset' => 'heart3.png',    'x' => 75, 'y' => 72, 's' => 95,  'dur' => 20, 'del' => -13, 'rot' => 12, 'op' => 0.8],
+                ['asset' => 'bouquet1.png',  'x' => 20, 'y' => 75, 's' => 95,  'dur' => 24, 'del' => -6,  'rot' => -10,'op' => 0.75],
+                ['asset' => 'chocolate1.png','x' => 50, 'y' => 10, 's' => 70,  'dur' => 19, 'del' => -15, 'rot' => 15, 'op' => 0.7],
+                ['asset' => 'flower1.png',   'x' => 93, 'y' => 60, 's' => 75,  'dur' => 21, 'del' => -11, 'rot' => -14,'op' => 0.7],
+                ['asset' => 'flower2.png',   'x' => 35, 'y' => 88, 's' => 70,  'dur' => 23, 'del' => -9,  'rot' => 8,  'op' => 0.7],
             ],
         ],
         'easter' => [
             'name' => 'Easter',
             'decorations' => [
-                ['asset' => 'egg1.svg',    'x' => 8,  'y' => 22, 's' => 85,  'dur' => 19, 'del' => -4,  'rot' => 12, 'op' => 0.8],
-                ['asset' => 'egg2.svg',    'x' => 86, 'y' => 18, 's' => 75,  'dur' => 22, 'del' => -9,  'rot' => -10,'op' => 0.75],
-                ['asset' => 'egg3.svg',    'x' => 72, 'y' => 70, 's' => 95,  'dur' => 20, 'del' => -14, 'rot' => 8,  'op' => 0.8],
-                ['asset' => 'flower1.svg', 'x' => 18, 'y' => 78, 's' => 80,  'dur' => 21, 'del' => -6,  'rot' => 15, 'op' => 0.75],
-                ['asset' => 'flower2.svg', 'x' => 55, 'y' => 8,  's' => 70,  'dur' => 23, 'del' => -12, 'rot' => -12,'op' => 0.7],
-                ['asset' => 'flower3.svg', 'x' => 92, 'y' => 52, 's' => 85,  'dur' => 18, 'del' => -16, 'rot' => 10, 'op' => 0.7],
-                ['asset' => 'butterfly1.svg','x' => 35,'y' => 55,'s' => 70, 'dur' => 17, 'del' => -7,  'rot' => 18, 'op' => 0.7],
+                ['asset' => 'egg1.png',    'x' => 8,  'y' => 22, 's' => 85,  'dur' => 19, 'del' => -4,  'rot' => 12, 'op' => 0.8],
+                ['asset' => 'egg2.png',    'x' => 86, 'y' => 18, 's' => 75,  'dur' => 22, 'del' => -9,  'rot' => -10,'op' => 0.75],
+                ['asset' => 'egg3.png',    'x' => 72, 'y' => 70, 's' => 95,  'dur' => 20, 'del' => -14, 'rot' => 8,  'op' => 0.8],
+                ['asset' => 'flower1.png', 'x' => 18, 'y' => 78, 's' => 80,  'dur' => 21, 'del' => -6,  'rot' => 15, 'op' => 0.75],
+                ['asset' => 'flower2.png', 'x' => 55, 'y' => 8,  's' => 70,  'dur' => 23, 'del' => -12, 'rot' => -12,'op' => 0.7],
+                ['asset' => 'butterfly1.png','x' => 35,'y' => 55,'s' => 70, 'dur' => 17, 'del' => -7,  'rot' => 18, 'op' => 0.7],
             ],
         ],
         'independence' => [
             'name' => 'Independence Day',
             'decorations' => [
-                ['asset' => 'ustar1.svg', 'x' => 8,  'y' => 20, 's' => 90,  'dur' => 19, 'del' => -3,  'rot' => 12, 'op' => 0.85],
-                ['asset' => 'ustar2.svg', 'x' => 86, 'y' => 22, 's' => 100, 'dur' => 22, 'del' => -8,  'rot' => -10,'op' => 0.8],
-                ['asset' => 'ustar3.svg', 'x' => 70, 'y' => 68, 's' => 80,  'dur' => 20, 'del' => -13, 'rot' => 15, 'op' => 0.8],
-                ['asset' => 'ustar4.svg', 'x' => 22, 'y' => 75, 's' => 70,  'dur' => 24, 'del' => -6,  'rot' => -14,'op' => 0.7],
-                ['asset' => 'firecracker1.svg','x' => 50,'y' => 10,'s' => 85,'dur' => 18, 'del' => -11, 'rot' => 8,  'op' => 0.75],
-                ['asset' => 'firecracker2.svg','x' => 92,'y' => 60,'s' => 75,'dur' => 21, 'del' => -5,  'rot' => -10,'op' => 0.7],
+                ['asset' => 'star1.png',       'x' => 8,  'y' => 20, 's' => 90,  'dur' => 19, 'del' => -3,  'rot' => 12, 'op' => 0.85],
+                ['asset' => 'star2.png',       'x' => 86, 'y' => 22, 's' => 100, 'dur' => 22, 'del' => -8,  'rot' => -10,'op' => 0.8],
+                ['asset' => 'star3.png',       'x' => 70, 'y' => 68, 's' => 80,  'dur' => 20, 'del' => -13, 'rot' => 15, 'op' => 0.8],
+                ['asset' => 'flag1.png',       'x' => 22, 'y' => 75, 's' => 95,  'dur' => 24, 'del' => -6,  'rot' => -14,'op' => 0.85],
+                ['asset' => 'firecracker1.png','x' => 50, 'y' => 10, 's' => 85,  'dur' => 18, 'del' => -11, 'rot' => 8,  'op' => 0.75],
+                ['asset' => 'firework1.png',   'x' => 40, 'y' => 55, 's' => 90,  'dur' => 21, 'del' => -5,  'rot' => -10,'op' => 0.7],
+                ['asset' => 'firework2.png',   'x' => 93, 'y' => 60, 's' => 75,  'dur' => 23, 'del' => -15, 'rot' => 6,  'op' => 0.7],
             ],
         ],
         'halloween' => [
             'name' => 'Halloween',
             'decorations' => [
-                ['asset' => 'ghost1.svg', 'x' => 7,  'y' => 18, 's' => 100, 'dur' => 20, 'del' => -4,  'rot' => 6,  'op' => 0.75],
-                ['asset' => 'ghost2.svg', 'x' => 88, 'y' => 22, 's' => 85,  'dur' => 24, 'del' => -10, 'rot' => -5, 'op' => 0.7],
-                ['asset' => 'bat1.svg',   'x' => 60, 'y' => 8,  's' => 95,  'dur' => 17, 'del' => -6,  'rot' => 12, 'op' => 0.8],
-                ['asset' => 'bat2.svg',   'x' => 30, 'y' => 80, 's' => 80,  'dur' => 19, 'del' => -13, 'rot' => -10,'op' => 0.75],
-                ['asset' => 'pumpkin1.svg','x' => 15,'y' => 72,'s' => 110,'dur' => 23, 'del' => -8,  'rot' => 4,  'op' => 0.85],
-                ['asset' => 'pumpkin2.svg','x' => 75,'y' => 65,'s' => 95, 'dur' => 26, 'del' => -15, 'rot' => -4, 'op' => 0.8],
-                ['asset' => 'moon.svg',   'x' => 82, 'y' => 10, 's' => 90,  'dur' => 28, 'del' => -2,  'rot' => 3,  'op' => 0.6],
+                ['asset' => 'ghost1.png',    'x' => 7,  'y' => 18, 's' => 100, 'dur' => 20, 'del' => -4,  'rot' => 6,  'op' => 0.75],
+                ['asset' => 'ghost2.png',    'x' => 88, 'y' => 22, 's' => 85,  'dur' => 24, 'del' => -10, 'rot' => -5, 'op' => 0.7],
+                ['asset' => 'bat1.png',      'x' => 60, 'y' => 8,  's' => 95,  'dur' => 17, 'del' => -6,  'rot' => 12, 'op' => 0.8],
+                ['asset' => 'bat2.png',      'x' => 30, 'y' => 80, 's' => 80,  'dur' => 19, 'del' => -13, 'rot' => -10,'op' => 0.75],
+                ['asset' => 'pumpkin1.png',  'x' => 15, 'y' => 72, 's' => 110, 'dur' => 23, 'del' => -8,  'rot' => 4,  'op' => 0.85],
+                ['asset' => 'pumpkin2.png',  'x' => 75, 'y' => 65, 's' => 95,  'dur' => 26, 'del' => -15, 'rot' => -4, 'op' => 0.8],
+                ['asset' => 'moon1.png',     'x' => 82, 'y' => 10, 's' => 90,  'dur' => 28, 'del' => -2,  'rot' => 3,  'op' => 0.6],
+                ['asset' => 'witchhat1.png','x' => 45, 'y' => 90, 's' => 85,  'dur' => 22, 'del' => -11, 'rot' => -8, 'op' => 0.75],
+                ['asset' => 'candy1.png',    'x' => 93, 'y' => 45, 's' => 70,  'dur' => 20, 'del' => -7,  'rot' => 14, 'op' => 0.7],
             ],
         ],
     ];
@@ -133,7 +140,80 @@ function seasonalThemesDefaultConfig(): array {
             ['id' => 'independence',  'name' => 'Independence Day',  'theme' => 'independence',  'enabled' => true,  'start' => ['kind' => 'fixed', 'm' => 7,  'd' => 1],  'end' => ['kind' => 'fixed', 'm' => 7,  'd' => 5]],
         ],
         'asset_overrides' => [],
+        // Admin-managed decoration layouts: theme_id => [deco, ...] fully
+        // replaces the built-in catalog layout for that theme. Absent key
+        // means "use the built-in catalog". Values are sanitized on save.
+        'theme_decorations' => [],
+        // Admin-created themes: theme_id => {name, decorations:[...]}
+        'custom_themes' => [],
     ];
+}
+
+/** Sanitize an admin-supplied decoration list. Returns a clean array of
+ *  decoration slots, or null when the input is not a list. Each slot:
+ *  asset (safe image filename), x/y (0-100 %), s (width px), dur/del
+ *  (animation seconds), rot (deg), op (opacity), enabled. */
+function seasonalSanitizeDecorations($list): ?array {
+    if (!is_array($list)) return null;
+    $out = [];
+    foreach (array_values($list) as $d) {
+        if (!is_array($d)) continue;
+        $asset = (string)($d['asset'] ?? '');
+        if (!preg_match('/^[a-z0-9][a-z0-9_.-]*\.(svg|png|webp)$/', $asset) || strlen($asset) > 64) continue;
+        $out[] = [
+            'asset'   => $asset,
+            'x'       => max(0, min(100, (float)($d['x'] ?? 50))),
+            'y'       => max(0, min(100, (float)($d['y'] ?? 50))),
+            's'       => max(16, min(800, (int)($d['s'] ?? 120))),
+            'dur'     => max(6, min(120, (int)($d['dur'] ?? 24))),
+            'del'     => max(-120, min(0, (int)($d['del'] ?? 0))),
+            'rot'     => max(-60, min(60, (float)($d['rot'] ?? 0))),
+            'op'      => max(0.05, min(1, (float)($d['op'] ?? 0.75))),
+            'enabled' => array_key_exists('enabled', $d) ? !empty($d['enabled']) : true,
+        ];
+        if (count($out) >= 24) break;
+    }
+    return $out;
+}
+
+/** All known themes: built-in catalog merged with admin custom themes.
+ *  Returns theme_id => ['name'=>..., 'custom'=>bool, 'decorations'=>[...]] */
+function seasonalAllThemes(array $cfg): array {
+    $themes = [];
+    foreach (seasonalThemeCatalog() as $tid => $t) {
+        $decos = $t['decorations'];
+        if (isset($cfg['theme_decorations'][$tid]) && is_array($cfg['theme_decorations'][$tid])) {
+            $decos = $cfg['theme_decorations'][$tid];
+        }
+        $themes[$tid] = ['name' => $t['name'], 'custom' => false, 'decorations' => $decos];
+    }
+    foreach ((array)($cfg['custom_themes'] ?? []) as $tid => $ct) {
+        if (!is_array($ct)) continue;
+        $tid = (string)$tid;
+        if (!preg_match('/^[a-z0-9_]{2,40}$/', $tid) || isset($themes[$tid])) continue;
+        $themes[$tid] = [
+            'name' => trim((string)($ct['name'] ?? $tid)) ?: $tid,
+            'custom' => true,
+            'decorations' => is_array($ct['decorations'] ?? null) ? $ct['decorations'] : [],
+        ];
+    }
+    return $themes;
+}
+
+/** Resolve one theme (built-in or custom) with admin decoration
+ *  overrides applied. Returns null for unknown ids. */
+function seasonalGetTheme(array $cfg, string $tid): ?array {
+    return seasonalAllThemes($cfg)[$tid] ?? null;
+}
+
+/** Does a decoration asset resolve to something servable? Built-in files
+ *  must exist under images/seasonal/<theme>/; uploaded overrides are
+ *  assumed present (they were validated at upload time). */
+function seasonalAssetExists(array $cfg, string $themeId, string $assetFile): bool {
+    $key = $themeId . '/' . $assetFile;
+    if (!empty($cfg['asset_overrides'][$key])) return true;
+    $path = dirname(__DIR__) . '/images/seasonal/' . $themeId . '/' . $assetFile;
+    return is_file($path);
 }
 
 /** Easter Sunday (Anonymous Gregorian computus), Y-m-d for a given year. */
@@ -197,6 +277,8 @@ function seasonalLoadConfig(PDO $pdo): array {
                 $cfg = array_merge($cfg, array_intersect_key($decoded, $cfg));
                 if (isset($decoded['holidays']) && is_array($decoded['holidays'])) $cfg['holidays'] = $decoded['holidays'];
                 if (isset($decoded['asset_overrides']) && is_array($decoded['asset_overrides'])) $cfg['asset_overrides'] = $decoded['asset_overrides'];
+                if (isset($decoded['theme_decorations']) && is_array($decoded['theme_decorations'])) $cfg['theme_decorations'] = $decoded['theme_decorations'];
+                if (isset($decoded['custom_themes']) && is_array($decoded['custom_themes'])) $cfg['custom_themes'] = $decoded['custom_themes'];
             }
         }
     } catch (Throwable $e) {
@@ -243,20 +325,24 @@ function seasonalHolidayActiveOn(array $holiday, string $ymd): bool {
  *  Returns ['theme_id'=>..., 'theme'=>catalog entry, 'holiday'=>?array,
  *           'mode'=>..., 'source'=>'schedule'|'manual'|'preview'] or null. */
 function seasonalResolveTheme(PDO $pdo, ?string $previewId = null): ?array {
-    $catalog = seasonalThemeCatalog();
+    $cfg = seasonalLoadConfig($pdo);
 
-    if ($previewId !== null && isset($catalog[$previewId])) {
-        return ['theme_id' => $previewId, 'theme' => $catalog[$previewId],
-                'holiday' => null, 'mode' => 'preview', 'source' => 'preview'];
+    if ($previewId !== null && $previewId !== '') {
+        $t = seasonalGetTheme($cfg, $previewId);
+        if ($t !== null) {
+            return ['theme_id' => $previewId, 'theme' => $t,
+                    'holiday' => null, 'mode' => 'preview', 'source' => 'preview'];
+        }
+        return null;
     }
 
-    $cfg = seasonalLoadConfig($pdo);
     if (empty($cfg['enabled'])) return null;
 
     if (($cfg['mode'] ?? 'auto') === 'manual') {
         $tid = (string)($cfg['manual_theme'] ?? '');
-        if ($tid !== '' && isset($catalog[$tid])) {
-            return ['theme_id' => $tid, 'theme' => $catalog[$tid],
+        $t = $tid !== '' ? seasonalGetTheme($cfg, $tid) : null;
+        if ($t !== null) {
+            return ['theme_id' => $tid, 'theme' => $t,
                     'holiday' => null, 'mode' => 'manual', 'source' => 'manual'];
         }
         return null;
@@ -270,9 +356,11 @@ function seasonalResolveTheme(PDO $pdo, ?string $previewId = null): ?array {
     foreach ((array)($cfg['holidays'] ?? []) as $h) {
         if (empty($h['enabled'])) continue;
         $tid = (string)($h['theme'] ?? '');
-        if (!isset($catalog[$tid])) continue;
+        if ($tid === '') continue;
+        $t = seasonalGetTheme($cfg, $tid);
+        if ($t === null) continue;
         if (seasonalHolidayActiveOn($h, $today)) {
-            return ['theme_id' => $tid, 'theme' => $catalog[$tid],
+            return ['theme_id' => $tid, 'theme' => $t,
                     'holiday' => $h, 'mode' => 'auto', 'source' => 'schedule'];
         }
     }

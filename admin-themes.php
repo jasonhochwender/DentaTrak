@@ -78,6 +78,14 @@ function u($k, $params = []) { return t('admin_themes.' . $k, $params); }
         .st-thumb { width:44px; height:44px; object-fit:contain; background:#f9fafb; border-radius:6px; border:1px solid #e5e7eb; }
         .st-deco-row { display:flex; align-items:center; gap:10px; padding:6px 0; border-bottom:1px solid #f3f4f6; font-size:.78rem; color:#4b5563; }
         .st-deco-row .st-deco-name { flex:1; font-family:ui-monospace,monospace; }
+        .st-deco-edit { border:1px solid #e5e7eb; border-radius:8px; padding:8px 10px; margin-bottom:8px; background:#fff; }
+        .st-deco-edit .st-deco-head { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+        .st-deco-edit .st-deco-name { font-family:ui-monospace,monospace; font-size:.75rem; color:#6b7280; flex:1; word-break:break-all; }
+        .st-deco-fields { display:flex; flex-wrap:wrap; gap:6px 10px; align-items:center; }
+        .st-deco-fields label { display:flex; flex-direction:column; font-size:.68rem; color:#9ca3af; gap:2px; }
+        .st-deco-fields input[type=number] { width:56px; padding:3px 5px; border:1px solid #d1d5db; border-radius:5px; font-size:.75rem; }
+        .st-deco-missing { color:#b45309; font-size:.72rem; }
+        .st-custom-name { font-weight:400; font-size:.8rem; border:1px solid #d1d5db; border-radius:5px; padding:2px 6px; width:160px; }
         details.st-theme { border:1px solid #e5e7eb; border-radius:8px; margin-bottom:10px; }
         details.st-theme summary { padding:10px 14px; cursor:pointer; font-weight:600; font-size:.88rem; list-style:none; }
         details.st-theme summary::before { content:'▸ '; color:#9ca3af; }
@@ -85,6 +93,7 @@ function u($k, $params = []) { return t('admin_themes.' . $k, $params); }
         details.st-theme .st-theme-body { padding:0 14px 14px; }
         .st-row { display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
         .st-check { display:flex; align-items:center; gap:6px; font-size:.85rem; }
+        .st-badge.custom { background:#fef3c7; color:#92400e; }
     </style>
 </head>
 <?php paAdminChrome('themes', u('title'), u('subtitle')); ?>
@@ -146,7 +155,12 @@ function u($k, $params = []) { return t('admin_themes.' . $k, $params); }
 
 <div class="pa-card">
     <h2><?php echo h(u('themes_title')); ?></h2>
-    <p class="pa-card-sub"><?php echo h(u('themes_sub')); ?></p>
+    <p class="pa-card-sub"><?php echo h(u('themes_sub2')); ?></p>
+    <div class="st-row" style="margin-bottom:12px;">
+        <input type="text" id="stNewThemeName" class="st-custom-name" placeholder="<?php echo h(u('new_theme_name')); ?>" maxlength="60">
+        <button class="st-btn" id="stAddTheme"><?php echo h(u('add_theme')); ?></button>
+        <div class="st-msg" id="stThemeMsg"></div>
+    </div>
     <div id="stThemes"></div>
 </div>
 
@@ -170,6 +184,16 @@ function u($k, $params = []) { return t('admin_themes.' . $k, $params); }
         'kind_easter' => u('kind_easter'),
         'easter_offset' => u('easter_offset'),
         'confirm_delete' => u('confirm_delete'),
+        'save_theme' => u('save_theme'),
+        'add_decoration' => u('add_decoration'),
+        'restore_default' => u('restore_default'),
+        'delete_theme' => u('delete_theme'),
+        'confirm_delete_theme' => u('confirm_delete_theme'),
+        'custom_badge' => u('custom_badge'),
+        'missing_art' => u('missing_art'),
+        'deco_on' => u('deco_on'),
+        'f_x' => u('f_x'), 'f_y' => u('f_y'), 'f_size' => u('f_size'),
+        'f_dur' => u('f_dur'), 'f_del' => u('f_del'), 'f_rot' => u('f_rot'), 'f_op' => u('f_op'),
     ], JSON_UNESCAPED_UNICODE); ?>;
 
     var state = null;
@@ -294,56 +318,219 @@ function u($k, $params = []) { return t('admin_themes.' . $k, $params); }
         });
     }
 
+    function decoRowHtml(t, d) {
+        var key = t.id + '/' + d.asset;
+        var overridden = (state.config.asset_overrides || []).indexOf(key) !== -1;
+        function num(cls, val, min, max, step) {
+            return '<input type="number" class="dc-' + cls + '" value="' + val + '" min="' + min + '" max="' + max + '" step="' + step + '">';
+        }
+        return '<div class="st-deco-edit" data-asset="' + esc(d.asset) + '">'
+            + '<div class="st-deco-head">'
+            + '<img class="st-thumb" src="' + esc(d.url) + '" alt="">'
+            + '<span class="st-deco-name">' + esc(d.asset) + (d.missing ? ' <span class="st-deco-missing">' + esc(STR.missing_art) + '</span>' : '') + '</span>'
+            + '<label class="st-check" style="font-size:.75rem">' + esc(STR.deco_on) + ' <input type="checkbox" class="dc-enabled"' + (d.enabled ? ' checked' : '') + '></label>'
+            + '<button class="st-btn danger dc-del">' + esc(STR.delete) + '</button>'
+            + '</div>'
+            + '<div class="st-deco-fields">'
+            + '<label>' + esc(STR.f_x) + num('x', d.x, 0, 100, 1) + '</label>'
+            + '<label>' + esc(STR.f_y) + num('y', d.y, 0, 100, 1) + '</label>'
+            + '<label>' + esc(STR.f_size) + num('s', d.s, 16, 800, 5) + '</label>'
+            + '<label>' + esc(STR.f_dur) + num('dur', d.dur, 6, 120, 1) + '</label>'
+            + '<label>' + esc(STR.f_del) + num('del', d.del, -120, 0, 1) + '</label>'
+            + '<label>' + esc(STR.f_rot) + num('rot', d.rot, -60, 60, 1) + '</label>'
+            + '<label>' + esc(STR.f_op) + num('op', d.op, 0.05, 1, 0.05) + '</label>'
+            + '<input type="file" accept=".svg,.png,.webp,image/svg+xml,image/png,image/webp" class="st-file dc-file" data-asset="' + esc(d.asset) + '" style="font-size:.72rem;max-width:200px">'
+            + (overridden ? '<button class="st-btn st-reset" data-key="' + esc(key) + '">' + esc(STR.reset_art) + '</button>' : '')
+            + '<span class="st-msg" data-for="' + esc(key) + '"></span>'
+            + '</div></div>';
+    }
+
     function renderThemes() {
         var wrap = document.getElementById('stThemes');
-        wrap.innerHTML = (state.themes_detail || []).map(function (t) {
-            var body = (t.decorations || []).map(function (d) {
-                var overridden = (state.config.asset_overrides || []).indexOf(t.id + '/' + d.asset) !== -1;
-                return '<div class="st-deco-row">'
-                    + '<img class="st-thumb" src="' + esc(d.url) + '" alt="">'
-                    + '<span class="st-deco-name">' + esc(d.asset) + '</span>'
-                    + '<input type="file" accept=".svg,.png,.webp,image/svg+xml,image/png,image/webp" data-theme="' + esc(t.id) + '" data-slot="' + esc(d.asset) + '" class="st-file" style="font-size:.75rem;max-width:220px">'
-                    + (overridden ? '<button class="st-btn st-reset" data-key="' + esc(t.id + '/' + d.asset) + '">' + esc(STR.reset_art) + '</button>' : '')
-                    + '<span class="st-msg" data-for="' + esc(t.id + '/' + d.asset) + '"></span>'
-                    + '</div>';
-            }).join('');
-            return '<details class="st-theme"' + (t.id === 'thanksgiving' ? ' open' : '') + '>'
-                + '<summary>' + esc(t.name) + ' <a href="' + esc(state.preview_base) + esc(t.id) + '" target="_blank" rel="noopener" style="font-size:.75rem;font-weight:400">' + esc(STR.preview) + '</a></summary>'
-                + '<div class="st-theme-body">' + body + '</div>'
-                + '</details>';
+        wrap.innerHTML = (state.themes_detail || []).map(function (t, ti) {
+            var body = (t.decorations || []).map(function (d) { return decoRowHtml(t, d); }).join('');
+            var badges = '';
+            if (t.custom) badges += ' <span class="st-badge custom">' + esc(STR.custom_badge) + '</span>';
+            if (t.has_override) badges += ' <span class="st-badge off" style="background:#eef2ff;color:#3730a3">custom layout</span>';
+            var nameRow = t.custom
+                ? '<div class="st-row" style="margin-bottom:8px;"><span style="font-size:.78rem;color:#6b7280">Theme name:</span>'
+                  + '<input type="text" class="st-custom-name ct-name" value="' + esc(t.name) + '" maxlength="60"></div>'
+                : '';
+            var delBtn = t.custom
+                ? '<button class="st-btn danger ct-del">' + esc(STR.delete_theme) + '</button>' : '';
+            var restoreBtn = t.custom ? ''
+                : '<button class="st-btn st-restore" data-tid="' + esc(t.id) + '">' + esc(STR.restore_default) + '</button>';
+            return '<details class="st-theme" data-tid="' + esc(t.id) + '"' + (t.id === 'thanksgiving' ? ' open' : '') + '>'
+                + '<summary>' + esc(t.name) + badges
+                + ' <a href="' + esc(state.preview_base) + esc(t.id) + '" target="_blank" rel="noopener" style="font-size:.75rem;font-weight:400">' + esc(STR.preview) + '</a></summary>'
+                + '<div class="st-theme-body">' + nameRow + body
+                + '<div class="st-row" style="margin-top:8px;">'
+                + '<input type="file" accept=".svg,.png,.webp,image/svg+xml,image/png,image/webp" class="st-addfile" style="font-size:.75rem;max-width:240px">'
+                + '<button class="st-btn st-adddeco" data-ti="' + ti + '">' + esc(STR.add_decoration) + '</button>'
+                + '<button class="st-btn primary st-save-theme" data-ti="' + ti + '">' + esc(STR.save_theme) + '</button>'
+                + restoreBtn + delBtn
+                + '<span class="st-msg" data-theme-msg="' + esc(t.id) + '"></span>'
+                + '</div></div></details>';
         }).join('');
 
-        wrap.querySelectorAll('.st-file').forEach(function (inp) {
+        // ---- decoration field/delete/upload wiring (delegated per theme) ----
+        wrap.querySelectorAll('.st-deco-edit').forEach(function (row) {
+            var del = row.querySelector('.dc-del');
+            if (del) del.addEventListener('click', function () { row.remove(); });
+        });
+        wrap.querySelectorAll('.dc-file').forEach(function (inp) {
+            inp.addEventListener('change', function () { uploadAsset(inp, inp.getAttribute('data-asset')); });
+        });
+        wrap.querySelectorAll('.st-addfile').forEach(function (inp) {
             inp.addEventListener('change', function () {
-                if (!inp.files || !inp.files[0]) return;
-                var key = inp.getAttribute('data-theme') + '/' + inp.getAttribute('data-slot');
-                var fd = new FormData();
-                fd.append('csrf_token', csrf);
-                fd.append('theme', inp.getAttribute('data-theme'));
-                fd.append('slot', inp.getAttribute('data-slot'));
-                fd.append('file', inp.files[0]);
-                var m = wrap.querySelector('[data-for="' + key + '"]');
-                if (m) msg(m, '…');
-                fetch('api/seasonal-admin.php?action=upload', { method: 'POST', credentials: 'same-origin', body: fd })
-                    .then(function (r) { return r.json(); })
-                    .then(function (d) {
-                        if (d && d.success) {
-                            if (m) msg(m, STR.art_replaced, 'ok');
-                            state.config.asset_overrides.push(key);
-                            inp.previousElementSibling; // noop
-                            var row = inp.closest('.st-deco-row');
-                            if (row && !row.querySelector('.st-reset')) {
-                                var b = document.createElement('button');
-                                b.className = 'st-btn st-reset'; b.setAttribute('data-key', key); b.textContent = STR.reset_art;
-                                b.addEventListener('click', resetAsset);
-                                row.insertBefore(b, m);
-                            }
-                        } else if (m) { msg(m, (d && d.message) || 'error', 'err'); }
-                    })
-                    .catch(function () { if (m) msg(m, 'error', 'err'); });
+                var themeEl = inp.closest('.st-theme');
+                var tid = themeEl.getAttribute('data-tid');
+                uploadAsset(inp, '', function (asset) {
+                    var d = {
+                        asset: asset,
+                        url: 'api/seasonal-asset.php?k=' + encodeURIComponent(tid + '/' + asset),
+                        missing: false, x: 50, y: 50, s: 120, dur: 24, del: 0, rot: 0, op: 0.75, enabled: true
+                    };
+                    var body = themeEl.querySelector('.st-theme-body');
+                    var grid = body.querySelector('.st-deco-edit') ? body : body;
+                    // insert before the action row
+                    var actionRow = body.querySelector('.st-row');
+                    var tmp = document.createElement('div');
+                    tmp.innerHTML = decoRowHtml({ id: tid }, d);
+                    var node = tmp.firstChild;
+                    body.insertBefore(node, actionRow);
+                    wireDecoRow(node, tid);
+                    inp.value = '';
+                });
             });
         });
-        wrap.querySelectorAll('.st-reset').forEach(function (b) { b.addEventListener('click', resetAsset); });
+        wrap.querySelectorAll('.st-adddeco').forEach(function (b) {
+            b.addEventListener('click', function () {
+                var inp = b.parentElement.querySelector('.st-addfile');
+                if (inp) inp.click();
+            });
+        });
+        wrap.querySelectorAll('.st-save-theme').forEach(function (b) {
+            b.addEventListener('click', function () { saveTheme(b.getAttribute('data-ti')); });
+        });
+        wrap.querySelectorAll('.st-restore').forEach(function (b) {
+            b.addEventListener('click', function () {
+                var tid = b.getAttribute('data-tid');
+                apiPost('save_themes', { theme_decorations: (function () { var o = {}; o[tid] = null; return o; })() })
+                    .then(function (d) { if (d && d.success) load(); });
+            });
+        });
+        wrap.querySelectorAll('.ct-del').forEach(function (b) {
+            b.addEventListener('click', function () {
+                var themeEl = b.closest('.st-theme');
+                var tid = themeEl.getAttribute('data-tid');
+                var name = themeEl.querySelector('.ct-name');
+                if (!confirm(STR.confirm_delete_theme.replace('{name}', name ? name.value : tid))) return;
+                var custom = collectCustomThemes();
+                delete custom[tid];
+                apiPost('save_themes', { custom_themes: custom }).then(function (d) { if (d && d.success) load(); });
+            });
+        });
+    }
+
+    function wireDecoRow(node, tid) {
+        var del = node.querySelector('.dc-del');
+        if (del) del.addEventListener('click', function () { node.remove(); });
+        var f = node.querySelector('.dc-file');
+        if (f) f.addEventListener('change', function () { uploadAsset(f, f.getAttribute('data-asset')); });
+        var r = node.querySelector('.st-reset');
+        if (r) r.addEventListener('click', resetAsset);
+    }
+
+    // Collect decoration rows from a theme element into a clean list.
+    function collectDecos(themeEl) {
+        return Array.prototype.map.call(themeEl.querySelectorAll('.st-deco-edit'), function (row) {
+            function v(cls) { var el = row.querySelector('.dc-' + cls); return el ? parseFloat(el.value) : 0; }
+            var en = row.querySelector('.dc-enabled');
+            return {
+                asset: row.getAttribute('data-asset'),
+                x: v('x'), y: v('y'), s: Math.round(v('s')),
+                dur: Math.round(v('dur')), del: Math.round(v('del')),
+                rot: v('rot'), op: v('op'),
+                enabled: en ? en.checked : true
+            };
+        });
+    }
+
+    function collectCustomThemes() {
+        var out = {};
+        document.querySelectorAll('#stThemes .st-theme').forEach(function (el) {
+            var tid = el.getAttribute('data-tid');
+            var t = (state.themes_detail || []).filter(function (x) { return x.id === tid; })[0];
+            if (!t || !t.custom) return;
+            var nameEl = el.querySelector('.ct-name');
+            out[tid] = { name: nameEl ? nameEl.value : tid, decorations: collectDecos(el) };
+        });
+        return out;
+    }
+
+    function saveTheme(ti) {
+        var themes = state.themes_detail || [];
+        var t = themes[ti];
+        if (!t) return;
+        var themeEl = document.querySelector('#stThemes .st-theme[data-tid="' + t.id + '"]');
+        var payload = {};
+        if (t.custom) {
+            payload.custom_themes = collectCustomThemes();
+        } else {
+            var cur = collectDecos(themeEl);
+            // If the layout matches the built-in defaults, store null so
+            // the theme keeps tracking future built-in artwork updates.
+            var def = (t.decorations || []).map(function (d) {
+                return { asset: d.asset, x: d.x, y: d.y, s: d.s, dur: d.dur, del: d.del, rot: d.rot, op: d.op, enabled: d.enabled };
+            });
+            var o = {};
+            o[t.id] = (!t.has_override && JSON.stringify(def) === JSON.stringify(cur)) ? null : cur;
+            payload.theme_decorations = o;
+        }
+        var m = document.querySelector('[data-theme-msg="' + t.id + '"]');
+        apiPost('save_themes', payload).then(function (d) {
+            if (m) msg(m, d && d.success ? STR.saved : ((d && d.message) || STR.save_failed), d && d.success ? 'ok' : 'err');
+            if (d && d.success) load();
+        });
+    }
+
+    function uploadAsset(inp, slot, onDone) {
+        if (!inp.files || !inp.files[0]) return;
+        var themeEl = inp.closest('.st-theme');
+        var tid = themeEl.getAttribute('data-tid');
+        var fd = new FormData();
+        fd.append('csrf_token', csrf);
+        fd.append('theme', tid);
+        fd.append('slot', slot || '');
+        fd.append('file', inp.files[0]);
+        var m = document.querySelector('[data-for="' + tid + '/' + slot + '"]');
+        fetch('api/seasonal-admin.php?action=upload', { method: 'POST', credentials: 'same-origin', body: fd })
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+                if (d && d.success) {
+                    if (slot) {
+                        var key = tid + '/' + slot;
+                        if ((state.config.asset_overrides || []).indexOf(key) === -1) state.config.asset_overrides.push(key);
+                        if (m) msg(m, STR.art_replaced, 'ok');
+                        // refresh thumbnail for replaced asset
+                        var row = inp.closest('.st-deco-edit');
+                        if (row) {
+                            var img = row.querySelector('.st-thumb');
+                            if (img) img.src = 'api/seasonal-asset.php?k=' + encodeURIComponent(key) + '&t=' + Date.now();
+                        }
+                    }
+                    if (onDone) onDone(d.asset || slot);
+                } else {
+                    var em = document.querySelector('[data-for="' + tid + '/' + slot + '"]');
+                    if (em) msg(em, (d && d.message) || 'error', 'err');
+                    else { var tm = themeEl.querySelector('[data-theme-msg]'); if (tm) msg(tm, (d && d.message) || 'error', 'err'); }
+                }
+            })
+            .catch(function () {
+                var tm = themeEl.querySelector('[data-theme-msg]');
+                if (tm) msg(tm, 'error', 'err');
+            });
     }
 
     function resetAsset(ev) {
@@ -417,6 +604,26 @@ function u($k, $params = []) { return t('admin_themes.' . $k, $params); }
             enabled: true, start: { kind: 'fixed', m: 12, d: 1 }, end: { kind: 'fixed', m: 12, d: 31 }
         });
         renderHolidays();
+    });
+
+    document.getElementById('stAddTheme').addEventListener('click', function () {
+        var name = document.getElementById('stNewThemeName').value.trim();
+        if (!name) return;
+        var base = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 30) || 'custom';
+        var id = base, n = 2;
+        var existing = {};
+        (state.themes_detail || []).forEach(function (t) { existing[t.id] = true; });
+        while (existing[id]) { id = base + '_' + n; n++; }
+        var custom = collectCustomThemes();
+        custom[id] = { name: name, decorations: [] };
+        apiPost('save_themes', { custom_themes: custom }).then(function (d) {
+            if (d && d.success) {
+                document.getElementById('stNewThemeName').value = '';
+                load();
+            } else {
+                msg(document.getElementById('stThemeMsg'), (d && d.message) || STR.save_failed, 'err');
+            }
+        });
     });
 
     load();

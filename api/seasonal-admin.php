@@ -47,7 +47,7 @@ $action = (string)($_GET['action'] ?? '');
 // ---- GET: full state for the admin page ----
 if ($method === 'GET' && $action === 'state') {
     $cfg = seasonalLoadConfig($pdo);
-    $catalog = seasonalThemeCatalog();
+    $allThemes = seasonalAllThemes($cfg);
     $today = (new DateTime('now', new DateTimeZone(SEASONAL_TZ)))->format('Y-m-d');
 
     $holidays = [];
@@ -57,7 +57,7 @@ if ($method === 'GET' && $action === 'state') {
             'id' => $h['id'] ?? '',
             'name' => $h['name'] ?? '',
             'theme' => $h['theme'] ?? '',
-            'theme_name' => $catalog[$h['theme']]['name'] ?? ($h['theme'] ?? ''),
+            'theme_name' => $allThemes[$h['theme']]['name'] ?? ($h['theme'] ?? ''),
             'enabled' => !empty($h['enabled']),
             'start' => $h['start'] ?? null,
             'end' => $h['end'] ?? null,
@@ -70,12 +70,27 @@ if ($method === 'GET' && $action === 'state') {
 
     $active = seasonalResolveTheme($pdo);
     $themesDetail = [];
-    foreach ($catalog as $tid => $t) {
+    foreach ($allThemes as $tid => $t) {
         $decos = [];
         foreach ((array)$t['decorations'] as $d) {
-            $decos[] = ['asset' => $d['asset'], 'url' => seasonalAssetUrl($cfg, $tid, $d['asset'])];
+            if (!is_array($d) || empty($d['asset'])) continue;
+            $asset = (string)$d['asset'];
+            $decos[] = [
+                'asset' => $asset,
+                'url' => seasonalAssetUrl($cfg, $tid, $asset),
+                'missing' => !seasonalAssetExists($cfg, $tid, $asset),
+                'x' => (float)($d['x'] ?? 50), 'y' => (float)($d['y'] ?? 50),
+                's' => (int)($d['s'] ?? 120), 'dur' => (int)($d['dur'] ?? 24),
+                'del' => (int)($d['del'] ?? 0), 'rot' => (float)($d['rot'] ?? 0),
+                'op' => (float)($d['op'] ?? 0.75),
+                'enabled' => array_key_exists('enabled', $d) ? !empty($d['enabled']) : true,
+            ];
         }
-        $themesDetail[] = ['id' => $tid, 'name' => $t['name'], 'decorations' => $decos];
+        $themesDetail[] = [
+            'id' => $tid, 'name' => $t['name'], 'custom' => !empty($t['custom']),
+            'has_override' => isset($cfg['theme_decorations'][$tid]),
+            'decorations' => $decos,
+        ];
     }
     st_ok([
         'config' => [
@@ -84,7 +99,7 @@ if ($method === 'GET' && $action === 'state') {
             'manual_theme' => $cfg['manual_theme'] ?? '',
             'asset_overrides' => array_keys((array)$cfg['asset_overrides']),
         ],
-        'themes' => array_map(function ($id, $t) { return ['id' => $id, 'name' => $t['name']]; }, array_keys($catalog), $catalog),
+        'themes' => array_map(function ($id, $t) { return ['id' => $id, 'name' => $t['name']]; }, array_keys($allThemes), $allThemes),
         'themes_detail' => $themesDetail,
         'holidays' => $holidays,
         'active' => $active ? ['theme_id' => $active['theme_id'], 'name' => $active['theme']['name'], 'source' => $active['source']] : null,
@@ -101,15 +116,21 @@ if (!empty($_FILES['file'])) {
 
     $theme = preg_replace('/[^a-z0-9_]/', '', (string)($_POST['theme'] ?? ''));
     $slot = preg_replace('/[^a-z0-9_.-]/', '', (string)($_POST['slot'] ?? ''));
-    $catalog = seasonalThemeCatalog();
-    if (!isset($catalog[$theme])) st_fail('unknown theme');
-    // slot must be one of the theme's declared decoration assets
-    $validSlots = array_column($catalog[$theme]['decorations'], 'asset');
-    if (!in_array($slot, $validSlots, true)) st_fail('slot is not a decoration of this theme');
+    $cfgPre = seasonalLoadConfig($pdo);
+    if (!isset(seasonalAllThemes($cfgPre)[$theme])) st_fail('unknown theme');
 
     $f = $_FILES['file'];
     if (($f['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) st_fail('upload failed');
     if ($f['size'] > 512 * 1024) st_fail('file too large (max 512KB)');
+    // New assets may use any safe image filename; replacing a built-in
+    // keeps working because the stored override shadows it by name.
+    if ($slot === '') {
+        $slot = strtolower(preg_replace('/[^a-z0-9_.-]/', '', pathinfo((string)($f['name'] ?? ''), PATHINFO_FILENAME)));
+        $slot = substr($slot, 0, 48);
+    }
+    if (!preg_match('/^[a-z0-9][a-z0-9_.-]*\.(svg|png|webp)$/', $slot) || strlen($slot) > 64) {
+        st_fail('invalid asset filename');
+    }
     $ext = strtolower(pathinfo($slot, PATHINFO_EXTENSION));
     $tmp = $f['tmp_name'];
     $mime = (new finfo(FILEINFO_MIME_TYPE))->file($tmp);
@@ -143,7 +164,7 @@ if (!empty($_FILES['file'])) {
         st_fail('storage error', 500);
     }
     logUserActivity((int)$_SESSION['db_user_id'], 'seasonal_asset_upload', "Uploaded seasonal asset $key");
-    st_ok(['key' => $key]);
+    st_ok(['key' => $key, 'asset' => $slot]);
 }
 
 // JSON actions
@@ -152,7 +173,7 @@ $csrf = (string)($in['csrf_token'] ?? ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? ''));
 if (!hash_equals((string)($_SESSION['csrf_token'] ?? ''), $csrf)) st_fail('csrf', 403);
 
 $cfg = seasonalLoadConfig($pdo);
-$catalog = seasonalThemeCatalog();
+$allThemes = seasonalAllThemes($cfg);
 
 switch ($action) {
     case 'save':
@@ -160,14 +181,14 @@ switch ($action) {
         $mode = (string)($in['mode'] ?? 'auto');
         if (!in_array($mode, ['auto', 'manual'], true)) st_fail('invalid mode');
         $manual = preg_replace('/[^a-z0-9_]/', '', (string)($in['manual_theme'] ?? ''));
-        if ($mode === 'manual' && !isset($catalog[$manual])) st_fail('invalid manual theme');
+        if ($mode === 'manual' && !isset($allThemes[$manual])) st_fail('invalid manual theme');
 
         $holidays = [];
         foreach ((array)($in['holidays'] ?? []) as $h) {
             $id = preg_replace('/[^a-z0-9_-]/', '', strtolower((string)($h['id'] ?? '')));
             $name = trim(mb_substr((string)($h['name'] ?? ''), 0, 80));
             $theme = preg_replace('/[^a-z0-9_]/', '', (string)($h['theme'] ?? ''));
-            if ($id === '' || $name === '' || !isset($catalog[$theme])) st_fail('invalid holiday entry');
+            if ($id === '' || $name === '' || !isset($allThemes[$theme])) st_fail('invalid holiday entry');
             $start = seasonalValidateRule($h['start'] ?? null);
             $end = seasonalValidateRule($h['end'] ?? null);
             if ($start === null || $end === null) st_fail('invalid holiday dates for ' . $name);
@@ -213,6 +234,50 @@ switch ($action) {
             st_fail('reset failed', 500);
         }
         logUserActivity((int)$_SESSION['db_user_id'], 'seasonal_asset_reset', "Reset seasonal asset $key");
+        st_ok();
+
+    case 'save_themes':
+        // theme_decorations: {theme_id: [deco,...] | null} - null removes
+        // the override so the theme falls back to its built-in layout.
+        // custom_themes: {id: {name, decorations:[...]}} replaces the map.
+        if (isset($in['theme_decorations']) && is_array($in['theme_decorations'])) {
+            foreach ($in['theme_decorations'] as $tid => $list) {
+                $tid = (string)$tid;
+                // Layout overrides apply to built-in themes only;
+                // custom themes carry decorations inside custom_themes.
+                if (!isset(seasonalThemeCatalog()[$tid])) continue;
+                if ($list === null) {
+                    unset($cfg['theme_decorations'][$tid]);
+                    continue;
+                }
+                $clean = seasonalSanitizeDecorations($list);
+                if ($clean === null) st_fail('invalid decorations for ' . $tid);
+                $cfg['theme_decorations'][$tid] = $clean;
+            }
+        }
+        if (isset($in['custom_themes']) && is_array($in['custom_themes'])) {
+            $custom = [];
+            foreach ($in['custom_themes'] as $tid => $ct) {
+                $tid = (string)$tid;
+                if (!preg_match('/^[a-z0-9_]{2,40}$/', $tid)) continue;
+                if (isset(seasonalThemeCatalog()[$tid])) continue; // cannot shadow built-ins
+                if (!is_array($ct)) continue;
+                $name = trim(mb_substr((string)($ct['name'] ?? ''), 0, 60));
+                if ($name === '') continue;
+                $decos = seasonalSanitizeDecorations($ct['decorations'] ?? []);
+                if ($decos === null) st_fail('invalid decorations for custom theme ' . $tid);
+                $custom[$tid] = ['name' => $name, 'decorations' => $decos];
+                if (count($custom) >= 12) break;
+            }
+            $cfg['custom_themes'] = $custom;
+        }
+        try {
+            seasonalSaveConfig($pdo, $cfg);
+        } catch (Throwable $e) {
+            error_log('[seasonal-admin] save_themes failed: ' . $e->getMessage());
+            st_fail('save failed', 500);
+        }
+        logUserActivity((int)$_SESSION['db_user_id'], 'seasonal_themes_save', 'Seasonal theme decorations updated');
         st_ok();
 
     default:
