@@ -121,9 +121,10 @@ $sessionRevoked = isset($_GET['revoked']) && $_GET['revoked'] == '1';
   <?php endif; ?>
 </head>
 <?php 
-  // Determine environment for visual cues
+  // Determine environment for visual cues (seasonal_preview renders the
+  // production palette so theme previews match live dentatrak.com colors)
   $currentEnv = $appConfig['current_environment'] ?? 'production';
-  if ($currentEnv === 'production') {
+  if ($currentEnv === 'production' || !empty($_GET['seasonal_preview'])) {
       $envClass = 'env-prod';
   } elseif ($currentEnv === 'uat') {
       $envClass = 'env-uat';

@@ -17,6 +17,7 @@
   height: auto;
   transform: translate(-50%, -50%);
   opacity: var(--op, 0.7);
+  filter: drop-shadow(0 2px 6px rgba(15, 23, 42, 0.06));
   animation: seasonal-float var(--dur, 24s) ease-in-out var(--del, 0s) infinite;
   will-change: transform;
   user-select: none;
@@ -41,56 +42,76 @@
 /* Gentle falling drift for small seasonal accents (leaves, snow, confetti) */
 .seasonal-deco--fall {
   animation-name: seasonal-fall;
+  animation-timing-function: linear;
 }
 
 @keyframes seasonal-fall {
   0% {
-    transform: translate(-50%, -50%) translate(0, -45vh) rotate(calc(var(--rot, 6deg) * -0.5));
+    opacity: 0;
+    transform: translate(-50%, -50%) translate(-1vw, -32vh) rotate(calc(var(--rot, 14deg) * -0.8));
+  }
+  15% {
+    opacity: var(--op, 0.55);
   }
   50% {
-    transform: translate(-50%, -50%) translate(3vw, 0) rotate(calc(var(--rot, 6deg) * 0.5));
+    opacity: var(--op, 0.55);
+    transform: translate(-50%, -50%) translate(1.6vw, 0vh) rotate(calc(var(--rot, 14deg) * 0.7));
+  }
+  85% {
+    opacity: var(--op, 0.55);
   }
   100% {
-    transform: translate(-50%, -50%) translate(0, 45vh) rotate(calc(var(--rot, 6deg) * -0.5));
+    opacity: 0;
+    transform: translate(-50%, -50%) translate(-0.8vw, 32vh) rotate(calc(var(--rot, 14deg) * -0.4));
   }
 }
 
-/* Color-cycling "blinking" effect for light-bulb decorations (e.g. xmas
-   bulb wreaths): hue-rotate sweeps the palette while a brightness pulse
-   reads as twinkling. Combines with the normal float animation. */
+/* Color-cycling twinkling effect for Christmas wreath light overlays:
+   pulses brightness/opacity and shifts bulb hues on an independent rhythm
+   while staying locked to the parent wreath's float trajectory. */
 .seasonal-deco--fx-lights {
   animation:
     seasonal-float var(--dur, 24s) ease-in-out var(--del, 0s) infinite,
-    seasonal-lightcycle 9s ease-in-out infinite;
+    seasonal-lightcycle 5.5s ease-in-out calc(var(--del, 0s) * 0.37) infinite;
 }
 
 @keyframes seasonal-lightcycle {
   0%, 100% {
-    filter: hue-rotate(0deg) brightness(1);
+    opacity: var(--op, 0.9);
+    filter: hue-rotate(0deg) brightness(1.12);
   }
   25% {
-    filter: hue-rotate(90deg) brightness(1.18);
+    opacity: calc(var(--op, 0.9) * 0.45);
+    filter: hue-rotate(90deg) brightness(0.95);
   }
   50% {
-    filter: hue-rotate(180deg) brightness(0.95);
+    opacity: var(--op, 0.9);
+    filter: hue-rotate(180deg) brightness(1.2);
   }
   75% {
-    filter: hue-rotate(270deg) brightness(1.15);
+    opacity: calc(var(--op, 0.9) * 0.5);
+    filter: hue-rotate(270deg) brightness(1);
   }
 }
 
 /* Keep decorations small on narrow screens and fully clear of the card */
 @media (max-width: 900px) {
   .seasonal-deco {
-    width: min(140px, 24vw) !important;
-    opacity: calc(var(--op, 0.7) * 0.75) !important;
+    max-width: min(200px, 31vw);
+    opacity: calc(var(--op, 0.7) * 0.84);
+  }
+  .seasonal-deco--fall {
+    max-width: min(58px, 12vw);
   }
 }
 
 @media (max-width: 600px) {
   .seasonal-deco {
-    width: min(110px, 30vw) !important;
-    opacity: calc(var(--op, 0.7) * 0.6) !important;
+    max-width: min(155px, 38vw);
+    opacity: calc(var(--op, 0.7) * 0.74);
+  }
+  .seasonal-deco--fall {
+    max-width: min(46px, 12vw);
   }
   /* tuck decorations toward the edges so they never crowd the card */
   .login-bg-seasonal .seasonal-deco:nth-child(odd) {
