@@ -28,9 +28,9 @@ function seasonalThemeCatalog(): array {
         'thanksgiving' => [
             'name' => 'Thanksgiving',
             'decorations' => [
-                ['asset' => 'turkey1.svg',  'x' => 3,  'y' => 12, 's' => 190, 'dur' => 26, 'del' => -4,  'rot' => 6,  'op' => 0.8],
-                ['asset' => 'turkey2.svg',  'x' => 88, 'y' => 18, 's' => 170, 'dur' => 30, 'del' => -11, 'rot' => -5, 'op' => 0.75],
-                ['asset' => 'turkey3.svg',  'x' => 82, 'y' => 68, 's' => 150, 'dur' => 24, 'del' => -18, 'rot' => 7,  'op' => 0.7],
+                ['asset' => 'turkey1.png',  'x' => 3,  'y' => 12, 's' => 190, 'dur' => 26, 'del' => -4,  'rot' => 6,  'op' => 0.8],
+                ['asset' => 'turkey2.png',  'x' => 88, 'y' => 18, 's' => 170, 'dur' => 30, 'del' => -11, 'rot' => -5, 'op' => 0.75],
+                ['asset' => 'turkey3.png',  'x' => 82, 'y' => 68, 's' => 150, 'dur' => 24, 'del' => -18, 'rot' => 7,  'op' => 0.7],
                 ['asset' => 'pumpkin1.png', 'x' => 10, 'y' => 74, 's' => 210, 'dur' => 32, 'del' => -7,  'rot' => 4,  'op' => 0.85],
                 ['asset' => 'pie1.png',     'x' => 68, 'y' => 6,  's' => 180, 'dur' => 28, 'del' => -15, 'rot' => -4, 'op' => 0.8],
                 ['asset' => 'leaf1.png',    'x' => 22, 'y' => 30, 's' => 60,  'dur' => 18, 'del' => -2,  'rot' => 20, 'op' => 0.7],
