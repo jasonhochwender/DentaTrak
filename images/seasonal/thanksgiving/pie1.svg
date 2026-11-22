@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 200">
+  <!-- large pumpkin pie, left -->
+  <g>
+    <!-- plate -->
+    <ellipse cx="92" cy="162" rx="80" ry="13" fill="#d6d3d1"/>
+    <ellipse cx="92" cy="160" rx="64" ry="9" fill="#a8a29e"/>
+    <!-- filling band peeking below the crust -->
+    <ellipse cx="92" cy="150" rx="52" ry="9" fill="#f97316"/>
+    <!-- golden crust dome -->
+    <path d="M42 154 C 44 110, 140 110, 142 154 C 118 164, 66 164, 42 154 Z" fill="#d97706"/>
+    <!-- crimped scalloped edge -->
+    <g fill="#d97706">
+      <circle cx="56" cy="156" r="6.5"/><circle cx="72" cy="159" r="6.5"/>
+      <circle cx="90" cy="160" r="6.5"/><circle cx="108" cy="160" r="6.5"/>
+      <circle cx="126" cy="159" r="6.5"/><circle cx="140" cy="156" r="6.5"/>
+    </g>
+    <!-- whipped cream dollops -->
+    <g fill="#fff7ed">
+      <circle cx="92" cy="122" r="11"/>
+      <circle cx="74" cy="132" r="8.5"/>
+      <circle cx="110" cy="132" r="8.5"/>
+    </g>
+    <path d="M86 116 q 6 -6 12 0" stroke="#fed7aa" stroke-width="3" fill="none" stroke-linecap="round"/>
+  </g>
+  <!-- smaller pie, right -->
+  <g>
+    <ellipse cx="188" cy="150" rx="52" ry="10" fill="#d6d3d1"/>
+    <ellipse cx="188" cy="148" rx="40" ry="7" fill="#a8a29e"/>
+    <ellipse cx="188" cy="140" rx="34" ry="7" fill="#f97316"/>
+    <path d="M162 142 C 164 110, 212 110, 214 142 C 196 149, 178 149, 162 142 Z" fill="#d97706"/>
+    <g fill="#d97706">
+      <circle cx="172" cy="144" r="5"/><circle cx="188" cy="145" r="5"/><circle cx="204" cy="144" r="5"/>
+    </g>
+    <g fill="#fff7ed">
+      <circle cx="188" cy="118" r="8"/>
+      <circle cx="176" cy="125" r="6"/>
+      <circle cx="200" cy="125" r="6"/>
+    </g>
+  </g>
+  <!-- mini pumpkin accent, bottom left -->
+  <g>
+    <ellipse cx="34" cy="140" rx="20" ry="15" fill="#fb923c"/>
+    <g stroke="#ea580c" stroke-width="2" fill="none" opacity="0.55" stroke-linecap="round">
+      <path d="M28 128 q -4 12 0 24 M34 126 q 0 14 0 28 M40 128 q 4 12 0 24"/>
+    </g>
+    <path d="M34 112 q -1 -6 4 -8 q 5 -2 5 3 Z" fill="#92400e"/>
+  </g>
+  <!-- leaf accents -->
+  <path d="M150 92 q 12 -8 18 2 q -11 10 -18 -2 Z" fill="#16a34a"/>
+  <path d="M60 96 q -12 -7 -17 1 q 11 9 17 -1 Z" fill="#65a30d"/>
+</svg>
