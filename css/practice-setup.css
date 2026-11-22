@@ -22,14 +22,22 @@ body.practice-setup-body {
     height: 100%;
     overflow: hidden;
     z-index: 0;
+    pointer-events: none;
 }
 
+body.practice-setup-body.env-prod,
 .env-prod .setup-bg {
     background: linear-gradient(135deg, #f0f4ff 0%, #e0e7ff 50%, #f5f3ff 100%);
 }
 
+body.practice-setup-body.env-dev,
 .env-dev .setup-bg {
     background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 50%, #fff7ed 100%);
+}
+
+body.practice-setup-body.env-uat,
+.env-uat .setup-bg {
+    background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 50%, #fae8ff 100%);
 }
 
 .bg-shape {

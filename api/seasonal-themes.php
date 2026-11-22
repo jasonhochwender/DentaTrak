@@ -14,7 +14,6 @@
  * circles render instead (see partials/auth-background.php).
  */
 
-require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/asset-url.php';
 
 const SEASONAL_TZ = 'America/New_York';

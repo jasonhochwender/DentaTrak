@@ -1,21 +1,39 @@
 <?php
 /**
- * Auth-page background: seasonal decorations when a theme is active,
- * otherwise the classic floating circles. Drop-in replacement for the
- * .login-bg-shapes block on login/signup/password/2FA pages.
+ * Auth & onboarding background: seasonal decorations when a theme is active,
+ * otherwise the classic floating circles. Shared by login/password/2FA pages
+ * and the post-login Select a Practice screen (practice-setup.php).
  *
  * Decorations are purely decorative: aria-hidden, pointer-events none,
  * non-interactive. Honors prefers-reduced-motion via css/seasonal.css.
- * Any failure falls back to the classic background - auth is never
- * affected by theme rendering.
+ * Any failure falls back to the classic background - auth and practice
+ * selection are never affected by theme rendering.
  *
- * Preview: append ?seasonal_preview=<theme_id> to any auth page to see a
- * theme regardless of schedule (decorations only; grants nothing).
+ * Preview: append ?seasonal_preview=<theme_id> to see a theme regardless of
+ * schedule (decorations only; grants nothing).
  */
 
 require_once __DIR__ . '/../api/seasonal-themes.php';
 
-function renderAuthBackground(PDO $pdo): void {
+function renderClassicAuthBackground(string $fallback): void {
+    if ($fallback === 'practice-setup') {
+        echo '<div class="setup-bg" aria-hidden="true">'
+            . '<div class="bg-shape bg-shape-1"></div>'
+            . '<div class="bg-shape bg-shape-2"></div>'
+            . '<div class="bg-shape bg-shape-3"></div>'
+            . '</div>';
+        return;
+    }
+    echo '<div class="login-bg-shapes" aria-hidden="true">'
+        . '<div class="shape shape-1"></div>'
+        . '<div class="shape shape-2"></div>'
+        . '<div class="shape shape-3"></div>'
+        . '<div class="shape shape-4"></div>'
+        . '<div class="shape shape-5"></div>'
+        . '</div>';
+}
+
+function renderAuthBackground(PDO $pdo, string $fallback = 'login'): void {
     $previewId = isset($_GET['seasonal_preview']) && is_string($_GET['seasonal_preview'])
         ? substr($_GET['seasonal_preview'], 0, 40) : null;
     $previewId = $previewId !== null && $previewId !== '' ? $previewId : null;
@@ -28,13 +46,7 @@ function renderAuthBackground(PDO $pdo): void {
     }
 
     if ($theme === null) {
-        echo '<div class="login-bg-shapes">'
-            . '<div class="shape shape-1"></div>'
-            . '<div class="shape shape-2"></div>'
-            . '<div class="shape shape-3"></div>'
-            . '<div class="shape shape-4"></div>'
-            . '<div class="shape shape-5"></div>'
-            . '</div>';
+        renderClassicAuthBackground($fallback);
         return;
     }
 
@@ -50,13 +62,7 @@ function renderAuthBackground(PDO $pdo): void {
     }));
     if (!$decos) {
         // Theme resolved but has no artwork - fall back to classic.
-        echo '<div class="login-bg-shapes">'
-            . '<div class="shape shape-1"></div>'
-            . '<div class="shape shape-2"></div>'
-            . '<div class="shape shape-3"></div>'
-            . '<div class="shape shape-4"></div>'
-            . '<div class="shape shape-5"></div>'
-            . '</div>';
+        renderClassicAuthBackground($fallback);
         return;
     }
 

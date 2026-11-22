@@ -5,6 +5,7 @@ require_once __DIR__ . '/api/asset-url.php';
 require_once __DIR__ . '/api/user-manager.php';
 require_once __DIR__ . '/api/security-headers.php';
 require_once __DIR__ . '/api/csrf.php';
+require_once __DIR__ . '/partials/auth-background.php';
 
 // Start session if not already started
 if (session_status() === PHP_SESSION_NONE) {
@@ -120,7 +121,7 @@ foreach ($practices as $practice) {
 
 // Determine environment for visual cues
 $envValue = $appConfig['environment'] ?? 'production';
-$envClass = ($envValue === 'production') ? 'env-prod' : 'env-dev';
+$envClass = ($envValue === 'production' || !empty($_GET['seasonal_preview'])) ? 'env-prod' : 'env-dev';
 $appName = $appConfig['appName'];
 ?>
 <!DOCTYPE html>
@@ -137,15 +138,12 @@ $appName = $appConfig['appName'];
 
     <link rel="stylesheet" href="<?= appAssetUrl('css/app.css') ?>">
     <link rel="stylesheet" href="<?= appAssetUrl('css/practice-setup.css') ?>">
+    <link rel="stylesheet" href="<?= appAssetUrl('css/seasonal.css') ?>">
     <?php require_once __DIR__ . '/api/auth-timeout-script.php'; ?>
 </head>
 <body class="practice-setup-body <?php echo $envClass; ?>">
-    <!-- Animated Background -->
-    <div class="setup-bg" aria-hidden="true">
-        <div class="bg-shape bg-shape-1"></div>
-        <div class="bg-shape bg-shape-2"></div>
-        <div class="bg-shape bg-shape-3"></div>
-    </div>
+    <!-- Animated Background (seasonal theme or classic shapes) -->
+    <?php renderAuthBackground($pdo, 'practice-setup'); ?>
 
     <main class="setup-wrapper">
         <div class="setup-container">

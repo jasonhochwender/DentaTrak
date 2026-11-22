@@ -121,7 +121,8 @@
 
 /* Static decorations when the user prefers reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  .seasonal-deco {
+  .seasonal-deco,
+  .seasonal-deco--fx-lights {
     animation: none;
   }
 }
