@@ -38,6 +38,47 @@
   }
 }
 
+/* Gentle falling drift for small seasonal accents (leaves, snow, confetti) */
+.seasonal-deco--fall {
+  animation-name: seasonal-fall;
+}
+
+@keyframes seasonal-fall {
+  0% {
+    transform: translate(-50%, -50%) translate(0, -45vh) rotate(calc(var(--rot, 6deg) * -0.5));
+  }
+  50% {
+    transform: translate(-50%, -50%) translate(3vw, 0) rotate(calc(var(--rot, 6deg) * 0.5));
+  }
+  100% {
+    transform: translate(-50%, -50%) translate(0, 45vh) rotate(calc(var(--rot, 6deg) * -0.5));
+  }
+}
+
+/* Color-cycling "blinking" effect for light-bulb decorations (e.g. xmas
+   bulb wreaths): hue-rotate sweeps the palette while a brightness pulse
+   reads as twinkling. Combines with the normal float animation. */
+.seasonal-deco--fx-lights {
+  animation:
+    seasonal-float var(--dur, 24s) ease-in-out var(--del, 0s) infinite,
+    seasonal-lightcycle 9s ease-in-out infinite;
+}
+
+@keyframes seasonal-lightcycle {
+  0%, 100% {
+    filter: hue-rotate(0deg) brightness(1);
+  }
+  25% {
+    filter: hue-rotate(90deg) brightness(1.18);
+  }
+  50% {
+    filter: hue-rotate(180deg) brightness(0.95);
+  }
+  75% {
+    filter: hue-rotate(270deg) brightness(1.15);
+  }
+}
+
 /* Keep decorations small on narrow screens and fully clear of the card */
 @media (max-width: 900px) {
   .seasonal-deco {

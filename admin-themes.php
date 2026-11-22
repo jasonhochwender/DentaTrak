@@ -194,6 +194,7 @@ function u($k, $params = []) { return t('admin_themes.' . $k, $params); }
         'deco_on' => u('deco_on'),
         'f_x' => u('f_x'), 'f_y' => u('f_y'), 'f_size' => u('f_size'),
         'f_dur' => u('f_dur'), 'f_del' => u('f_del'), 'f_rot' => u('f_rot'), 'f_op' => u('f_op'),
+        'f_anim' => u('f_anim'), 'anim_float' => u('anim_float'), 'anim_fall' => u('anim_fall'),
     ], JSON_UNESCAPED_UNICODE); ?>;
 
     var state = null;
@@ -324,7 +325,7 @@ function u($k, $params = []) { return t('admin_themes.' . $k, $params); }
         function num(cls, val, min, max, step) {
             return '<input type="number" class="dc-' + cls + '" value="' + val + '" min="' + min + '" max="' + max + '" step="' + step + '">';
         }
-        return '<div class="st-deco-edit" data-asset="' + esc(d.asset) + '">'
+        return '<div class="st-deco-edit" data-asset="' + esc(d.asset) + '" data-fx="' + esc(d.fx || '') + '">'
             + '<div class="st-deco-head">'
             + '<img class="st-thumb" src="' + esc(d.url) + '" alt="">'
             + '<span class="st-deco-name">' + esc(d.asset) + (d.missing ? ' <span class="st-deco-missing">' + esc(STR.missing_art) + '</span>' : '') + '</span>'
@@ -339,6 +340,10 @@ function u($k, $params = []) { return t('admin_themes.' . $k, $params); }
             + '<label>' + esc(STR.f_del) + num('del', d.del, -120, 0, 1) + '</label>'
             + '<label>' + esc(STR.f_rot) + num('rot', d.rot, -60, 60, 1) + '</label>'
             + '<label>' + esc(STR.f_op) + num('op', d.op, 0.05, 1, 0.05) + '</label>'
+            + '<label>' + esc(STR.f_anim) + '<select class="dc-anim">'
+            + '<option value="float"' + ((d.anim || 'float') === 'float' ? ' selected' : '') + '>' + esc(STR.anim_float) + '</option>'
+            + '<option value="fall"' + (d.anim === 'fall' ? ' selected' : '') + '>' + esc(STR.anim_fall) + '</option>'
+            + '</select></label>'
             + '<input type="file" accept=".svg,.png,.webp,image/svg+xml,image/png,image/webp" class="st-file dc-file" data-asset="' + esc(d.asset) + '" style="font-size:.72rem;max-width:200px">'
             + (overridden ? '<button class="st-btn st-reset" data-key="' + esc(key) + '">' + esc(STR.reset_art) + '</button>' : '')
             + '<span class="st-msg" data-for="' + esc(key) + '"></span>'
@@ -447,12 +452,15 @@ function u($k, $params = []) { return t('admin_themes.' . $k, $params); }
         return Array.prototype.map.call(themeEl.querySelectorAll('.st-deco-edit'), function (row) {
             function v(cls) { var el = row.querySelector('.dc-' + cls); return el ? parseFloat(el.value) : 0; }
             var en = row.querySelector('.dc-enabled');
+            var an = row.querySelector('.dc-anim');
             return {
                 asset: row.getAttribute('data-asset'),
                 x: v('x'), y: v('y'), s: Math.round(v('s')),
                 dur: Math.round(v('dur')), del: Math.round(v('del')),
                 rot: v('rot'), op: v('op'),
-                enabled: en ? en.checked : true
+                enabled: en ? en.checked : true,
+                anim: an ? an.value : 'float',
+                fx: row.getAttribute('data-fx') || ''
             };
         });
     }
@@ -482,7 +490,7 @@ function u($k, $params = []) { return t('admin_themes.' . $k, $params); }
             // If the layout matches the built-in defaults, store null so
             // the theme keeps tracking future built-in artwork updates.
             var def = (t.decorations || []).map(function (d) {
-                return { asset: d.asset, x: d.x, y: d.y, s: d.s, dur: d.dur, del: d.del, rot: d.rot, op: d.op, enabled: d.enabled };
+                return { asset: d.asset, x: d.x, y: d.y, s: d.s, dur: d.dur, del: d.del, rot: d.rot, op: d.op, enabled: d.enabled, anim: d.anim || 'float', fx: d.fx || '' };
             });
             var o = {};
             o[t.id] = (!t.has_override && JSON.stringify(def) === JSON.stringify(cur)) ? null : cur;

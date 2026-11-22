@@ -7369,6 +7369,9 @@
     "f_del": "Delay s",
     "f_rot": "Rotate",
     "f_op": "Opacity",
+    "f_anim": "Motion",
+    "anim_float": "Float",
+    "anim_fall": "Fall",
     "themes_sub2": "Each theme is a set of floating decorations. Adjust position, size, and animation per decoration, upload your own artwork, or create a custom theme. Uploads accept SVG, PNG, or WebP up to 512KB."
   },
   "admin_ann": {

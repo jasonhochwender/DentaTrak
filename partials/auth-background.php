@@ -68,7 +68,9 @@ function renderAuthBackground(PDO $pdo): void {
             (float)$d['x'], (float)$d['y'], (int)$d['s'],
             (int)$d['dur'], (int)$d['del'], (float)$d['rot'], (float)$d['op']
         );
-        echo '<img class="seasonal-deco" src="' . htmlspecialchars($src, ENT_QUOTES)
+        $anim = (($d['anim'] ?? 'float') === 'fall') ? ' seasonal-deco--fall' : '';
+        $fx = (($d['fx'] ?? '') === 'lights') ? ' seasonal-deco--fx-lights' : '';
+        echo '<img class="seasonal-deco' . $anim . $fx . '" src="' . htmlspecialchars($src, ENT_QUOTES)
             . '" alt="" loading="lazy" draggable="false" style="' . $style . '">';
     }
     echo '</div>';

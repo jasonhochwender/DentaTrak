@@ -84,6 +84,8 @@ if ($method === 'GET' && $action === 'state') {
                 'del' => (int)($d['del'] ?? 0), 'rot' => (float)($d['rot'] ?? 0),
                 'op' => (float)($d['op'] ?? 0.75),
                 'enabled' => array_key_exists('enabled', $d) ? !empty($d['enabled']) : true,
+                'anim' => ($d['anim'] ?? 'float') === 'fall' ? 'fall' : 'float',
+                'fx' => ($d['fx'] ?? '') === 'lights' ? 'lights' : '',
             ];
         }
         $themesDetail[] = [
