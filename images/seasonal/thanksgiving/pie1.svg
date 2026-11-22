@@ -1,51 +1,60 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 200">
-  <!-- large pumpkin pie, left -->
+  <defs>
+    <clipPath id="pieClip">
+      <path d="M 36 150 C 38 106, 126 106, 128 150 Z"/>
+    </clipPath>
+  </defs>
+  <!-- ================= WHOLE PIE (lattice top) ================= -->
   <g>
-    <!-- plate -->
-    <ellipse cx="92" cy="162" rx="80" ry="13" fill="#d6d3d1"/>
-    <ellipse cx="92" cy="160" rx="64" ry="9" fill="#a8a29e"/>
-    <!-- filling band peeking below the crust -->
-    <ellipse cx="92" cy="150" rx="52" ry="9" fill="#f97316"/>
-    <!-- golden crust dome -->
-    <path d="M42 154 C 44 110, 140 110, 142 154 C 118 164, 66 164, 42 154 Z" fill="#d97706"/>
-    <!-- crimped scalloped edge -->
+    <!-- subtle warm plate -->
+    <ellipse cx="82" cy="163" rx="72" ry="11" fill="#f5f5f4"/>
+    <!-- pie tin rim peeking below the crust -->
+    <ellipse cx="82" cy="151" rx="58" ry="9" fill="#d9c29a"/>
+    <!-- thick orange filling dome -->
+    <path id="pieDome" d="M 36 150 C 38 106, 126 106, 128 150 Z" fill="#f97316"/>
+    <!-- subtle dimensional shading on the filling -->
+    <ellipse cx="82" cy="142" rx="30" ry="9" fill="#ea580c" opacity="0.35"/>
+    <!-- golden lattice strips over the filling -->
+    <g clip-path="url(#pieClip)" stroke="#d97706" stroke-width="10" stroke-linecap="round" fill="none">
+      <path d="M 20 172 L 152 88"/>
+      <path d="M 46 178 L 168 96"/>
+      <path d="M 72 182 L 182 108"/>
+      <path d="M 20 88 L 152 172"/>
+      <path d="M 46 96 L 168 180"/>
+      <path d="M 72 108 L 182 186"/>
+    </g>
+    <!-- crimped crust edge along the bottom rim -->
     <g fill="#d97706">
-      <circle cx="56" cy="156" r="6.5"/><circle cx="72" cy="159" r="6.5"/>
-      <circle cx="90" cy="160" r="6.5"/><circle cx="108" cy="160" r="6.5"/>
-      <circle cx="126" cy="159" r="6.5"/><circle cx="140" cy="156" r="6.5"/>
+      <circle cx="46" cy="149" r="6"/><circle cx="60" cy="151" r="6"/>
+      <circle cx="74" cy="152" r="6"/><circle cx="88" cy="152" r="6"/>
+      <circle cx="102" cy="151" r="6"/><circle cx="116" cy="149" r="6"/>
     </g>
-    <!-- whipped cream dollops -->
+    <!-- single whipped cream dollop: stacked swirl -->
     <g fill="#fff7ed">
-      <circle cx="92" cy="122" r="11"/>
-      <circle cx="74" cy="132" r="8.5"/>
-      <circle cx="110" cy="132" r="8.5"/>
+      <circle cx="82" cy="116" r="10"/>
+      <circle cx="76" cy="126" r="8"/>
+      <circle cx="88" cy="126" r="8"/>
+      <circle cx="82" cy="133" r="7"/>
+      <circle cx="82" cy="108" r="5"/>
     </g>
-    <path d="M86 116 q 6 -6 12 0" stroke="#fed7aa" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M77 104 q 5 -5 10 0" stroke="#fed7aa" stroke-width="3" fill="none" stroke-linecap="round"/>
   </g>
-  <!-- smaller pie, right -->
+  <!-- ================= PIE SLICE ================= -->
   <g>
-    <ellipse cx="188" cy="150" rx="52" ry="10" fill="#d6d3d1"/>
-    <ellipse cx="188" cy="148" rx="40" ry="7" fill="#a8a29e"/>
-    <ellipse cx="188" cy="140" rx="34" ry="7" fill="#f97316"/>
-    <path d="M162 142 C 164 110, 212 110, 214 142 C 196 149, 178 149, 162 142 Z" fill="#d97706"/>
-    <g fill="#d97706">
-      <circle cx="172" cy="144" r="5"/><circle cx="188" cy="145" r="5"/><circle cx="204" cy="144" r="5"/>
-    </g>
-    <g fill="#fff7ed">
-      <circle cx="188" cy="118" r="8"/>
-      <circle cx="176" cy="125" r="6"/>
-      <circle cx="200" cy="125" r="6"/>
-    </g>
-  </g>
-  <!-- mini pumpkin accent, bottom left -->
-  <g>
-    <ellipse cx="34" cy="140" rx="20" ry="15" fill="#fb923c"/>
-    <g stroke="#ea580c" stroke-width="2" fill="none" opacity="0.55" stroke-linecap="round">
-      <path d="M28 128 q -4 12 0 24 M34 126 q 0 14 0 28 M40 128 q 4 12 0 24"/>
-    </g>
-    <path d="M34 112 q -1 -6 4 -8 q 5 -2 5 3 Z" fill="#92400e"/>
+    <!-- subtle plate -->
+    <ellipse cx="190" cy="162" rx="50" ry="9" fill="#f5f5f4"/>
+    <!-- crust: larger golden triangle behind the filling -->
+    <path d="M 190 88 L 146 150 L 234 150 Z" fill="#d97706"/>
+    <!-- filling: inset orange triangle, slightly lighter top face -->
+    <path d="M 190 96 L 154 146 L 226 146 Z" fill="#f97316"/>
+    <path d="M 190 96 L 172 122 L 208 122 Z" fill="#fdba74" opacity="0.85"/>
+    <!-- crust edge definition -->
+    <path d="M 190 96 L 154 146 M 190 96 L 226 146" stroke="#92400e" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <!-- tiny cream dollop on the apex -->
+    <circle cx="190" cy="88" r="7" fill="#fff7ed"/>
+    <circle cx="190" cy="81" r="4.5" fill="#fff7ed"/>
   </g>
   <!-- leaf accents -->
-  <path d="M150 92 q 12 -8 18 2 q -11 10 -18 -2 Z" fill="#16a34a"/>
-  <path d="M60 96 q -12 -7 -17 1 q 11 9 17 -1 Z" fill="#65a30d"/>
+  <path d="M 152 66 q 12 -8 18 2 q -11 10 -18 -2 Z" fill="#16a34a"/>
+  <path d="M 60 88 q -12 -7 -17 1 q 11 9 17 -1 Z" fill="#65a30d"/>
 </svg>
