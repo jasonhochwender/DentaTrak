@@ -52,7 +52,9 @@ function setSecurityHeaders() {
         // form into a same-origin iframe (api/download-case-attachments-zip.php).
         // Pages still send X-Frame-Options: DENY, so 'self' here does not make
         // app pages framable; the ZIP endpoint opts in with SAMEORIGIN.
-        "frame-src 'self' https://*.google.com",
+        // youtube-nocookie.com is not a google.com subdomain, so the landing
+        // page overview-video iframe needs both origins listed explicitly.
+        "frame-src 'self' https://*.google.com https://www.youtube-nocookie.com https://www.youtube.com",
         "object-src 'none'",
         "base-uri 'self'",
         "form-action 'self' https://accounts.google.com",
