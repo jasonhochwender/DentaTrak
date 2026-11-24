@@ -6364,6 +6364,14 @@
             "start_free": "DentaTrak 무료 체험",
             "see_how": "작동 방식 보기"
         },
+        "video": {
+            "heading": "DentaTrak 작동 방식 보기",
+            "description": "DentaTrak이 치과와 기공소가 연결하고, 케이스를 추적하고, 협업하며, 효율 개선 기회를 찾도록 어떻게 지원하는지 알아보세요.",
+            "play_aria": "DentaTrak 소개 영상 재생",
+            "iframe_title": "DentaTrak 소개 영상",
+            "youtube_link": "YouTube에서 보기",
+            "cta": "DentaTrak 무료 체험"
+        },
         "problem": {
             "eyebrow": "문제",
             "title": "케이스 정보가 여기저기 흩어집니다.",
@@ -6628,6 +6636,10 @@
             "tool_checklist_title": "치과 케이스 추적 체크리스트",
             "tool_checklist_desc": "모든 다단계 치과 케이스에 상태, 담당자, 다음 단계, 납기일, 환자 예약 정보가 있는지 확인하는 인쇄 가능한 체크리스트입니다.",
             "tool_checklist_cta": "체크리스트 보기",
+            "video_type": "동영상",
+            "video_title": "DentaTrak 소개",
+            "video_desc": "DentaTrak 소개를 통해 치과와 기공소가 어떻게 연결하고 케이스를 추적하며 효율을 높이는지 확인하세요.",
+            "video_cta": "YouTube에서 보기",
             "tool_checklist_type": "도구",
             "featured_heading": "추천 리소스",
             "featured_desc": "시작하기에 가장 유용한 가이드 몇 가지입니다.",

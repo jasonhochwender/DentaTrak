@@ -6364,6 +6364,14 @@
             "start_free": "Essayez DentaTrak gratuitement",
             "see_how": "Voir le fonctionnement"
         },
+        "video": {
+            "heading": "Découvrez comment fonctionne DentaTrak",
+            "description": "Découvrez comment DentaTrak aide les cabinets dentaires et les laboratoires à se connecter, à suivre les cas, à collaborer et à identifier des occasions d’améliorer l’efficacité.",
+            "play_aria": "Lire la vidéo de présentation de DentaTrak",
+            "iframe_title": "Vidéo de présentation de DentaTrak",
+            "youtube_link": "Regarder sur YouTube",
+            "cta": "Essayez DentaTrak gratuitement"
+        },
         "problem": {
             "eyebrow": "Le problème",
             "title": "Les informations de vos cas se dispersent.",
@@ -6628,6 +6636,10 @@
             "tool_checklist_title": "Liste de contrôle du suivi des cas dentaires",
             "tool_checklist_desc": "Une liste de contrôle imprimable pour vous assurer que chaque cas dentaire multi-étapes dispose du statut, du responsable, de la prochaine étape, de l'échéance et des informations de rendez-vous du patient nécessaires.",
             "tool_checklist_cta": "Voir la liste de contrôle",
+            "video_type": "Vidéo",
+            "video_title": "Présentation de DentaTrak",
+            "video_desc": "Regardez la présentation de DentaTrak pour découvrir comment les cabinets et les laboratoires se connectent, suivent les cas et améliorent leur efficacité.",
+            "video_cta": "Regarder sur YouTube",
             "tool_checklist_type": "Outil",
             "featured_heading": "Ressources en vedette",
             "featured_desc": "Quelques-uns des guides les plus utiles pour commencer.",

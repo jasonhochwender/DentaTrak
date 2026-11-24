@@ -1649,6 +1649,28 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       .cmp-check svg { width: 26px; height: 26px; }
     }
     @media (prefers-reduced-motion: reduce) { .cmp-ck-path { stroke-dashoffset: 0 !important; animation: none !important; } }
+
+    /* Overview video */
+    .video-section { background: #fff; text-align: center; }
+    .video-section .lead { margin-left: auto; margin-right: auto; }
+    .video-wrap { max-width: 900px; margin: 44px auto 0; }
+    .video-frame { position: relative; width: 100%; aspect-ratio: 16 / 9; border-radius: 18px; overflow: hidden; background: #0f172a; border: 1px solid var(--dt-border); box-shadow: var(--dt-shadow); }
+    .video-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; }
+    .video-poster { position: absolute; inset: 0; width: 100%; height: 100%; padding: 0; border: 0; background: #0f172a; cursor: pointer; display: block; }
+    .video-poster img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.92; }
+    .video-play { position: absolute; inset: 0; margin: auto; width: 76px; height: 76px; border-radius: 50%; background: rgba(30,64,175,0.92); display: grid; place-items: center; box-shadow: 0 12px 32px rgba(0,0,0,0.35); transition: transform 0.18s ease, background 0.2s ease; }
+    .video-poster:hover .video-play, .video-poster:focus-visible .video-play { transform: scale(1.06); background: var(--dt-blue-light); }
+    .video-poster:focus-visible { outline: 3px solid var(--dt-blue-light); outline-offset: -3px; }
+    .video-play svg { width: 30px; height: 30px; fill: #fff; margin-left: 4px; }
+    .video-fallback { margin-top: 14px; font-size: 0.85rem; color: var(--dt-ink-muted); }
+    .video-fallback a { color: var(--dt-blue); font-weight: 600; text-decoration: underline; }
+    .video-fallback a:hover { color: var(--dt-blue-light); }
+    .video-fallback a:focus-visible { outline: 2px solid var(--dt-blue-light); outline-offset: 2px; border-radius: 4px; }
+    .video-cta { margin-top: 30px; }
+    @media (max-width: 720px) {
+      .video-play { width: 60px; height: 60px; }
+      .video-play svg { width: 24px; height: 24px; }
+    }
   </style>
 </head>
 <body>
@@ -2041,6 +2063,27 @@ foreach (['operate', 'control', 'scale'] as $plan) {
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section video-section" aria-labelledby="video-heading">
+    <div class="container">
+      <h2 id="video-heading" data-reveal><?php echo t('marketing.video.heading'); ?></h2>
+      <p class="lead" data-reveal data-reveal-delay="75"><?php echo t('marketing.video.description'); ?></p>
+
+      <div class="video-wrap" data-reveal data-reveal-delay="150">
+        <div class="video-frame" id="videoFrame">
+          <button type="button" class="video-poster" id="videoPoster" aria-label="<?php echo htmlspecialchars(t('marketing.video.play_aria')); ?>">
+            <img id="videoPosterImg" src="https://i.ytimg.com/vi/i_o2POqMX3U/maxresdefault.jpg" alt="" loading="lazy" decoding="async">
+            <span class="video-play" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+          </button>
+        </div>
+        <p class="video-fallback"><a href="https://www.youtube.com/watch?v=i_o2POqMX3U" target="_blank" rel="noopener"><?php echo t('marketing.video.youtube_link'); ?></a></p>
+      </div>
+
+      <div class="video-cta" data-reveal data-reveal-delay="200">
+        <a href="<?= $baseUrl ?>login.php" class="btn btn-primary"><?php echo t('marketing.video.cta'); ?></a>
       </div>
     </div>
   </section>
@@ -4126,6 +4169,33 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     });
     if (reduced) { renderStatic(0); }
     sync();
+  })();
+  </script>
+  <script>
+  // Overview video: the YouTube iframe (privacy-enhanced host) is only
+  // inserted after the visitor activates the poster - nothing loads upfront.
+  (function () {
+    var poster = document.getElementById('videoPoster');
+    var frame = document.getElementById('videoFrame');
+    if (!poster || !frame) return;
+    var thumb = document.getElementById('videoPosterImg');
+    if (thumb) {
+      thumb.addEventListener('error', function () {
+        if (thumb.dataset.fb === '1') { thumb.src = 'https://i.ytimg.com/vi/i_o2POqMX3U/hqdefault.jpg'; thumb.dataset.fb = '2'; }
+        else if (thumb.dataset.fb === '2') { thumb.onerror = null; }
+        else { thumb.dataset.fb = '1'; thumb.src = 'https://i.ytimg.com/vi/i_o2POqMX3U/sddefault.jpg'; }
+      });
+    }
+    poster.addEventListener('click', function () {
+      var iframe = document.createElement('iframe');
+      iframe.src = 'https://www.youtube-nocookie.com/embed/i_o2POqMX3U?autoplay=1&rel=0';
+      iframe.title = <?php echo json_encode(t('marketing.video.iframe_title')); ?>;
+      iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
+      iframe.allowFullscreen = true;
+      iframe.referrerPolicy = 'strict-origin-when-cross-origin';
+      frame.textContent = '';
+      frame.appendChild(iframe);
+    });
   })();
   </script>
 </body>

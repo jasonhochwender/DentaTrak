@@ -4498,6 +4498,14 @@
             "start_free": "Testen Sie DentaTrak kostenlos",
             "see_how": "So funktioniert's"
         },
+        "video": {
+            "heading": "Sehen Sie, wie DentaTrak funktioniert",
+            "description": "Erfahren Sie, wie DentaTrak Zahnärztpraxen und Dentallaboren hilft, sich zu verbinden, Fälle zu verfolgen, zusammenzuarbeiten und Effizienzsteigerungen zu erkennen.",
+            "play_aria": "DentaTrak-Übersichtsvideo abspielen",
+            "iframe_title": "DentaTrak-Übersichtsvideo",
+            "youtube_link": "Auf YouTube ansehen",
+            "cta": "Testen Sie DentaTrak kostenlos"
+        },
         "problem": {
             "eyebrow": "Das Problem",
             "title": "Ihre Fallinformationen geraten durcheinander.",
@@ -4769,6 +4777,10 @@
             "tool_checklist_title": "Checkliste zur Fallverfolgung in der Zahnmedizin",
             "tool_checklist_desc": "Eine druckbare Checkliste, um sicherzustellen, dass jeder mehrstufige dentale Fall den Status, Verantwortlichen, nächsten Schritt, das Fälligkeitsdatum und die Patiententermin-Informationen enthält, die er braucht.",
             "tool_checklist_cta": "Checkliste ansehen",
+            "video_type": "Video",
+            "video_title": "DentaTrak im Überblick",
+            "video_desc": "Sehen Sie sich die DentaTrak-Übersicht an, um zu erfahren, wie Praxen und Labore sich verbinden, Fälle verfolgen und die Effizienz steigern.",
+            "video_cta": "Auf YouTube ansehen",
             "tool_checklist_type": "Werkzeug",
             "featured_heading": "Empfohlene Ressourcen",
             "featured_desc": "Einige der nützlichsten Leitfäden für den Einstieg.",

@@ -6364,6 +6364,14 @@
             "start_free": "Prova DentaTrak gratis",
             "see_how": "Scopri come funziona"
         },
+        "video": {
+            "heading": "Scopri come funziona DentaTrak",
+            "description": "Scopri come DentaTrak aiuta studi dentistici e laboratori a connettersi, monitorare i casi, collaborare e individuare opportunità per migliorare l’efficienza.",
+            "play_aria": "Riproduci il video di panoramica di DentaTrak",
+            "iframe_title": "Video di panoramica di DentaTrak",
+            "youtube_link": "Guarda su YouTube",
+            "cta": "Prova DentaTrak gratis"
+        },
         "problem": {
             "eyebrow": "Il problema",
             "title": "Le informazioni dei tuoi casi si disperdono.",
@@ -6628,6 +6636,10 @@
             "tool_checklist_title": "Checklist per il tracciamento dei casi dentali",
             "tool_checklist_desc": "Una checklist stampabile per assicurarsi che ogni caso dentale multi-fase abbia stato, responsabile, passaggio successivo, data di consegna e informazioni sull'appuntamento del paziente di cui ha bisogno.",
             "tool_checklist_cta": "Vedi la checklist",
+            "video_type": "Video",
+            "video_title": "Panoramica di DentaTrak",
+            "video_desc": "Guarda la panoramica di DentaTrak per scoprire come studi e laboratori si connettono, monitorano i casi e migliorano l’efficienza.",
+            "video_cta": "Guarda su YouTube",
             "tool_checklist_type": "Strumento",
             "featured_heading": "Risorse in evidenza",
             "featured_desc": "Alcune delle guide più utili da cui iniziare.",

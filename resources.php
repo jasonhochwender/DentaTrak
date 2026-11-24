@@ -52,6 +52,7 @@ $scorecardUrl = $baseUrl . 'resource-assets/DentaTrak_Dental_Lab_Performance_Sco
     .tool-card__icon { width: 40px; height: 40px; margin-bottom: 12px; }
     .tool-card--download .tool-card__icon { color: var(--primary-color); }
     .tool-card--calculator .tool-card__icon { color: #0f766e; }
+    .tool-card--video .tool-card__icon { color: #dc2626; }
     .tool-card h3 { margin: 0 0 8px; font-size: 1.15rem; color: var(--text-primary); }
     .tool-card p { color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6; margin: 0 0 16px; }
     .tool-cta { margin-top: auto; display: inline-flex; align-items: center; gap: 6px; font-size: 0.95rem; font-weight: 600; color: var(--primary-color); text-decoration: none; }
@@ -72,6 +73,7 @@ $scorecardUrl = $baseUrl . 'resource-assets/DentaTrak_Dental_Lab_Performance_Sco
     .resource-type--guide { color: #4f46e5; background: #eef2ff; }
     .resource-type--comparison { color: #7c3aed; background: #f3e8ff; }
     .resource-type--security { color: #0d5c63; background: #e6fffa; }
+    .resource-type--video { color: #dc2626; background: #fef2f2; }
 
     /* Featured Resources */
     .featured-section { margin-bottom: 56px; }
@@ -199,6 +201,16 @@ $scorecardUrl = $baseUrl . 'resource-assets/DentaTrak_Dental_Lab_Performance_Sco
           <h3><?php echo t('marketing.resources.tool_checklist_title'); ?></h3>
           <p><?php echo t('marketing.resources.tool_checklist_desc'); ?></p>
           <span class="tool-cta"><?php echo t('marketing.resources.tool_checklist_cta'); ?></span>
+        </a>
+        <a class="tool-card tool-card--video" href="https://www.youtube.com/watch?v=i_o2POqMX3U" target="_blank" rel="noopener">
+          <span class="resource-type resource-type--video"><?php echo t('marketing.resources.video_type'); ?></span>
+          <svg class="tool-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="5" width="18" height="14" rx="3"></rect>
+            <path d="M10 9.5v5l4.5-2.5z" fill="currentColor" stroke="none"></path>
+          </svg>
+          <h3><?php echo t('marketing.resources.video_title'); ?></h3>
+          <p><?php echo t('marketing.resources.video_desc'); ?></p>
+          <span class="tool-cta"><?php echo t('marketing.resources.video_cta'); ?></span>
         </a>
       </div>
       <div class="tool-privacy-callout">

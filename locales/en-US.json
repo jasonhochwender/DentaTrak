@@ -6366,6 +6366,14 @@
       "start_free": "Try DentaTrak Free",
       "see_how": "See How It Works"
     },
+    "video": {
+      "heading": "See How DentaTrak Works",
+      "description": "Discover how DentaTrak helps dental practices and laboratories connect, track cases, collaborate, and identify opportunities to improve efficiency.",
+      "play_aria": "Play the DentaTrak overview video",
+      "iframe_title": "DentaTrak overview video",
+      "youtube_link": "Watch on YouTube",
+      "cta": "Try DentaTrak Free"
+    },
     "problem": {
       "eyebrow": "The Problem",
       "title": "Your case information gets scattered.",
@@ -6668,6 +6676,10 @@
       "tool_checklist_title": "Dental Case Tracking Checklist",
       "tool_checklist_desc": "A printable checklist to make sure every multi-step dental case has the status, owner, next step, due date, and patient appointment information it needs.",
       "tool_checklist_cta": "View checklist",
+      "video_type": "Video",
+      "video_title": "DentaTrak Overview",
+      "video_desc": "Watch the DentaTrak overview to see how practices and labs connect, track cases, and improve efficiency.",
+      "video_cta": "Watch on YouTube",
       "tool_checklist_type": "Tool",
       "featured_heading": "Featured Resources",
       "featured_desc": "A few of the most useful guides to start with.",

@@ -2000,6 +2000,14 @@
             "start_free": "Experimente o DentaTrak grátis",
             "see_how": "Veja como funciona"
         },
+        "video": {
+            "heading": "Veja como o DentaTrak funciona",
+            "description": "Descubra como o DentaTrak ajuda clínicas odontológicas e laboratórios a se conectar, acompanhar casos, colaborar e identificar oportunidades de melhorar a eficiência.",
+            "play_aria": "Reproduzir o vídeo de visão geral do DentaTrak",
+            "iframe_title": "Vídeo de visão geral do DentaTrak",
+            "youtube_link": "Assistir no YouTube",
+            "cta": "Experimente o DentaTrak grátis"
+        },
         "insights_section": {
             "eyebrow": "Practice e Lab Insights",
             "title": "Visão da clínica e dos laboratórios",
@@ -2192,6 +2200,10 @@
             "tool_checklist_title": "Lista de verificação de rastreamento de casos odontológicos",
             "tool_checklist_desc": "Uma lista de verificação imprimível para garantir que cada caso odontológico de várias etapas tenha o status, o responsável, a próxima etapa, o prazo de entrega e as informações da consulta do paciente de que precisa.",
             "tool_checklist_cta": "Ver lista de verificação",
+            "video_type": "Vídeo",
+            "video_title": "Visão geral do DentaTrak",
+            "video_desc": "Assista à visão geral do DentaTrak para ver como clínicas e laboratórios se conectam, acompanham casos e melhoram a eficiência.",
+            "video_cta": "Assistir no YouTube",
             "tool_checklist_type": "Ferramenta",
             "featured_heading": "Recursos em destaque",
             "featured_desc": "Alguns dos guias mais úteis para começar.",
