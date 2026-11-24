@@ -2668,70 +2668,6 @@ foreach (['operate', 'control', 'scale'] as $plan) {
   </section>
   <?php endif; ?>
 
-  <section class="section langs">
-    <div class="container" data-reveal>
-      <span class="eyebrow"><?php echo t('marketing.languages.eyebrow'); ?></span>
-      <h2><?php echo t('marketing.languages.title'); ?></h2>
-      <p class="lead"><?php echo t('marketing.languages.lead'); ?></p>
-      <div class="lang-grid">
-        <span class="lang-chip"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 640 480"><rect width="640" height="480" fill="#fff"/><?php
-          for ($i = 0; $i < 13; $i++) { printf('<rect y="%.2f" width="640" height="37.5" fill="%s"/>', $i * 480 / 13, $i % 2 ? '#fff' : '#B22234'); }
-          echo '<rect width="255" height="259" fill="#3C3B6E"/>';
-          for ($row = 0; $row < 9; $row++) {
-              $count = $row % 2 ? 5 : 6;
-              $y = 22 + $row * 26.5;
-              $xStart = $row % 2 ? 36 : 20;
-              for ($col = 0; $col < $count; $col++) {
-                  $cx = $xStart + $col * 38; $cy = $y; $pts = [];
-                  for ($k = 0; $k < 10; $k++) {
-                      $a = -M_PI / 2 + $k * M_PI / 5;
-                      $r = $k % 2 ? 2.6 : 6.2;
-                      $pts[] = round($cx + $r * cos($a), 1) . ',' . round($cy + $r * sin($a), 1);
-                  }
-                  echo '<polygon points="' . implode(' ', $pts) . '" fill="#fff"/>';
-              }
-          }
-        ?></svg></span>English</span>
-        <span class="lang-chip"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 640 480"><rect width="640" height="160" fill="#000"/><rect y="160" width="640" height="160" fill="#DD0000"/><rect y="320" width="640" height="160" fill="#FFCE00"/></svg></span>Deutsch</span>
-        <span class="lang-chip"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 640 480"><rect width="640" height="160" fill="#AA151B"/><rect y="160" width="640" height="160" fill="#F1BF00"/><rect y="320" width="640" height="160" fill="#AA151B"/></svg></span>Espa&ntilde;ol</span>
-        <span class="lang-chip"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 640 480"><rect width="640" height="480" fill="#0055A4"/><rect x="200" y="120" width="240" height="240" fill="#fff"/><rect x="240" y="160" width="160" height="160" fill="#EF4135"/></svg></span>Fran&ccedil;ais</span>
-        <span class="lang-chip"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 640 480"><rect width="640" height="160" fill="#D80621"/><rect y="160" width="640" height="160" fill="#fff"/><rect y="320" width="640" height="160" fill="#003DA5"/><path d="M320 60l17 52h55l-44 32 17 52-45-33-45 33 17-52-44-32h55z" fill="#FFD700"/></svg></span>Fran&ccedil;ais (Canada)</span>
-        <span class="lang-chip"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 640 480"><rect width="640" height="160" fill="#009246"/><rect y="160" width="640" height="160" fill="#fff"/><rect y="320" width="640" height="160" fill="#CE2B37"/></svg></span>Italiano</span>
-        <span class="lang-chip"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 640 480"><rect width="640" height="480" fill="#009C3B"/><path d="M320 120l40 90 98 8-75 60 26 96-89-55-89 55 26-96-75-60 98-8z" fill="#FFDF00"/><circle cx="320" cy="240" r="80" fill="#002776"/></svg></span>Portugu&ecirc;s (Brasil)</span>
-        <span class="lang-chip"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 640 480"><rect width="640" height="320" fill="#fff"/><rect y="320" width="640" height="160" fill="#0039A6"/></svg></span>&#1056;&#1091;&#1089;&#1089;&#1082;&#1080;&#1081;</span>
-        <span class="lang-chip"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 640 480"><rect width="640" height="320" fill="#fff"/><rect y="320" width="640" height="80" fill="#CD2E3A"/><rect y="400" width="640" height="80" fill="#0047A0"/><g fill="#111"><circle cx="120" cy="120" r="28"/><circle cx="200" cy="80" r="28"/><circle cx="280" cy="60" r="28"/><circle cx="360" cy="60" r="28"/><circle cx="440" cy="80" r="28"/><circle cx="520" cy="120" r="28"/></g></svg></span>&#54620;&#44397;&#50612;</span>
-      </div>
-    </div>
-  </section>
-
-  <section id="already-tracking" class="section compare">
-    <div class="container">
-      <h2 data-reveal><?php echo t('marketing.compare.title'); ?></h2>
-      <p class="lead" data-reveal><?php echo t('marketing.compare.lead'); ?></p>
-      <div class="cmp-panel" role="table" aria-label="<?php echo htmlspecialchars(t('marketing.compare.panel_aria')); ?>">
-        <div class="cmp-head" role="row">
-          <div class="cmp-h-q" role="columnheader"><?php echo t('marketing.compare.col_q'); ?></div>
-          <div class="cmp-h-a" role="columnheader"><?php echo t('marketing.compare.col_a'); ?></div>
-        </div>
-        <?php for ($i = 1; $i <= 6; $i++) : ?>
-        <div class="cmp-row" role="row" data-reveal data-reveal-stagger="<?php echo $i; ?>" data-reveal-delay="140">
-          <div class="cmp-q" role="cell">
-            <span class="cmp-q-text"><?php echo t('marketing.compare.r' . $i . 'q'); ?></span>
-            <span class="cmp-q-sub"><?php echo t('marketing.compare.r' . $i . 's'); ?></span>
-          </div>
-          <div class="cmp-a" role="cell">
-            <span class="cmp-check" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none"><circle class="cmp-ck-circle" cx="12" cy="12" r="11"/><path class="cmp-ck-path" d="M7 12.5l3.2 3.2L17 8.5"/></svg>
-            </span>
-            <span class="cmp-sr"><?php echo t('marketing.compare.sr_yes'); ?></span>
-          </div>
-        </div>
-        <?php endfor; ?>
-        <div class="cmp-note"><?php echo t('marketing.compare.note'); ?></div>
-      </div>
-    </div>
-  </section>
-
   <section class="section founder">
     <div class="container">
       <div class="founder-grid">
@@ -3001,6 +2937,42 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     </div>
   </section>
 
+  <section class="section langs">
+    <div class="container" data-reveal>
+      <span class="eyebrow"><?php echo t('marketing.languages.eyebrow'); ?></span>
+      <h2><?php echo t('marketing.languages.title'); ?></h2>
+      <p class="lead"><?php echo t('marketing.languages.lead'); ?></p>
+      <div class="lang-grid">
+        <span class="lang-chip"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 640 480"><rect width="640" height="480" fill="#fff"/><?php
+          for ($i = 0; $i < 13; $i++) { printf('<rect y="%.2f" width="640" height="37.5" fill="%s"/>', $i * 480 / 13, $i % 2 ? '#fff' : '#B22234'); }
+          echo '<rect width="255" height="259" fill="#3C3B6E"/>';
+          for ($row = 0; $row < 9; $row++) {
+              $count = $row % 2 ? 5 : 6;
+              $y = 22 + $row * 26.5;
+              $xStart = $row % 2 ? 36 : 20;
+              for ($col = 0; $col < $count; $col++) {
+                  $cx = $xStart + $col * 38; $cy = $y; $pts = [];
+                  for ($k = 0; $k < 10; $k++) {
+                      $a = -M_PI / 2 + $k * M_PI / 5;
+                      $r = $k % 2 ? 2.6 : 6.2;
+                      $pts[] = round($cx + $r * cos($a), 1) . ',' . round($cy + $r * sin($a), 1);
+                  }
+                  echo '<polygon points="' . implode(' ', $pts) . '" fill="#fff"/>';
+              }
+          }
+        ?></svg></span>English</span>
+        <span class="lang-chip"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 640 480"><rect width="640" height="160" fill="#000"/><rect y="160" width="640" height="160" fill="#DD0000"/><rect y="320" width="640" height="160" fill="#FFCE00"/></svg></span>Deutsch</span>
+        <span class="lang-chip"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 640 480"><rect width="640" height="160" fill="#AA151B"/><rect y="160" width="640" height="160" fill="#F1BF00"/><rect y="320" width="640" height="160" fill="#AA151B"/></svg></span>Espa&ntilde;ol</span>
+        <span class="lang-chip"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 640 480"><rect width="640" height="480" fill="#0055A4"/><rect x="200" y="120" width="240" height="240" fill="#fff"/><rect x="240" y="160" width="160" height="160" fill="#EF4135"/></svg></span>Fran&ccedil;ais</span>
+        <span class="lang-chip"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 640 480"><rect width="640" height="160" fill="#D80621"/><rect y="160" width="640" height="160" fill="#fff"/><rect y="320" width="640" height="160" fill="#003DA5"/><path d="M320 60l17 52h55l-44 32 17 52-45-33-45 33 17-52-44-32h55z" fill="#FFD700"/></svg></span>Fran&ccedil;ais (Canada)</span>
+        <span class="lang-chip"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 640 480"><rect width="640" height="160" fill="#009246"/><rect y="160" width="640" height="160" fill="#fff"/><rect y="320" width="640" height="160" fill="#CE2B37"/></svg></span>Italiano</span>
+        <span class="lang-chip"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 640 480"><rect width="640" height="480" fill="#009C3B"/><path d="M320 120l40 90 98 8-75 60 26 96-89-55-89 55 26-96-75-60 98-8z" fill="#FFDF00"/><circle cx="320" cy="240" r="80" fill="#002776"/></svg></span>Portugu&ecirc;s (Brasil)</span>
+        <span class="lang-chip"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 640 480"><rect width="640" height="320" fill="#fff"/><rect y="320" width="640" height="160" fill="#0039A6"/></svg></span>&#1056;&#1091;&#1089;&#1089;&#1082;&#1080;&#1081;</span>
+        <span class="lang-chip"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 640 480"><rect width="640" height="320" fill="#fff"/><rect y="320" width="640" height="80" fill="#CD2E3A"/><rect y="400" width="640" height="80" fill="#0047A0"/><g fill="#111"><circle cx="120" cy="120" r="28"/><circle cx="200" cy="80" r="28"/><circle cx="280" cy="60" r="28"/><circle cx="360" cy="60" r="28"/><circle cx="440" cy="80" r="28"/><circle cx="520" cy="120" r="28"/></g></svg></span>&#54620;&#44397;&#50612;</span>
+      </div>
+    </div>
+  </section>
+
   <section class="section plan-features">
     <div class="container">
       <?php
@@ -3143,6 +3115,34 @@ foreach (['operate', 'control', 'scale'] as $plan) {
           <div class="plan-extra"><strong><?php echo t('marketing.pricing.scale_addon_title'); ?></strong><br><?php echo t('marketing.pricing.scale_addon_month'); ?><br><?php echo t('marketing.pricing.scale_addon_year'); ?></div>
         </div>
       </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="already-tracking" class="section compare">
+    <div class="container">
+      <h2 data-reveal><?php echo t('marketing.compare.title'); ?></h2>
+      <p class="lead" data-reveal><?php echo t('marketing.compare.lead'); ?></p>
+      <div class="cmp-panel" role="table" aria-label="<?php echo htmlspecialchars(t('marketing.compare.panel_aria')); ?>">
+        <div class="cmp-head" role="row">
+          <div class="cmp-h-q" role="columnheader"><?php echo t('marketing.compare.col_q'); ?></div>
+          <div class="cmp-h-a" role="columnheader"><?php echo t('marketing.compare.col_a'); ?></div>
+        </div>
+        <?php for ($i = 1; $i <= 6; $i++) : ?>
+        <div class="cmp-row" role="row" data-reveal data-reveal-stagger="<?php echo $i; ?>" data-reveal-delay="140">
+          <div class="cmp-q" role="cell">
+            <span class="cmp-q-text"><?php echo t('marketing.compare.r' . $i . 'q'); ?></span>
+            <span class="cmp-q-sub"><?php echo t('marketing.compare.r' . $i . 's'); ?></span>
+          </div>
+          <div class="cmp-a" role="cell">
+            <span class="cmp-check" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none"><circle class="cmp-ck-circle" cx="12" cy="12" r="11"/><path class="cmp-ck-path" d="M7 12.5l3.2 3.2L17 8.5"/></svg>
+            </span>
+            <span class="cmp-sr"><?php echo t('marketing.compare.sr_yes'); ?></span>
+          </div>
+        </div>
+        <?php endfor; ?>
+        <div class="cmp-note"><?php echo t('marketing.compare.note'); ?></div>
       </div>
     </div>
   </section>

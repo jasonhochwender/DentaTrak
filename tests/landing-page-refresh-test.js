@@ -33,6 +33,7 @@ const ok = (name, cond, extra = '') => {
       compare: document.getElementById('already-tracking'),
       planFeatures: document.querySelector('.plan-features'),
       pricing: document.getElementById('pricing'),
+      finalCta: document.querySelector('.final-cta'),
     };
     const pos = {};
     for (const [k, el] of Object.entries(els)) {
@@ -41,10 +42,13 @@ const ok = (name, cond, extra = '') => {
     return pos;
   });
   console.log('section order:', JSON.stringify(orderIdx));
-  ok('insights before integrations', orderIdx.insights > -1 && orderIdx.insights < orderIdx.pms, JSON.stringify(orderIdx));
-  ok('integrations before languages', orderIdx.pms > -1 && orderIdx.pms < orderIdx.langs, JSON.stringify(orderIdx));
-  ok('languages immediately before comparison', orderIdx.langs > -1 && orderIdx.compare === orderIdx.langs + 1, JSON.stringify(orderIdx));
+  // insights/pms sections are flag-gated (LANDING_SHOW_INSIGHTS / _PMS) and
+  // may be absent; only assert their relative order when both render.
+  ok('insights before integrations (when shown)', orderIdx.insights === -1 || orderIdx.pms === -1 || orderIdx.insights < orderIdx.pms, JSON.stringify(orderIdx));
+  ok('integrations before languages (when shown)', orderIdx.pms === -1 || orderIdx.pms < orderIdx.langs, JSON.stringify(orderIdx));
+  ok('languages immediately before plan-features', orderIdx.langs > -1 && orderIdx.planFeatures === orderIdx.langs + 1, JSON.stringify(orderIdx));
   ok('plan-features immediately before pricing', orderIdx.planFeatures > -1 && orderIdx.pricing === orderIdx.planFeatures + 1, JSON.stringify(orderIdx));
+  ok('comparison immediately before final CTA', orderIdx.compare > -1 && orderIdx.finalCta === orderIdx.compare + 1, JSON.stringify(orderIdx));
 
   // --- Product preview interactions (role=tab based) ---
   async function clickTab(text) {
