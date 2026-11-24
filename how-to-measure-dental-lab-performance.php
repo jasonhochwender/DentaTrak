@@ -275,7 +275,7 @@ $scorecardUrl = $baseUrl . 'resource-assets/DentaTrak_Dental_Lab_Performance_Sco
     <div class="cta-section">
       <h2><?php echo t('marketing.articles.lab_performance_metrics.sections.dentatrak.heading'); ?></h2>
       <p><?php echo t('marketing.articles.lab_performance_metrics.cta.body'); ?></p>
-      <a href="<?= $baseUrl ?>#insights" class="btn-white"><?php echo t('marketing.articles.lab_performance_metrics.cta.button'); ?></a>
+      <a href="<?= $baseUrl ?>#how-it-works" class="btn-white"><?php echo t('marketing.articles.lab_performance_metrics.cta.button'); ?></a>
     </div>
   </main>
 

@@ -106,6 +106,25 @@ $FEATURE_DEFAULTS = [
                                        // designated staging test practices
                                        // can ever connect. Staging-only
                                        // until live OAuth is verified.
+
+    // ---- Public landing-page section visibility (index.php only) ----
+    // These gate PRESENTATION of marketing sections. All markup, styles,
+    // and JS remain in the codebase; set the env var to true to restore a
+    // section without code changes. They never affect the authenticated app.
+    'LANDING_SHOW_WALKTHROUGH' => false,   // 7-step interactive "How DentaTrak
+                                           // Works" walkthrough (currently
+                                           // replaced by the overview video)
+    'LANDING_SHOW_ATTENTION' => false,     // "Keep every case on track"
+                                           // status-indicator board
+    'LANDING_SHOW_COLLABORATION' => false, // Practice & lab collaboration
+    'LANDING_SHOW_INSIGHTS' => false,      // Practice & Lab Insights
+                                           // marketing section (the hero
+                                           // case-board Insights demo is
+                                           // unaffected)
+    'LANDING_SHOW_ASK' => false,           // In-Product Assistant
+                                           // (Ask DentaTrak) section
+    'LANDING_SHOW_PMS' => false,           // Integrations (PMS/scanner)
+                                           // section
 ];
 
 /**

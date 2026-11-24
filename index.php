@@ -5,6 +5,13 @@ require_once __DIR__ . '/api/feature-flags.php';
 require_once __DIR__ . '/api/security-headers.php';
 setSecurityHeaders();
 $showLabInsights = isFeatureEnabled('SHOW_LAB_INSIGHTS');
+// Public landing-page section visibility (env-overridable; see feature-flags.php)
+$showLandingWalkthrough = isFeatureEnabled('LANDING_SHOW_WALKTHROUGH');
+$showLandingAttention = isFeatureEnabled('LANDING_SHOW_ATTENTION');
+$showLandingCollaboration = isFeatureEnabled('LANDING_SHOW_COLLABORATION');
+$showLandingInsights = isFeatureEnabled('LANDING_SHOW_INSIGHTS');
+$showLandingAsk = isFeatureEnabled('LANDING_SHOW_ASK');
+$showLandingPms = isFeatureEnabled('LANDING_SHOW_PMS');
 $appName = $appConfig['appName'] ?? 'DentaTrak';
 $baseUrl = rtrim($appConfig['baseUrl'], '/') . '/';
 $articleUrls = $appConfig['public_urls'] ?? [];
@@ -1681,7 +1688,6 @@ foreach (['operate', 'control', 'scale'] as $plan) {
         <img src="<?= htmlspecialchars(brandAssetUrl('logo_standard', $baseUrl)) ?>" alt="<?php echo htmlspecialchars(t('marketing.accessibility.logo_alt')); ?>">
       </a>
       <nav class="site-nav" aria-label="<?php echo htmlspecialchars(t('marketing.navigation.primary_nav')); ?>">
-        <a href="#problem"><?php echo t('marketing.navigation.problem'); ?></a>
         <a href="#how-it-works"><?php echo t('marketing.navigation.how_it_works'); ?></a>
         <a href="#pricing"><?php echo t('marketing.navigation.pricing'); ?></a>
         <span class="nav-divider" aria-hidden="true"></span>
@@ -1699,7 +1705,6 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     </div>
     <div class="nav-menu" id="nav-menu" hidden>
       <nav aria-label="<?php echo htmlspecialchars(t('marketing.navigation.primary_nav')); ?>">
-        <a class="nav-link" href="#problem"><?php echo t('marketing.navigation.problem'); ?></a>
         <a class="nav-link" href="#how-it-works"><?php echo t('marketing.navigation.how_it_works'); ?></a>
         <a class="nav-link" href="#pricing"><?php echo t('marketing.navigation.pricing'); ?></a>
         <a class="nav-link" href="<?= $baseUrl . ($articleUrls['page_resources'] ?? 'resources') ?>"><?php echo t('marketing.navigation.resources'); ?></a>
@@ -2067,27 +2072,6 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     </div>
   </section>
 
-  <section class="section video-section" aria-labelledby="video-heading">
-    <div class="container">
-      <h2 id="video-heading" data-reveal><?php echo t('marketing.video.heading'); ?></h2>
-      <p class="lead" data-reveal data-reveal-delay="75"><?php echo t('marketing.video.description'); ?></p>
-
-      <div class="video-wrap" data-reveal data-reveal-delay="150">
-        <div class="video-frame" id="videoFrame">
-          <button type="button" class="video-poster" id="videoPoster" aria-label="<?php echo htmlspecialchars(t('marketing.video.play_aria')); ?>">
-            <img id="videoPosterImg" src="https://i.ytimg.com/vi/i_o2POqMX3U/maxresdefault.jpg" alt="" loading="lazy" decoding="async">
-            <span class="video-play" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
-          </button>
-        </div>
-        <p class="video-fallback"><a href="https://www.youtube.com/watch?v=i_o2POqMX3U" target="_blank" rel="noopener"><?php echo t('marketing.video.youtube_link'); ?></a></p>
-      </div>
-
-      <div class="video-cta" data-reveal data-reveal-delay="200">
-        <a href="<?= $baseUrl ?>login.php" class="btn btn-primary"><?php echo t('marketing.video.cta'); ?></a>
-      </div>
-    </div>
-  </section>
-
   <section id="problem" class="section problem">
     <div class="container">
       <div class="problem-grid">
@@ -2147,8 +2131,9 @@ foreach (['operate', 'control', 'scale'] as $plan) {
   </section>
 
 
-  <section id="how-it-works" class="section">
+  <section id="how-it-works" class="section<?php echo $showLandingWalkthrough ? '' : ' video-section'; ?>">
     <div class="container">
+      <?php if ($showLandingWalkthrough): ?>
       <span class="eyebrow" data-reveal><?php echo t('marketing.walkthrough.eyebrow'); ?></span>
       <h2 data-reveal><?php echo t('marketing.walkthrough.title'); ?></h2>
       <p class="lead" data-reveal><?php echo t('marketing.walkthrough.lead'); ?></p>
@@ -2347,6 +2332,24 @@ foreach (['operate', 'control', 'scale'] as $plan) {
           <a href="<?= $baseUrl ?>login.php" class="btn btn-primary hw-cta"><?php echo t('marketing.pricing.start_free'); ?></a>
         </div>
       </div>
+      <?php else: ?>
+      <h2 id="video-heading" data-reveal><?php echo t('marketing.video.heading'); ?></h2>
+      <p class="lead" data-reveal data-reveal-delay="75"><?php echo t('marketing.video.description'); ?></p>
+
+      <div class="video-wrap" data-reveal data-reveal-delay="150">
+        <div class="video-frame" id="videoFrame">
+          <button type="button" class="video-poster" id="videoPoster" aria-label="<?php echo htmlspecialchars(t('marketing.video.play_aria')); ?>">
+            <img id="videoPosterImg" src="https://i.ytimg.com/vi/i_o2POqMX3U/maxresdefault.jpg" alt="" loading="lazy" decoding="async">
+            <span class="video-play" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+          </button>
+        </div>
+        <p class="video-fallback"><a href="https://www.youtube.com/watch?v=i_o2POqMX3U" target="_blank" rel="noopener"><?php echo t('marketing.video.youtube_link'); ?></a></p>
+      </div>
+
+      <div class="video-cta" data-reveal data-reveal-delay="200">
+        <a href="<?= $baseUrl ?>login.php" class="btn btn-primary"><?php echo t('marketing.video.cta'); ?></a>
+      </div>
+      <?php endif; ?>
       <p class="section-body" data-reveal>
         <?php
           $catUrl = $baseUrl . ($articleUrls['article_dental_case_tracking_software'] ?? 'dental-case-tracking-software');
@@ -2357,6 +2360,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     </div>
   </section>
 
+    <?php if ($showLandingAttention): ?>
     <section class="section attention">
     <div class="container">
       <span class="eyebrow" data-reveal><?php echo t('marketing.attention.eyebrow'); ?></span>
@@ -2410,7 +2414,9 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       </div>
     </div>
   </section>
+    <?php endif; ?>
 
+  <?php if ($showLandingCollaboration): ?>
   <section class="section collab">
     <div class="container">
       <div class="collab-grid" data-reveal>
@@ -2458,8 +2464,10 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       </div>
     </div>
   </section>
+  <?php endif; ?>
 
   <!--SECTION_INSIGHTS_MOVED-->
+  <?php if ($showLandingInsights): ?>
   <section id="insights" class="section insights">
     <div class="container">
       <div class="insights-grid" data-reveal>
@@ -2564,7 +2572,9 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       </div>
     </div>
   </section>
+  <?php endif; ?>
 
+  <?php if ($showLandingAsk): ?>
   <section class="section ask">
     <div class="container">
       <div class="ask-grid" data-reveal>
@@ -2607,7 +2617,9 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       </div>
     </div>
   </section>
+  <?php endif; ?>
 
+  <?php if ($showLandingPms): ?>
   <section class="section pms">
     <div class="container">
       <div class="pms-inner" data-reveal>
@@ -2654,6 +2666,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       </div>
     </div>
   </section>
+  <?php endif; ?>
 
   <section class="section langs">
     <div class="container" data-reveal>

@@ -6,6 +6,7 @@
 - Syntax checks: `php -l index.php`, `php -l about.php`. Existing responsive audit: `php tests/responsive-css-audit-test.php`.
 - Local public-page verification: `node tests/public-seo-test.js` against the running MAMP site at `http://localhost/DentaTrak` (override with `BASE_URL`). Set `VERIFY_PUBLIC_URLS=1` to check live canonical sitemap URLs and the professional profile; set `SEO_SCREENSHOTS` to an existing directory to capture screenshots. No login or database writes are needed.
 - New test scripts and screenshots are ignored by the existing repository rules unless explicitly allowlisted. The public SEO verifier is retained locally; do not assume it exists in a fresh checkout.
+- Landing-page section visibility is controlled by `LANDING_SHOW_*` flags in `api/feature-flags.php` (all default OFF = hidden): `LANDING_SHOW_WALKTHROUGH` (7-step interactive walkthrough, mutually exclusive with the overview video inside `#how-it-works`), `LANDING_SHOW_ATTENTION`, `LANDING_SHOW_COLLABORATION`, `LANDING_SHOW_INSIGHTS`, `LANDING_SHOW_ASK`, `LANDING_SHOW_PMS`. All markup/CSS/JS stays in `index.php`; set the env var to `true` to restore a section. The overview video (YouTube nocookie embed, lazy poster in `#how-it-works`) requires `frame-src` entries for `youtube-nocookie.com`/`youtube.com` in `api/security-headers.php`.
 
 # Local case-view verification
 
