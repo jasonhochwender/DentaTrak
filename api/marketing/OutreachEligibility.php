@@ -12,8 +12,17 @@
  * Initial outreach additionally refuses:
  *   already_contacted - this prospect has prior outreach (sheet status
  *                       Sent/Contacted/Replied, or a confirmed ledger send)
- *   duplicate_org     - another row at the same email domain or parent
- *                       organization has already been contacted
+ *   duplicate_org     - another row belonging to the same organization has
+ *                       already been contacted. "Same organization" means a
+ *                       real identifier: the CRM org record id, the verified
+ *                       practice website domain, a non-shared (corporate)
+ *                       email domain, or the recorded parent organization.
+ *                       Shared mailbox providers (gmail.com, outlook.com,
+ *                       yahoo.com, ... - SuppressionService::SHARED_DOMAINS)
+ *                       never identify an organization and are ignored here.
+ *                       Organization NAME alone is deliberately not a match
+ *                       signal: distinct practices share names (the importer
+ *                       treats same-name + different domain as two orgs).
  *
  * Follow-up additionally refuses:
  *   no_prior_outreach - no valid prior outreach record. A valid record is
@@ -26,6 +35,8 @@
  * Follow-ups are NOT blocked by already_contacted or duplicate_org: being
  * previously contacted is the precondition, not a disqualifier.
  */
+require_once __DIR__ . '/SuppressionService.php';
+
 final class OutreachEligibility
 {
     public const KIND_INITIAL = 'initial';
@@ -62,6 +73,7 @@ final class OutreachEligibility
         'last_contact'  => ['Last Contact Date', 'Last Contact'],
         'notes'         => ['Outreach Notes', 'Notes'],
         'response'      => ['Response Status', 'Response', 'Reply Status'],
+        'website'       => ['Website', 'URL', 'Web'],
     ];
 
     /** Emails listed in one sheet cell (cells may hold several). */
@@ -98,8 +110,10 @@ final class OutreachEligibility
         };
 
         $byEmail = [];            // email => list of row summaries
-        $contactedDomains = [];   // domain => [email => true]
+        $contactedDomains = [];   // non-shared email domain => [email => true]
         $contactedParents = [];   // parent => [email => true]
+        $contactedWebsites = [];  // verified website domain => [email => true]
+        $contactedOrgIds = [];    // CRM org id => [email => true]
         foreach ($rows as $i => $row) {
             $status = strtolower($cell($row, $col['status']));
             $summary = [
@@ -111,19 +125,27 @@ final class OutreachEligibility
                 'last_contact'  => $cell($row, $col['last_contact']),
                 'notes'         => $cell($row, $col['notes']),
                 'response'      => strtolower($cell($row, $col['response'])),
+                'website'       => $cell($row, $col['website']),
             ];
             $emails = self::cellEmails($cell($row, $col['email']));
             $contacted = in_array($status, self::CONTACTED, true) || in_array($status, self::REPLIED, true);
+            $site = SuppressionService::cleanDomain($summary['website']);
             foreach ($emails as $e) {
                 $byEmail[$e][] = $summary;
                 if ($contacted) {
                     $at = strrpos($e, '@');
-                    if ($at !== false) { $contactedDomains[substr($e, $at + 1)][$e] = true; }
+                    // Shared mailbox providers never identify an organization.
+                    if ($at !== false && !SuppressionService::isSharedDomain(substr($e, $at + 1))) {
+                        $contactedDomains[substr($e, $at + 1)][$e] = true;
+                    }
                     if ($summary['parent'] !== '') { $contactedParents[$summary['parent']][$e] = true; }
+                    if ($site !== '' && !SuppressionService::isSharedDomain($site)) { $contactedWebsites[$site][$e] = true; }
                 }
             }
         }
-        return ['byEmail' => $byEmail, 'contactedDomains' => $contactedDomains, 'contactedParents' => $contactedParents];
+        return ['byEmail' => $byEmail, 'contactedDomains' => $contactedDomains,
+                'contactedParents' => $contactedParents, 'contactedWebsites' => $contactedWebsites,
+                'contactedOrgIds' => $contactedOrgIds];
     }
 
     /**
@@ -155,6 +177,7 @@ final class OutreachEligibility
         if (!$inSheet && !empty($ctx['require_in_sheet'])) { $flags[] = 'not_in_sheet'; }
 
         $contacted = false; $replied = false; $evidence = false; $parents = [];
+        $websites = []; $orgIds = [];
         foreach ($rows as $r) {
             if (!in_array($r['dnc'], self::FALSY, true)) { $flags[] = 'do_not_contact'; }
             if (isset(self::STATUS_FLAGS[$r['status']])) {
@@ -172,6 +195,9 @@ final class OutreachEligibility
                 $replied = true;
             }
             if ($r['parent'] !== '') { $parents[$r['parent']] = true; }
+            $site = SuppressionService::cleanDomain((string)($r['website'] ?? ''));
+            if ($site !== '' && !SuppressionService::isSharedDomain($site)) { $websites[$site] = true; }
+            if (isset($r['org_id']) && (int)$r['org_id'] > 0) { $orgIds[(int)$r['org_id']] = true; }
         }
         $ledgerSent = !empty($ctx['ledger_sent']);
         $priorOutreach = $ledgerSent || ($contacted && $evidence);
@@ -182,8 +208,15 @@ final class OutreachEligibility
             } else {
                 $at = strrpos($email, '@');
                 $domain = $at === false ? '' : substr($email, $at + 1);
-                $others = $index['contactedDomains'][$domain] ?? [];
+                $others = [];
+                // Email domain only identifies an org when it is not a
+                // shared mailbox provider (gmail.com belongs to nobody).
+                if ($domain !== '' && !SuppressionService::isSharedDomain($domain)) {
+                    $others += ($index['contactedDomains'][$domain] ?? []);
+                }
                 foreach (array_keys($parents) as $p) { $others += ($index['contactedParents'][$p] ?? []); }
+                foreach (array_keys($websites) as $w) { $others += (($index['contactedWebsites'] ?? [])[$w] ?? []); }
+                foreach (array_keys($orgIds) as $o) { $others += (($index['contactedOrgIds'] ?? [])[$o] ?? []); }
                 unset($others[$email]);
                 if ($others) { $flags[] = 'duplicate_org'; }
             }

@@ -77,6 +77,7 @@ final class ProspectCrm
         $rows = $this->pdo->query(
             "SELECT c.id, c.sheet_row, c.org_id, $userCol,
                     o.name AS org_name, po.name AS parent_name, $practiceCol,
+                    o.domain AS org_domain, o.website AS org_website,
                     c.email, c.email_normalized, c.status, c.dnc,
                     c.first_name, c.last_name, c.full_name,
                     c.first_contact_date, c.last_contact_date, c.followup_date,
@@ -88,8 +89,10 @@ final class ProspectCrm
 
         $records = [];
         $eligByEmail = [];       // email => list of OutreachEligibility summaries
-        $contactedDomains = [];  // domain => [email => true]  (contacted statuses)
+        $contactedDomains = [];  // non-shared email domain => [email => true]  (contacted statuses)
         $contactedParents = [];  // parent => [email => true]
+        $contactedWebsites = []; // verified website domain => [email => true]
+        $contactedOrgIds = [];   // org id => [email => true]
         $eligContacted = ['sent' => true, 'contacted' => true, 'replied' => true];
 
         foreach ($rows as $r) {
@@ -105,7 +108,14 @@ final class ProspectCrm
             $registered = ($r['practice_id'] !== null && $r['practice_id'] !== '')
                 || ($r['user_id'] !== null && $r['user_id'] !== '')
                 || in_array($statusL, ['signed up', 'registered - setup incomplete'], true);
+            $orgId = $r['org_id'] !== null && $r['org_id'] !== '' ? (int)$r['org_id'] : null;
+            // Verified org identifier: the recorded domain wins, the raw
+            // website is the fallback source for the same domain.
+            $orgSite = trim((string)($r['org_domain'] ?? '')) !== ''
+                ? (string)$r['org_domain'] : (string)($r['org_website'] ?? '');
             $fields = [
+                'org_id'         => $orgId,
+                'website'        => $orgSite,
                 'email'          => $email,
                 'registered'     => $registered,
                 'org'            => (string)($r['org_name'] ?? ''),
@@ -134,17 +144,27 @@ final class ProspectCrm
                     'last_contact'  => $fields['last_contact'],
                     'notes'         => $fields['notes'],
                     'response'      => strtolower(trim($fields['response'])),
+                    'website'       => $orgSite,
+                    'org_id'        => $orgId,
                 ];
                 $eligByEmail[$email][] = $summary;
                 if (isset($eligContacted[$statusL])) {
                     $at = strrpos($email, '@');
-                    if ($at !== false) $contactedDomains[substr($email, $at + 1)][$email] = true;
+                    // Shared mailbox providers never identify an org.
+                    if ($at !== false && !SuppressionService::isSharedDomain(substr($email, $at + 1))) {
+                        $contactedDomains[substr($email, $at + 1)][$email] = true;
+                    }
                     if ($parent !== '') $contactedParents[$parent][$email] = true;
+                    $site = SuppressionService::cleanDomain($orgSite);
+                    if ($site !== '' && !SuppressionService::isSharedDomain($site)) $contactedWebsites[$site][$email] = true;
+                    if ($orgId !== null && $orgId > 0) $contactedOrgIds[$orgId][$email] = true;
                 }
             }
         }
 
-        $eligIndex = ['byEmail' => $eligByEmail, 'contactedDomains' => $contactedDomains, 'contactedParents' => $contactedParents];
+        $eligIndex = ['byEmail' => $eligByEmail, 'contactedDomains' => $contactedDomains,
+            'contactedParents' => $contactedParents, 'contactedWebsites' => $contactedWebsites,
+            'contactedOrgIds' => $contactedOrgIds];
 
         // Ledger of confirmed sends (same source as the sheet directory).
         $ledger = [];

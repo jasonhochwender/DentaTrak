@@ -30,7 +30,7 @@ function ok(string $msg, bool $cond): void {
 // ---------------------------------------------------------------- sheet fixture
 $header = ['Public Email', 'Practice Name', 'Parent Organization', 'Outreach Status',
     'Do Not Contact', 'First Contact Date', 'Last Contact Date', 'Outreach Notes',
-    'Response Status', 'Follow-up Date'];
+    'Response Status', 'Follow-up Date', 'Website'];
 $rows = [
     // 0 -> sheet row 2: fresh prospect, never contacted
     ['new@practice-a.com', 'Practice A', '', 'New', '', '', '', '', '', ''],
@@ -59,6 +59,21 @@ $rows = [
     ['lead@alpha-group.com', 'Alpha Lead', 'Alpha Dental Group', 'Sent', '', '2026-09-15', '', '', '', ''],
     // 12 -> row 14: 'Sent' with NO evidence (no dates, no gmail id)
     ['noevidence@practice-k.com', 'Practice K', '', 'Sent', '', '', '', '', '', ''],
+    // 13 -> row 15: SHARED PROVIDER - contacted gmail row. gmail.com must
+    //          never act as an org identifier; its website is a real one.
+    ['owner1@gmail.com', 'Gmail Practice One', '', 'Sent', '', '2026-10-05', '', '', '', '', 'gmailpracticeone.com'],
+    // 14 -> row 16: a distinct practice that also uses gmail -> eligible
+    ['owner2@gmail.com', 'Gmail Practice Two', '', 'New', '', '', '', '', '', '', ''],
+    // 15 -> row 17: shared-provider email but same parent org as a
+    //          contacted row -> still duplicate_org (parent matching kept)
+    ['owner3@gmail.com', 'Alpha Satellite', 'Alpha Dental Group', 'New', '', '', '', '', '', ''],
+    // 16 -> row 18: different email domain, same verified website domain
+    //          as a contacted row -> duplicate_org via website
+    ['frontdesk@othermail.com', 'Front Desk', '', 'New', '', '', '', '', '', '', 'https://www.gmailpracticeone.com/'],
+    // 17 -> row 19: another contacted row on a shared provider, no website
+    ['info@outlook.com', 'Outlook Practice One', '', 'Sent', '', '2026-10-06', '', '', '', '', ''],
+    // 18 -> row 20: a distinct practice on outlook.com -> eligible
+    ['reception@outlook.com', 'Outlook Practice Two', '', 'New', '', '', '', '', '', '', ''],
 ];
 $idx = OutreachEligibility::index($header, $rows);
 
@@ -79,6 +94,36 @@ ok('initial: same-domain-as-contacted refused (duplicate_org)',
 
 $r = OutreachEligibility::evaluate($idx, 'sibling@practice-j.com', 'initial');
 ok('initial: same-parent-org-as-contacted refused (duplicate_org)',
+    !$r['ok'] && in_array('duplicate_org', $r['flags'], true));
+
+// ---- shared mailbox providers (gmail.com, outlook.com, ...) ----
+// The confirmed defect: distinct practices on public providers were
+// flagged duplicate_org because their EMAIL domain matched. A shared
+// provider domain must never identify an organization.
+$r = OutreachEligibility::evaluate($idx, 'owner1@gmail.com', 'initial');
+ok('initial: contacted gmail row refused (already_contacted)',
+    !$r['ok'] && in_array('already_contacted', $r['flags'], true));
+
+$r = OutreachEligibility::evaluate($idx, 'owner2@gmail.com', 'initial');
+ok('initial: distinct gmail practice is eligible (no shared-domain dedup)',
+    $r['ok'] && $r['flags'] === []);
+
+$r = OutreachEligibility::evaluate($idx, 'reception@outlook.com', 'initial');
+ok('initial: distinct outlook practice is eligible',
+    $r['ok'] && $r['flags'] === []);
+
+$r = OutreachEligibility::evaluate($idx, 'owner2@gmail.com', 'followup');
+ok('followup: untouched gmail prospect refused only for no_prior_outreach',
+    !$r['ok'] && in_array('no_prior_outreach', $r['flags'], true)
+    && !in_array('duplicate_org', $r['flags'], true));
+
+// Legitimate org matching is preserved while shared providers are ignored:
+$r = OutreachEligibility::evaluate($idx, 'owner3@gmail.com', 'initial');
+ok('initial: shared-provider email + shared parent org still refused',
+    !$r['ok'] && in_array('duplicate_org', $r['flags'], true));
+
+$r = OutreachEligibility::evaluate($idx, 'frontdesk@othermail.com', 'initial');
+ok('initial: shared verified website domain still refused',
     !$r['ok'] && in_array('duplicate_org', $r['flags'], true));
 
 // ---- follow-up campaigns ----
@@ -177,6 +222,51 @@ $pol = new MarketingSendingPolicy($env(['MARKETING_SENDING' => 'true']));
 ok('policy: empty allowlist permits nobody', $pol->mode() === 'allowlist' && !$pol->check('a@b.com')['allowed']);
 $s = $pol->summary();
 ok('policy summary hides addresses', $s['enabled'] === true && $s['mode'] === 'allowlist' && $s['allowlist_count'] === 0);
+
+// ---------------------------------------------------------------- ProspectDirectory::annotateRecords
+// The CRM path flags records through the same shared-domain rules. Records
+// carry 'website' (verified org domain) and 'org_id' fields. Empty sqlite
+// suppression tables keep the SuppressionService queries valid.
+require_once $baseDir . '/api/marketing/ProspectDirectory.php';
+$sqlite = new PDO('sqlite::memory:', null, null, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+$sqlite->exec("CREATE TABLE marketing_suppressions (email_normalized TEXT)");
+$sqlite->exec("CREATE TABLE marketing_org_suppressions (org_ref TEXT)");
+$sqlite->exec("CREATE TABLE marketing_orgs (id INTEGER PRIMARY KEY, dnc INTEGER)");
+$sqlite->exec("CREATE TABLE marketing_contacts (id INTEGER PRIMARY KEY, org_id INTEGER, email_normalized TEXT, dnc INTEGER)");
+$suppService = new SuppressionService($sqlite);
+$emptyIndex = ['byEmail' => [], 'contactedDomains' => [], 'contactedParents' => [],
+               'contactedWebsites' => [], 'contactedOrgIds' => []];
+$mkRec = function (array $over) {
+    return ['row' => 0, 'raw' => [], 'fields' => array_merge([
+        'email' => '', 'status' => 'New', 'dnc' => '', 'parent_org' => '',
+        'followup_date' => '', 'first_contact' => '', 'last_contact' => '',
+        'notes' => '', 'response' => '', 'contact_name' => '', 'contact_first' => '',
+        'contact_last' => '', 'registered' => '', 'website' => '', 'org_id' => '',
+    ], $over)];
+};
+$ann = ProspectDirectory::annotateRecords([
+    // contacted gmail practice (org 11, verified site acmedental.example)
+    'a' => $mkRec(['email' => 'dr.smith@gmail.com', 'status' => 'Sent',
+        'first_contact' => '2026-10-01', 'website' => 'acmedental.example', 'org_id' => '11']),
+    // distinct gmail practice -> must NOT be flagged
+    'b' => $mkRec(['email' => 'team@gmail.com', 'website' => 'brightdental.example', 'org_id' => '12']),
+    // same verified website domain as contacted -> duplicate_org
+    'c' => $mkRec(['email' => 'front.desk@fastmail.example', 'website' => 'https://acmedental.example', 'org_id' => '12']),
+    // different email + website, same CRM org id -> duplicate_org
+    'd' => $mkRec(['email' => 'billing@gmail.com', 'org_id' => '11']),
+    // contacted gmail practice with NO org identifier: a bare gmail domain
+    // must not contaminate anything
+    'e' => $mkRec(['email' => 'owner9@gmail.com', 'status' => 'Sent', 'first_contact' => '2026-10-02']),
+    'f' => $mkRec(['email' => 'owner10@gmail.com']),
+], $emptyIndex, $suppService, []);
+ok('annotate: distinct gmail practice not duplicate_org',
+    !in_array('duplicate_org', $ann['b']['flags'], true) && $ann['b']['eligibility']['initial']['ok']);
+ok('annotate: same verified website flagged duplicate_org',
+    in_array('duplicate_org', $ann['c']['flags'], true));
+ok('annotate: same CRM org id flagged duplicate_org',
+    in_array('duplicate_org', $ann['d']['flags'], true));
+ok('annotate: bare gmail send does not taint other gmail contacts',
+    !in_array('duplicate_org', $ann['f']['flags'], true));
 
 // ---------------------------------------------------------------- footer
 $html = MarketingFooter::html('https://dentatrak.com/unsubscribe.php?t=abc123');

@@ -11,9 +11,12 @@
  *  - missing_contact : no usable email address
  *  - do_not_contact   : sheet Do Not Contact / DNC cell is set, or the
  *                       email/org is in the authoritative suppression store
- *  - duplicate_org    : another sheet row shares the same email domain or
- *                       parent organization AND already has outreach status
- *                       Sent/Contacted/Replied
+ *  - duplicate_org    : another row belonging to the same organization AND
+ *                       already has outreach status Sent/Contacted/Replied.
+ *                       Organization identity = CRM org id, verified website
+ *                       domain, non-shared email domain, or recorded parent
+ *                       org. Shared mailbox providers (gmail.com, etc.) never
+ *                       identify an organization.
  *  - overdue_followup : follow-up date is in the past and the record is not
  *                       Replied / Do Not Contact / bounced
  *
@@ -129,9 +132,13 @@ final class ProspectDirectory
      */
     public static function annotateRecords(array $records, array $eligIndex, SuppressionService $suppression, array $ledgerSent): array
     {
-        // Index for duplicate-org detection: domain + parent org -> contacted rows
-        $contactedDomains = [];
-        $contactedParents = [];
+        // Index for duplicate-org detection: real org identifiers ->
+        // contacted. Shared mailbox providers (gmail.com, yahoo.com, ...) are
+        // never organization identifiers and are skipped on BOTH sides.
+        $contactedDomains = [];   // non-shared email domain
+        $contactedParents = [];   // recorded parent organization
+        $contactedWebsites = [];  // verified website domain
+        $contactedOrgIds = [];    // CRM org id (present on CRM records only)
         foreach ($records as $r) {
             $f = $r['fields'];
             $st = strtolower($f['status']);
@@ -139,10 +146,15 @@ final class ProspectDirectory
             if (!$contacted) continue;
             $email = strtolower($f['email']);
             if ($email !== '' && ($p = strrpos($email, '@')) !== false) {
-                $contactedDomains[substr($email, $p + 1)] = true;
+                $d = substr($email, $p + 1);
+                if (!SuppressionService::isSharedDomain($d)) $contactedDomains[$d] = true;
             }
             $parent = strtolower(trim($f['parent_org']));
             if ($parent !== '') $contactedParents[$parent] = true;
+            $site = SuppressionService::cleanDomain((string)($f['website'] ?? ''));
+            if ($site !== '' && !SuppressionService::isSharedDomain($site)) $contactedWebsites[$site] = true;
+            $oid = (int)($f['org_id'] ?? 0);
+            if ($oid > 0) $contactedOrgIds[$oid] = true;
         }
 
         $index = $eligIndex;
@@ -166,17 +178,32 @@ final class ProspectDirectory
                 if ($contactDnc || $orgDnc) $flags[] = 'do_not_contact';
                 if ($orgDnc) $flags[] = 'org_do_not_contact';
                 $r['dnc_scope'] = $contactDnc && $orgDnc ? 'both' : ($orgDnc ? 'organization' : ($contactDnc ? 'contact' : ''));
-                // Duplicate org: another row shares this email domain or
-                // parent organization and has already been contacted.
+                // Duplicate org: another contacted row shares a real org
+                // identifier with this contact. Shared mailbox providers are
+                // ignored - a gmail.com address proves nothing about org
+                // membership.
                 $dup = false;
-                if ($email !== '' && ($p = strrpos($email, '@')) !== false) {
-                    $dup = isset($contactedDomains[substr($email, $p + 1)])
-                        && !self::isContactedStatus($f['status']);
-                }
-                $parent = strtolower(trim($f['parent_org']));
-                if (!$dup && $parent !== '' && isset($contactedParents[$parent])
-                    && !self::isContactedStatus($f['status'])) {
-                    $dup = true;
+                $selfContacted = self::isContactedStatus($f['status']);
+                if (!$selfContacted) {
+                    if ($email !== '' && ($p = strrpos($email, '@')) !== false) {
+                        $d = substr($email, $p + 1);
+                        $dup = !SuppressionService::isSharedDomain($d) && isset($contactedDomains[$d]);
+                    }
+                    $parent = strtolower(trim($f['parent_org']));
+                    if (!$dup && $parent !== '' && isset($contactedParents[$parent])) {
+                        $dup = true;
+                    }
+                    if (!$dup) {
+                        $site = SuppressionService::cleanDomain((string)($f['website'] ?? ''));
+                        if ($site !== '' && !SuppressionService::isSharedDomain($site)
+                            && isset($contactedWebsites[$site])) {
+                            $dup = true;
+                        }
+                    }
+                    $oid = (int)($f['org_id'] ?? 0);
+                    if (!$dup && $oid > 0 && isset($contactedOrgIds[$oid])) {
+                        $dup = true;
+                    }
                 }
                 if ($dup) $flags[] = 'duplicate_org';
             }
